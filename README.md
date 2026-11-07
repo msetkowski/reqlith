@@ -43,6 +43,8 @@ specification; development agents read exactly the version that was approved, th
   PDFs. Writing `` `SR-03` `` links to that element.
 - **Traceability:** typed links (derived from, verified by, depends on, mitigates) in both directions, plus
   readiness checks such as functional requirements without a scenario or broken references.
+- **Invite by name:** while you type, invitation fields suggest people who signed in before and, with Keycloak,
+  every enabled user of the realm.
 - **Roles across projects:** select an existing role or create one, then describe what it does in this
   project.
 - **Whole-project review:** reviewers accept, request changes or reject a frozen candidate, and can suggest
@@ -336,7 +338,7 @@ The image is about 350 MB. Building requires JDK 25 or newer, which the Maven en
 |---|---|
 | Reqlith | ports 8080 (application) and 8081 (actuator, cluster-internal) |
 | MS SQL Server | schema owned by `reqlith_app`. Create a `reqlith_mcp` login with read rights for MCP (see `src/main/dev/mssql/init.sql`). |
-| OAuth 2 / OIDC IDP | any provider. Realm roles are read from the `roles` claim, and `reqlith-admin` manages workspaces. |
+| OAuth 2 / OIDC IDP | any provider. Realm roles are read from the `roles` claim, and `reqlith-admin` manages workspaces. For `REQLITH_IDP_DIRECTORY=KEYCLOAK`, the client needs a service account with the `realm-management` role `view-users` and the optional client scope `kc-admin-api` (see `src/main/dev/keycloak/reqlith-realm.json`). Suggestions show names and e-mail addresses of the realm's users to every signed-in user. |
 | Gotenberg | PDF rendering. Keep it internal, and start it with `--chromium-allow-list=^file:///tmp/.*` so rendered pages have no network access. |
 
 ### Health and metrics
@@ -385,6 +387,7 @@ still be overridden with the variable.
 | `REQLITH_MCP_DB_URL` | no | main URL | read-only connection, if it differs |
 | `REQLITH_IDP_CLIENT_ID` | no | `reqlith-app` | OIDC client |
 | `REQLITH_IDP_INTERNAL_URL` | no | the issuer | how the server reaches the IDP, when that differs (containers) |
+| `REQLITH_IDP_DIRECTORY` | no | `KEYCLOAK` (`NONE` otherwise) | invitation suggestions: `NONE` = users who signed in before, `KEYCLOAK` = also the realm's enabled users |
 | `MANAGEMENT_PORT` | no | `8081` | actuator port |
 | `LOGGING_LEVEL_IO_REQLITH` | no | `DEBUG` (`INFO` otherwise) | application log level |
 

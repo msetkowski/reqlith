@@ -31,5 +31,15 @@ data class ReqlithProperties(
         /** How the server reaches the IDP; differs from [issuer] inside containers. */
         val internalUrl: String = issuer,
         val endSessionPath: String = "/protocol/openid-connect/logout",
+        /** Where invitation suggestions look up people besides users who signed in before. */
+        val directory: DirectoryType = DirectoryType.NONE,
     )
+
+    enum class DirectoryType {
+        /** Only users who have signed in to Reqlith at least once. */
+        NONE,
+
+        /** Also the enabled users of the Keycloak realm (admin API, client credentials with view-users). */
+        KEYCLOAK,
+    }
 }

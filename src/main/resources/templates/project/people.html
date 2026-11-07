@@ -56,7 +56,10 @@
             <form class="card-body" th:if="${isOwner}" method="post" th:action="@{/p/{k}/people/invite(k=${project.key})}">
                 <div class="row">
                     <label class="sr-only" for="email">E-mail</label>
-                    <input class="input" id="email" type="email" name="email" required placeholder="name@company.com"
+                    <input class="input" id="email" type="email" name="email" required placeholder="Name or e-mail address"
+                           autocomplete="off" list="user-suggestions"
+                           hx-get="/users/suggest" hx-trigger="input changed delay:250ms" hx-target="#user-suggestions"
+                           th:attr="hx-vals=|js:{q: event.target.value, project: '${project.key}'}|"
                            th:value="${inviteEmail}" style="flex: 1 1 260px">
                     <label class="sr-only" for="invite-role">Role</label>
                     <select class="select" id="invite-role" name="role" style="width: 160px">
@@ -64,7 +67,8 @@
                     </select>
                     <button class="btn primary" type="submit">Invite</button>
                 </div>
-                <p class="hint xs muted">The person accepts the invitation on their home page after signing in.</p>
+                <datalist th:replace="~{fragments/suggestions :: datalist}"></datalist>
+                <p class="hint xs muted">Type a name to see people from the identity provider. The person accepts the invitation on their home page after signing in.</p>
             </form>
             <div class="empty" th:if="${invitations.isEmpty()}">No pending invitations.</div>
             <div class="table-wrap" th:unless="${invitations.isEmpty()}">

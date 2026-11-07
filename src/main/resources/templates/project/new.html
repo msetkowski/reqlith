@@ -56,10 +56,13 @@
                     <h2>People</h2>
                 </div>
                 <div class="card-body">
+                    <datalist th:replace="~{fragments/suggestions :: datalist}"></datalist>
                     <p class="small muted">You become the first owner. Others are invited by e-mail and join when they accept the invitation on their home page.</p>
                     <div class="row" th:each="i : ${#numbers.sequence(0, 2)}">
                         <label class="sr-only" th:for="|invite${i}|">E-mail</label>
-                        <input class="input" type="email" th:id="|invite${i}|" name="inviteEmails" placeholder="name@company.com"
+                        <input class="input" type="email" th:id="|invite${i}|" name="inviteEmails" placeholder="Name or e-mail address"
+                               autocomplete="off" list="user-suggestions" hx-get="/users/suggest" hx-trigger="input changed delay:250ms"
+                               hx-target="#user-suggestions" hx-vals="js:{q: event.target.value}"
                                th:value="${i < form.inviteEmails.size()} ? ${form.inviteEmails[i]} : ''" style="flex: 1 1 240px">
                         <label class="sr-only" th:for="|inviteRole${i}|">Role</label>
                         <select class="select" th:id="|inviteRole${i}|" name="inviteRoles" style="width: 160px">

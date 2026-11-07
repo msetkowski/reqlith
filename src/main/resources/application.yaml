@@ -35,6 +35,14 @@ spring:
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
             scope: [openid, profile, email]
             client-name: Reqlith IDP
+          # Server-to-server access to the IDP's user directory (invitation suggestions, Keycloak only).
+          directory:
+            provider: idp
+            client-id: ${spring.security.oauth2.client.registration.idp.client-id}
+            client-secret: ${spring.security.oauth2.client.registration.idp.client-secret}
+            authorization-grant-type: client_credentials
+            # Keycloak 26.4+: the admin API accepts only tokens with this (optional) client scope.
+            scope: [kc-admin-api]
         provider:
           idp:
             authorization-uri: ${reqlith.idp.browser-url}/protocol/openid-connect/auth
@@ -66,6 +74,8 @@ reqlith:
     internal-url: ${REQLITH_IDP_INTERNAL_URL:${reqlith.idp.issuer}}
     # OIDC end-session endpoint for logout.
     end-session-path: /protocol/openid-connect/logout
+    # Invitation suggestions: NONE (users who signed in before) or KEYCLOAK (also the realm's enabled users).
+    directory: ${REQLITH_IDP_DIRECTORY:NONE}
 
 spring.ai.mcp.server:
   name: reqlith
@@ -149,6 +159,7 @@ reqlith:
     url: ${REQLITH_PDF_URL:http://localhost:3000}
   idp:
     issuer: ${REQLITH_IDP_ISSUER:http://localhost:8180/realms/reqlith}
+    directory: ${REQLITH_IDP_DIRECTORY:KEYCLOAK}
 logging:
   level:
     # Local development: engineer hints on.

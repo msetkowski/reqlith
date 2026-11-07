@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--/* Suggestions for an e-mail input: browsers show the name next to the address. */-->
+<th:block th:fragment="options">
+    <option th:each="p : ${people}" th:value="${p.email}" th:label="|${p.name} · ${p.email}|" th:text="${p.name}">Name</option>
+</th:block>
+
+<!--/*
+  Datalist filled while typing in any input with list="user-suggestions" and the attributes below:
+    hx-get="/users/suggest" hx-trigger="input changed delay:250ms" hx-target="#user-suggestions"
+    hx-vals="js:{q: event.target.value}" (plus project=KEY to leave out existing members)
+*/-->
+<datalist id="user-suggestions" th:fragment="datalist"></datalist>
+</body>
+</html>

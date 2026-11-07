@@ -24,7 +24,7 @@
       "secret": "reqlith-dev-secret",
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
-      "serviceAccountsEnabled": false,
+      "serviceAccountsEnabled": true,
       "redirectUris": [
         "http://localhost:8080/*"
       ],
@@ -57,6 +57,9 @@
             "userinfo.token.claim": "true"
           }
         }
+      ],
+      "optionalClientScopes": [
+        "kc-admin-api"
       ]
     },
     {
@@ -201,6 +204,16 @@
       "realmRoles": [
         "default-roles-reqlith"
       ]
+    },
+    {
+      "username": "service-account-reqlith-app",
+      "enabled": true,
+      "serviceAccountClientId": "reqlith-app",
+      "clientRoles": {
+        "realm-management": [
+          "view-users"
+        ]
+      }
     }
   ]
 }
