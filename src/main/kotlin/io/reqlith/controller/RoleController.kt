@@ -78,10 +78,26 @@ class RoleController(
 
     /** All roles across projects. */
     @GetMapping("/roles")
-    fun all(model: Model): String {
+    fun all(@AuthenticationPrincipal user: CurrentUser, model: Model): String {
         model.addAttribute("roles", roles.all())
         model.addAttribute("usage", roles.usage())
+        model.addAttribute("canCreate", roles.canCreate(user))
         return "role/list"
+    }
+
+    @PostMapping("/roles")
+    fun create(
+        @AuthenticationPrincipal user: CurrentUser,
+        @RequestParam name: String,
+        @RequestParam(required = false) description: String?,
+        model: Model,
+    ): String = try {
+        "redirect:/roles/${roles.create(user, name, description).key}"
+    } catch (e: ValidationException) {
+        model.addAttribute("error", e)
+        model.addAttribute("newName", name)
+        model.addAttribute("newDescription", description)
+        all(user, model)
     }
 
     @GetMapping("/roles/{roleKey}")

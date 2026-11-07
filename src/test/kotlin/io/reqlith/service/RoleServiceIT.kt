@@ -7,6 +7,8 @@ import io.reqlith.support.TestUsers
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.access.AccessDeniedException
@@ -48,5 +50,23 @@ class RoleServiceIT(
         assertFailsWith<AccessDeniedException> { roles.updateGlobal(outsider, role, role.name, "Hijacked") }
         roles.updateGlobal(owner, role, role.name, "New")
         assertEquals("New", roles.get(role.key).descriptionMd)
+    }
+
+    @Test
+    fun `editors create standalone roles that stay editable until a project uses them`() {
+        val editor = users.create("Olive Owens")
+        val otherEditor = users.create("Oscar Ortiz")
+        val viewer = users.create("Vera Voss")
+        fixtures.project(editor)
+        val otherProject = fixtures.project(otherEditor)
+
+        val role = roles.create(editor, "Auditor " + UUID.randomUUID().toString().take(6), "Checks refunds")
+        assertTrue(roles.canEditGlobal(otherEditor, role), "an unused role can be refined by any editor")
+        assertFailsWith<AccessDeniedException> { roles.create(viewer, "Nope " + UUID.randomUUID(), null) }
+        assertFailsWith<ValidationException> { roles.create(editor, role.name.lowercase(), null) }
+
+        roles.addExisting(otherEditor, otherProject, role.id, "Reviews payouts")
+        assertFalse(roles.canEditGlobal(editor, role), "once used, only that project's editors change it")
+        assertTrue(roles.canEditGlobal(otherEditor, role))
     }
 }

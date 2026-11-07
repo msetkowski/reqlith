@@ -18,6 +18,10 @@ class ProjectAccess(private val members: ProjectMemberRepository) {
 
     fun roleOf(project: Project, user: CurrentUser): MemberRole? = roleOf(project.id, user.userId)
 
+    /** Owner or contributor of at least one project. */
+    fun isEditorAnywhere(user: CurrentUser): Boolean =
+        members.findByIdUserId(user.userId).any { it.role == MemberRole.OWNER || it.role == MemberRole.CONTRIBUTOR }
+
     fun roleOf(projectId: UUID, userId: UUID): MemberRole? =
         members.findById(MemberId(projectId, userId)).orElse(null)?.role
 

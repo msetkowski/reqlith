@@ -13,8 +13,9 @@
         <h1>Roles</h1>
         <p class="muted">Groups of users shared across projects. Each project describes what a role does in its own context.</p>
     </section>
+    <div class="banner danger" th:if="${error}" th:text="${error.message}" role="alert">Error</div>
     <section class="card">
-        <div class="empty" th:if="${roles.isEmpty()}">No roles yet. Add them from a project's Roles section.</div>
+        <div class="empty" th:if="${roles.isEmpty()}">No roles yet.</div>
         <div class="table-wrap" th:unless="${roles.isEmpty()}">
             <table class="data">
                 <thead><tr><th>ID</th><th>Name</th><th>Used in projects</th><th>Modified</th></tr></thead>
@@ -28,6 +29,23 @@
                 </tbody>
             </table>
         </div>
+    </section>
+
+    <section class="card" th:if="${canCreate}">
+        <div class="card-head"><h2>New role</h2></div>
+        <form class="card-body" method="post" th:action="@{/roles}">
+            <div class="field">
+                <label for="name">Name <span class="req">*</span></label>
+                <input class="input" id="name" name="name" required maxlength="200" th:value="${newName}" placeholder="e.g. Claims handler">
+            </div>
+            <div class="field">
+                <label for="description">General description (Markdown, shared by all projects)</label>
+                <textarea class="textarea code" id="description" name="description" rows="4" th:text="${newDescription}"
+                          placeholder="Who belongs to this group and what they are responsible for"></textarea>
+                <span class="hint">Projects then select the role and describe what it does in their context.</span>
+            </div>
+            <div><button class="btn primary" type="submit">Create role</button></div>
+        </form>
     </section>
 </main>
 </body>

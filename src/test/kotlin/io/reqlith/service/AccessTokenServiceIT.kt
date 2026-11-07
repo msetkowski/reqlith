@@ -35,6 +35,7 @@ class AccessTokenServiceIT(
         assertFailsWith<NotFoundException> { tokens.revoke(other, created.token.id) }
         tokens.revoke(owner, created.token.id)
         assertNull(tokens.authenticate(created.value))
+        assertTrue(tokens.forUser(owner).none { it.id == created.token.id }, "revoked tokens are not listed")
         assertFailsWith<ValidationException> { tokens.create(owner, " ") }
     }
 }

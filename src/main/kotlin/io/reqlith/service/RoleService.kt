@@ -48,8 +48,24 @@ class RoleService(
     /** Number of projects using each role. */
     fun usage(): Map<UUID, Int> = projectRoles.findAll().groupingBy { it.id.roleId }.eachCount()
 
-    fun canEditGlobal(user: CurrentUser, role: Role): Boolean =
-        user.isAdmin || projectIdsUsing(role).any { access.roleOf(it, user.userId) in EDITOR_ROLES }
+    /**
+     * Admins, editors of a project using the role, and, while no project uses it yet, anyone who may create roles.
+     */
+    fun canEditGlobal(user: CurrentUser, role: Role): Boolean {
+        if (user.isAdmin) return true
+        val usedBy = projectIdsUsing(role)
+        return if (usedBy.isEmpty()) canCreate(user) else usedBy.any { access.roleOf(it, user.userId) in EDITOR_ROLES }
+    }
+
+    /** Admins and editors of at least one project can define new roles. */
+    fun canCreate(user: CurrentUser): Boolean = user.isAdmin || access.isEditorAnywhere(user)
+
+    /** A new role that projects can then select, created from the roles overview. */
+    @Transactional
+    fun create(user: CurrentUser, name: String, descriptionMd: String?): Role {
+        if (!canCreate(user)) throw AccessDeniedException("Only editors of a project can create roles")
+        return newRole(user, name, descriptionMd).also { logger.info { "Role created role=${it.key}" } }
+    }
 
     fun projectIdsUsing(role: Role): List<UUID> = projectRoles.findByIdRoleId(role.id).map { it.id.projectId }
 
@@ -69,20 +85,7 @@ class RoleService(
     fun createAndAdd(user: CurrentUser, project: Project, name: String, descriptionMd: String?, contextMd: String?): Role {
         access.requireEditor(project, user)
         project.requireEditable()
-        val trimmed = name.trim()
-        if (trimmed.isEmpty()) throw ValidationException("name", "Role name is required")
-        if (roles.findByNameIgnoreCase(trimmed) != null) {
-            throw ValidationException("name", "A role called $trimmed already exists. Select it from the list instead.")
-        }
-        val role = roles.save(
-            Role(
-                key = "RO-%02d".format(keyCounter.next("ROLE_KEY", "RO")),
-                name = trimmed,
-                descriptionMd = normalize(descriptionMd),
-                updatedAt = Instant.now(clock),
-                updatedBy = user.userId,
-            ),
-        )
+        val role = newRole(user, name, descriptionMd)
         projectRoles.save(ProjectRole(ProjectRoleId(project.id, role.id), normalize(contextMd), projectRoles.maxSortOrder(project.id) + 1))
         projectService.touch(project, user)
         logger.info { "Role created and added project=${project.key} role=${role.key}" }
@@ -126,6 +129,24 @@ class RoleService(
         role.updatedBy = user.userId
         roles.save(role)
         logger.info { "Global role changed role=${role.key} usedInProjects=${projectIdsUsing(role).size}" }
+    }
+
+    private fun newRole(user: CurrentUser, name: String, descriptionMd: String?): Role {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) throw ValidationException("name", "Role name is required")
+        if (trimmed.length > 200) throw ValidationException("name", "Keep the name under 200 characters")
+        if (roles.findByNameIgnoreCase(trimmed) != null) {
+            throw ValidationException("name", "A role called $trimmed already exists. Select it from the list instead.")
+        }
+        return roles.save(
+            Role(
+                key = "RO-%02d".format(keyCounter.next("ROLE_KEY", "RO")),
+                name = trimmed,
+                descriptionMd = normalize(descriptionMd),
+                updatedAt = Instant.now(clock),
+                updatedBy = user.userId,
+            ),
+        )
     }
 
     private fun normalize(markdown: String?): String? = markdown?.replace("\r\n", "\n")?.ifBlank { null }

@@ -47,11 +47,10 @@
                     <td class="muted" th:text="${@formats.date(t.createdAt)}">date</td>
                     <td class="muted" th:text="${t.lastUsedAt != null} ? ${@formats.relative(t.lastUsedAt)} : 'never'">never</td>
                     <td style="text-align: right">
-                        <form th:if="${t.active}" method="post" th:action="@{/account/tokens/{id}/revoke(id=${t.id})}"
+                        <form method="post" th:action="@{/account/tokens/{id}/revoke(id=${t.id})}"
                               onsubmit="return confirm('Revoke this token? Agents using it stop working immediately.')">
                             <button class="btn sm ghost danger" type="submit">Revoke</button>
                         </form>
-                        <span class="badge danger" th:unless="${t.active}">Revoked</span>
                     </td>
                 </tr>
                 </tbody>

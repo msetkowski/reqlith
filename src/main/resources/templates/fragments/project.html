@@ -37,9 +37,6 @@
             <span class="count" th:if="${s.count != null}" th:text="${s.count}">0</span>
         </a>
     </nav>
-    <a class="add" th:if="${canEdit}" th:href="@{/p/{k}/elements/new(k=${project.key},type=FR)}">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
-        New element</a>
 </aside>
 
 <!--/* Project title block with key, state and actions. */-->

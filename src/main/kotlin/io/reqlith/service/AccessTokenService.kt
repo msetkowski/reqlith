@@ -25,7 +25,8 @@ class AccessTokenService(
 ) {
     private val random = SecureRandom()
 
-    fun forUser(user: CurrentUser): List<AccessToken> = tokens.findByUserIdOrderByCreatedAtDesc(user.userId)
+    /** Active tokens only; revoked ones stay in the database because the access log refers to them. */
+    fun forUser(user: CurrentUser): List<AccessToken> = tokens.findByUserIdOrderByCreatedAtDesc(user.userId).filter { it.active }
 
     @Transactional
     fun create(user: CurrentUser, name: String): NewToken {
