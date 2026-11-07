@@ -14,6 +14,7 @@ import io.reqlith.service.ElementService
 import io.reqlith.service.ExternalLinkService
 import io.reqlith.service.MembershipService
 import io.reqlith.service.ProjectDocumentService
+import io.reqlith.service.ProjectAccess
 import io.reqlith.service.ProjectService
 import io.reqlith.service.ReviewService
 import io.reqlith.service.UserService
@@ -35,6 +36,7 @@ class ElementController(
     private val users: UserService,
     private val reviews: ReviewService,
     private val links: ExternalLinkService,
+    private val access: ProjectAccess,
     private val support: ProjectViewSupport,
 ) {
     /** One element in read mode (working copy). */
@@ -58,6 +60,7 @@ class ElementController(
     @GetMapping("/p/{key}/elements/new")
     fun newElement(@AuthenticationPrincipal user: CurrentUser, @PathVariable key: String, @RequestParam type: ElementType, model: Model): String {
         val project = projects.get(key)
+        access.requireEditor(project, user)
         project.requireEditable()
         val form = ElementForm(type = type, bodyMd = TEMPLATES[type])
         return editor(model, project, user, form, element = null)
@@ -78,6 +81,7 @@ class ElementController(
     @GetMapping("/p/{key}/e/{elementKey}/edit")
     fun edit(@AuthenticationPrincipal user: CurrentUser, @PathVariable key: String, @PathVariable elementKey: String, model: Model): String {
         val project = projects.get(key)
+        access.requireEditor(project, user)
         project.requireEditable()
         val element = elements.get(project, elementKey)
         return editor(model, project, user, ElementForm.of(element), element)

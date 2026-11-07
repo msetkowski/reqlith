@@ -131,7 +131,12 @@ class ProjectPagesIT(
         val project = fixtures.project(owner)
         fixtures.addMember(project, reviewer, MemberRole.REVIEWER)
 
+        elements.create(owner, project, ElementType.FR, ElementContent("Existing", null, null, emptySet(), emptySet()))
         listOf(reader, reviewer).forEach { user ->
+            listOf("/p/${project.key}/e/FR-01/edit", "/p/${project.key}/elements/new?type=BR", "/p/${project.key}/details",
+                "/p/${project.key}/basic-info/edit").forEach { page ->
+                mvc.get(page) { with(login(user)) }.andExpect { status { isForbidden() } }
+            }
             mvc.post("/p/${project.key}/elements") {
                 with(login(user)); with(csrf())
                 param("type", "BR"); param("title", "Sneaky")

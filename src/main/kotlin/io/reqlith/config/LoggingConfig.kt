@@ -5,12 +5,20 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
+/** Request id and user id on every log line (see `logging.pattern.correlation`). */
 @Configuration(proxyBeanMethods = false)
 class LoggingConfig {
 
-    /** Request id and user in every log line; registered right after the Spring Security filter chain. */
+    /** Before Spring Security, so authentication logs carry the request id. */
     @Bean
     fun requestLoggingFilter() = FilterRegistrationBean(RequestLoggingFilter()).apply {
+        order = SecurityFilterProperties.DEFAULT_FILTER_ORDER - 1
+        addUrlPatterns("/*")
+    }
+
+    /** After Spring Security, which has resolved the signed-in user by then. */
+    @Bean
+    fun userLoggingFilter() = FilterRegistrationBean(UserLoggingFilter()).apply {
         order = SecurityFilterProperties.DEFAULT_FILTER_ORDER + 1
         addUrlPatterns("/*")
     }

@@ -15,6 +15,7 @@ import io.reqlith.service.DocumentChanges
 import io.reqlith.service.ElementService
 import io.reqlith.service.ExternalLinkService
 import io.reqlith.service.ProjectDocumentService
+import io.reqlith.service.ProjectAccess
 import io.reqlith.service.ProjectService
 import io.reqlith.service.ReviewService
 import io.reqlith.service.UserService
@@ -38,6 +39,7 @@ class ProjectController(
     private val reviews: ReviewService,
     private val users: UserService,
     private val links: ExternalLinkService,
+    private val access: ProjectAccess,
     private val support: ProjectViewSupport,
 ) {
     @GetMapping("/projects/new")
@@ -125,6 +127,7 @@ class ProjectController(
     @GetMapping("/p/{key}/details")
     fun editDetails(@AuthenticationPrincipal user: CurrentUser, @PathVariable key: String, model: Model): String {
         val project = projects.get(key)
+        access.requireEditor(project, user)
         support.populate(model, project, user, documents.fromWorkingCopy(project), active = "overview")
         model.addAttribute("form", DetailsForm.of(project))
         return "project/details"
@@ -147,6 +150,7 @@ class ProjectController(
     @GetMapping("/p/{key}/basic-info/edit")
     fun editBasicInfo(@AuthenticationPrincipal user: CurrentUser, @PathVariable key: String, model: Model): String {
         val project = projects.get(key)
+        access.requireEditor(project, user)
         val document = documents.fromWorkingCopy(project)
         support.populate(model, project, user, document, active = "basic")
         model.addAttribute("markdown", project.basicInfoMd.orEmpty())
