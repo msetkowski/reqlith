@@ -87,6 +87,18 @@ prometheus.io/path: /actuator/prometheus
 prometheus.io/port: "8081"
 ```
 
+## Logging
+
+| Level | What | Examples |
+|---|---|---|
+| `INFO` | Business actions and security-relevant events | user signed in, project/element/role changes, invitations, review submitted, decision, `Version approved project=… version=v2`, suggestion applied, PRD exported, MCP tool call, access token created/revoked, access denied |
+| `DEBUG` | Hints for engineers | key numbers allocated, snapshot hashes, stale forms rejected, PDF cache hits and renderer timings, how MCP requests were authenticated, expected 4xx outcomes |
+| `ERROR` | Failures that need attention | unexpected exceptions (with an error id that the error page shows, so users can report it), PDF renderer failures, failing MCP tools |
+
+- **Correlation:** every line carries `[requestId userId]`. The request id comes from an incoming `X-Request-Id` header (or is generated) and is returned in the response.
+- **Personal data:** logs contain ids, never e-mail addresses, tokens or document content.
+- **Levels:** production runs `io.reqlith` at `INFO`; the `local` profile sets `DEBUG`. Change it at runtime with `LOGGING_LEVEL_IO_REQLITH=DEBUG`.
+
 ## MCP server for agents
 
 `/mcp` is a read-only [Model Context Protocol](https://modelcontextprotocol.io) server (streamable HTTP) for agents that assess requirements, suggest improvements or build a backlog (e.g. in ADO) with their own tools.

@@ -1,5 +1,6 @@
 package io.reqlith.repository
 
+import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.simple.JdbcClient
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Propagation
@@ -11,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional
  */
 @Component
 class KeyCounter(private val jdbc: JdbcClient) {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
 
     @Transactional(propagation = Propagation.MANDATORY)
     fun next(scope: String, name: String): Int =
@@ -24,4 +27,5 @@ class KeyCounter(private val jdbc: JdbcClient) {
             output inserted.last_value;
             """,
         ).param("scope", scope).param("name", name).query(Int::class.java).single()
+            .also { logger.debug("Key number allocated scope={} name={} value={}", scope, name, it) }
 }

@@ -12,6 +12,7 @@ import java.time.Clock
 import java.time.Instant
 import java.util.Base64
 import java.util.UUID
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -20,6 +21,8 @@ class AccessTokenService(
     private val tokens: AccessTokenRepository,
     private val clock: Clock,
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     private val random = SecureRandom()
 
     fun forUser(user: CurrentUser): List<AccessToken> = tokens.findByUserIdOrderByCreatedAtDesc(user.userId)
@@ -31,6 +34,7 @@ class AccessTokenService(
         val bytes = ByteArray(32).also(random::nextBytes)
         val value = PREFIX + Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
         val token = tokens.save(AccessToken(user.userId, label, sha256(value), value.take(12), Instant.now(clock)))
+        logger.info("Access token created token={} name={}", token.id, label)
         return NewToken(token, value)
     }
 
@@ -38,13 +42,20 @@ class AccessTokenService(
     fun revoke(user: CurrentUser, tokenId: UUID) {
         val token = tokens.findById(tokenId).orElseThrow { NotFoundException("Token not found") }
         if (token.userId != user.userId) throw NotFoundException("Token not found")
-        if (token.revokedAt == null) token.revokedAt = Instant.now(clock)
+        if (token.revokedAt == null) {
+            token.revokedAt = Instant.now(clock)
+            logger.info("Access token revoked token={}", token.id)
+        }
     }
 
     /** The active token with this value, marking it as used; null for unknown or revoked tokens. */
     @Transactional
     fun authenticate(value: String): AccessToken? {
-        val token = tokens.findByTokenHash(sha256(value))?.takeIf { it.active } ?: return null
+        val token = tokens.findByTokenHash(sha256(value))?.takeIf { it.active }
+        if (token == null) {
+            logger.debug("Access token rejected: unknown or revoked (prefix {})", value.take(8))
+            return null
+        }
         token.lastUsedAt = Instant.now(clock)
         return token
     }

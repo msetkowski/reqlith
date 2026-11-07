@@ -16,6 +16,7 @@ import io.reqlith.repository.WorkspaceRepository
 import java.time.Clock
 import java.time.Instant
 import java.util.UUID
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -29,6 +30,8 @@ class ProjectService(
     private val keyCounter: KeyCounter,
     private val clock: Clock,
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     fun get(key: String): Project = projects.findByKey(key) ?: throw NotFoundException("Project $key not found")
 
     fun all(): List<Project> = projects.findAllByOrderByUpdatedAtDesc()
@@ -61,6 +64,7 @@ class ProjectService(
         val saved = projects.save(project)
         members.save(ProjectMember(MemberId(saved.id, user.userId), MemberRole.OWNER, now))
         invitations.forEach { (email, role) -> memberships.invite(user, saved, email, role) }
+        logger.info("Project created project={} workspace={} invitations={}", saved.key, workspace.key, invitations.size)
         return saved
     }
 
@@ -76,6 +80,7 @@ class ProjectService(
         project.domains.apply { clear(); addAll(details.domains) }
         project.touch(Instant.now(clock), user.userId)
         projects.save(project)
+        logger.info("Project details updated project={}", project.key)
     }
 
     @Transactional
@@ -86,6 +91,7 @@ class ProjectService(
         project.basicInfoMd = markdown.replace("\r\n", "\n")
         project.touch(Instant.now(clock), user.userId)
         projects.save(project)
+        logger.info("Basic information updated project={}", project.key)
     }
 
     /** Records that something inside the project changed (elements, roles). */
@@ -95,7 +101,10 @@ class ProjectService(
     }
 
     private fun checkVersion(project: Project, rowVersion: Int) {
-        if (project.rowVersion != rowVersion) throw ConcurrentEditException(project.key)
+        if (project.rowVersion != rowVersion) {
+            logger.debug("Stale form rejected project={} formVersion={} currentVersion={}", project.key, rowVersion, project.rowVersion)
+            throw ConcurrentEditException(project.key)
+        }
     }
 
     private fun validate(details: ProjectDetails) {

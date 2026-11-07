@@ -12,6 +12,7 @@ import io.reqlith.repository.ElementRepository
 import io.reqlith.repository.KeyCounter
 import java.time.Clock
 import java.time.Instant
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -23,6 +24,8 @@ class ElementService(
     private val keyCounter: KeyCounter,
     private val clock: Clock,
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     /** Elements in document order: by type, then by the order they were created. */
     fun all(project: Project): List<Element> =
         elements.findByProjectId(project.id).sortedWith(compareBy({ it.type.ordinal }, { it.sortOrder }))
@@ -41,7 +44,7 @@ class ElementService(
         val element = Element(project.id, type, key, content.title.trim(), normalize(content.bodyMd), number, now, now, user.userId)
         apply(element, content)
         projectService.touch(project, user)
-        return elements.save(element)
+        return elements.save(element).also { logger.info("Element created project={} element={}", project.key, key) }
     }
 
     @Transactional
@@ -49,7 +52,10 @@ class ElementService(
         access.requireEditor(project, user)
         project.requireEditable()
         val element = get(project, key)
-        if (element.rowVersion != rowVersion) throw ConcurrentEditException(key)
+        if (element.rowVersion != rowVersion) {
+            logger.debug("Stale form rejected project={} element={} formVersion={} currentVersion={}", project.key, key, rowVersion, element.rowVersion)
+            throw ConcurrentEditException(key)
+        }
         validate(key, content)
         element.title = content.title.trim()
         element.bodyMd = normalize(content.bodyMd)
@@ -57,7 +63,7 @@ class ElementService(
         element.updatedAt = Instant.now(clock)
         element.updatedBy = user.userId
         projectService.touch(project, user)
-        return elements.save(element)
+        return elements.save(element).also { logger.info("Element updated project={} element={} links={}", project.key, key, content.links.size) }
     }
 
     /** Removes the element. Its key stays retired; links pointing at it show up as broken references. */
@@ -67,6 +73,7 @@ class ElementService(
         project.requireEditable()
         elements.delete(get(project, key))
         projectService.touch(project, user)
+        logger.info("Element deleted project={} element={} (key retired)", project.key, key)
     }
 
     private fun apply(element: Element, content: ElementContent) {

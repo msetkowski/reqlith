@@ -12,6 +12,7 @@ import io.reqlith.model.entity.Suggestion
 import io.reqlith.model.entity.VersionStatus
 import io.reqlith.repository.ExportCache
 import java.util.Base64
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.thymeleaf.TemplateEngine
 import org.thymeleaf.context.Context
@@ -32,9 +33,12 @@ class ExportService(
     private val cache: ExportCache,
     private val formats: Formats,
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     /** [version] null exports the working copy. */
     fun markdown(project: Project, version: ProjectVersion?, options: ExportOptions): ExportFile {
         val text = PrdMarkdownWriter.write(input(project, version), options)
+        logger.info("PRD exported project={} version={} format=md", project.key, version?.label ?: "draft")
         return ExportFile("${fileName(project, version)}.md", "text/markdown; charset=UTF-8", text.toByteArray())
     }
 
@@ -43,11 +47,19 @@ class ExportService(
         // A candidate and its approved version share a content hash, so label and status are part of the key.
         // Open candidates are not cached: their status and review record are still changing.
         val cacheKey = version?.takeIf { it.status != VersionStatus.IN_REVIEW }?.let { "${options.key}|${it.label}|${it.status}" }
-        cacheKey?.let { key -> cache.get(version.contentHash, "pdf", key)?.let { return ExportFile(name, "application/pdf", it) } }
+        cacheKey?.let { key ->
+            cache.get(version.contentHash, "pdf", key)?.let {
+                logger.info("PRD exported project={} version={} format=pdf", project.key, version.label)
+                logger.debug("PDF served from cache project={} version={} options={}", project.key, version.label, options.key)
+                return ExportFile(name, "application/pdf", it)
+            }
+        }
         val input = input(project, version)
         val html = printHtml(input, PrdMarkdownWriter.write(input, options))
         val bytes = pdf.render(html, "${project.key} · ${input.versionLabel} · ${input.document.project.title}")
         cacheKey?.let { cache.put(version.contentHash, "pdf", it, bytes) }
+        logger.info("PRD exported project={} version={} format=pdf", project.key, version?.label ?: "draft")
+        logger.debug("PDF rendered project={} version={} bytes={} cached={}", project.key, version?.label ?: "draft", bytes.size, cacheKey != null)
         return ExportFile(name, "application/pdf", bytes)
     }
 

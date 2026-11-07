@@ -6,6 +6,7 @@ import io.reqlith.repository.AppUserRepository
 import io.reqlith.service.AccessTokenService
 import io.reqlith.service.UserService
 import jakarta.servlet.http.HttpServletRequest
+import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.annotation.Order
@@ -31,6 +32,8 @@ import org.springframework.security.web.SecurityFilterChain
  */
 @Configuration(proxyBeanMethods = false)
 class McpSecurity(private val properties: ReqlithProperties) {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
 
     @Bean
     @Order(1)
@@ -44,6 +47,7 @@ class McpSecurity(private val properties: ReqlithProperties) {
         val patManager = AuthenticationManager { authentication ->
             val value = (authentication as BearerTokenAuthenticationToken).token
             val token = tokens.authenticate(value) ?: throw InvalidBearerTokenException("Unknown or revoked access token")
+            logger.debug("MCP request authenticated with access token token={}", token.id)
             val user = users.findById(token.userId).orElseThrow { BadCredentialsException("Token owner no longer exists") }
             McpAuthentication(McpPrincipal(user.id, user.displayName, user.initials, user.email, token.id), value)
         }
@@ -52,6 +56,7 @@ class McpSecurity(private val properties: ReqlithProperties) {
             val jwt = jwtProvider.authenticate(authentication).credentials as org.springframework.security.oauth2.jwt.Jwt
             val name = jwt.getClaimAsString("name") ?: jwt.getClaimAsString("preferred_username")
             val user = userService.provision(requireNotNull(jwt.subject) { "Token without subject" }, jwt.getClaimAsString("email"), name)
+            logger.debug("MCP request authenticated with IDP token user={} client={}", user.id, jwt.getClaimAsString("azp"))
             McpAuthentication(McpPrincipal(user.id, user.displayName, user.initials, user.email, null), jwt.tokenValue)
         }
         val resolver = AuthenticationManagerResolver<HttpServletRequest> { request ->

@@ -15,6 +15,7 @@ import io.reqlith.repository.RoleRepository
 import java.time.Clock
 import java.time.Instant
 import java.util.UUID
+import org.slf4j.LoggerFactory
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -32,6 +33,8 @@ class RoleService(
     private val keyCounter: KeyCounter,
     private val clock: Clock,
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     fun all(): List<Role> = roles.findAllByOrderByName()
 
     fun get(key: String): Role = roles.findByKey(key) ?: throw NotFoundException("Role $key not found")
@@ -59,6 +62,7 @@ class RoleService(
         if (projectRoles.existsById(id)) throw ValidationException("roleId", "${role.name} is already part of this project")
         projectRoles.save(ProjectRole(id, normalize(contextMd), projectRoles.maxSortOrder(project.id) + 1))
         projectService.touch(project, user)
+        logger.info("Role added to project project={} role={}", project.key, role.key)
     }
 
     @Transactional
@@ -81,6 +85,7 @@ class RoleService(
         )
         projectRoles.save(ProjectRole(ProjectRoleId(project.id, role.id), normalize(contextMd), projectRoles.maxSortOrder(project.id) + 1))
         projectService.touch(project, user)
+        logger.info("Role created and added project={} role={}", project.key, role.key)
         return role
     }
 
@@ -91,6 +96,7 @@ class RoleService(
         val link = projectRoles.findById(ProjectRoleId(project.id, roleId)).orElseThrow { NotFoundException("Role is not part of ${project.key}") }
         link.contextMd = normalize(contextMd)
         projectService.touch(project, user)
+        logger.info("Role context updated project={} roleId={}", project.key, roleId)
     }
 
     @Transactional
@@ -99,6 +105,7 @@ class RoleService(
         project.requireEditable()
         projectRoles.deleteById(ProjectRoleId(project.id, roleId))
         projectService.touch(project, user)
+        logger.info("Role removed from project project={} roleId={}", project.key, roleId)
     }
 
     /**
@@ -118,6 +125,7 @@ class RoleService(
         role.updatedAt = Instant.now(clock)
         role.updatedBy = user.userId
         roles.save(role)
+        logger.info("Global role changed role={} usedInProjects={}", role.key, projectIdsUsing(role).size)
     }
 
     private fun normalize(markdown: String?): String? = markdown?.replace("\r\n", "\n")?.ifBlank { null }

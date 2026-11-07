@@ -6,6 +6,7 @@ import io.reqlith.model.entity.Project
 import io.reqlith.model.entity.ProjectVersion
 import io.reqlith.model.entity.VersionStatus
 import io.reqlith.repository.ProjectVersionRepository
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -17,6 +18,8 @@ class VersionService(
     private val codec: SnapshotCodec,
     private val documents: ProjectDocumentService,
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     /** Every candidate and approved version, newest first. */
     fun history(project: Project): List<ProjectVersion> = versions.findByProjectIdOrderBySubmittedAtDesc(project.id)
 
@@ -48,7 +51,9 @@ class VersionService(
     /** True when the working copy differs from the latest approved version (or nothing is approved yet). */
     fun hasChangesSinceApproval(project: Project): Boolean {
         val approved = latestApproved(project) ?: return true
-        return codec.write(documents.fromWorkingCopy(project)).hash != approved.contentHash
+        val hash = codec.write(documents.fromWorkingCopy(project)).hash
+        logger.debug("Working copy of {} hash={} vs {} hash={}", project.key, hash, approved.label, approved.contentHash)
+        return hash != approved.contentHash
     }
 
     companion object {

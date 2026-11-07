@@ -77,6 +77,14 @@ spring.ai.mcp.server:
   streamable-http:
     mcp-endpoint: /mcp
 
+logging:
+  level:
+    # INFO: business actions; DEBUG: hints for engineers (set io.reqlith to DEBUG); ERROR: failures.
+    io.reqlith: INFO
+  pattern:
+    # Request id and user id (MDC, see RequestLoggingFilter) on every line.
+    correlation: "[%X{requestId:--} %X{user:--}] "
+
 server:
   forward-headers-strategy: framework
 
@@ -119,3 +127,7 @@ spring:
     resources:
       cache:
         period: 0
+logging:
+  level:
+    # Local development: engineer hints on.
+    io.reqlith: DEBUG

@@ -3,6 +3,7 @@ package io.reqlith.service
 import io.reqlith.config.ReqlithProperties
 import io.reqlith.model.dto.ReqlithOidcUser
 import io.reqlith.model.entity.AppUser
+import org.slf4j.LoggerFactory
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest
@@ -17,6 +18,8 @@ class ProvisioningOidcUserService(
     private val userService: UserService,
     private val properties: ReqlithProperties,
 ) : OAuth2UserService<OidcUserRequest, OidcUser> {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
 
     private val delegate = OidcUserService()
 
@@ -32,6 +35,7 @@ class ProvisioningOidcUserService(
             add(SimpleGrantedAuthority("ROLE_USER"))
             if (properties.adminRole in idpRoles(oidcUser)) add(SimpleGrantedAuthority(ReqlithOidcUser.ROLE_ADMIN))
         }
+        logger.info("User signed in user={} admin={}", appUser.id, authorities.any { it.authority == ReqlithOidcUser.ROLE_ADMIN })
         return ReqlithOidcUser(oidcUser, authorities, appUser.id, appUser.displayName, appUser.initials)
     }
 

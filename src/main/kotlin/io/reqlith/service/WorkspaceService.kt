@@ -6,6 +6,7 @@ import io.reqlith.model.entity.Workspace
 import io.reqlith.repository.WorkspaceRepository
 import java.time.Clock
 import java.time.Instant
+import org.slf4j.LoggerFactory
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -15,6 +16,8 @@ class WorkspaceService(
     private val workspaces: WorkspaceRepository,
     private val clock: Clock,
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     fun all(): List<Workspace> = workspaces.findAllByOrderByName()
 
     @Transactional
@@ -25,6 +28,7 @@ class WorkspaceService(
         if (name.isBlank()) throw ValidationException("name", "Name is required")
         if (workspaces.existsByKey(normalizedKey)) throw ValidationException("key", "Workspace $normalizedKey already exists")
         return workspaces.save(Workspace(normalizedKey, name.trim(), Instant.now(clock)))
+            .also { logger.info("Workspace created workspace={}", it.key) }
     }
 
     @Transactional
@@ -32,6 +36,7 @@ class WorkspaceService(
         if (!user.isAdmin) throw AccessDeniedException("Only administrators manage workspaces")
         if (name.isBlank()) throw ValidationException("name", "Name is required")
         workspace.name = name.trim()
+        logger.info("Workspace renamed workspace={}", workspace.key)
     }
 
     companion object {
