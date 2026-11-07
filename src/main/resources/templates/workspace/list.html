@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Workspaces</title>
+</head>
+<body>
+<nav layout:fragment="crumbs" class="crumbs" aria-label="Breadcrumb">
+    <a th:href="@{/}">Projects</a><span aria-hidden="true">/</span><span class="current">Workspaces</span>
+</nav>
+<main class="page narrow" layout:fragment="content">
+    <section class="title stack tight">
+        <h1>Workspaces</h1>
+        <p class="muted">Workspaces group projects. The workspace key is part of every project key, e.g. PRJ-PAY-014.</p>
+    </section>
+    <div class="banner danger" th:if="${error}" th:text="${error.message}" role="alert">Error</div>
+    <section class="card">
+        <div class="table-wrap">
+            <table class="data">
+                <thead><tr><th>Key</th><th>Name</th><th>Created</th></tr></thead>
+                <tbody>
+                <tr th:each="w : ${workspaces}">
+                    <td class="mono" th:text="${w.key}">GEN</td>
+                    <td th:text="${w.name}">General</td>
+                    <td class="muted" th:text="${@formats.date(w.createdAt)}">date</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <form class="card-body" style="border-top: 1px solid var(--line)" th:if="${currentUser.admin}" method="post" th:action="@{/workspaces}">
+            <div class="row">
+                <label class="sr-only" for="key">Key</label>
+                <input class="input mono" id="key" name="key" required maxlength="8" placeholder="PAY" th:value="${newKey}" style="width: 120px">
+                <label class="sr-only" for="name">Name</label>
+                <input class="input" id="name" name="name" required maxlength="200" placeholder="Payments" th:value="${newName}" style="flex: 1 1 240px">
+                <button class="btn primary" type="submit">Add workspace</button>
+            </div>
+        </form>
+    </section>
+</main>
+</body>
+</html>

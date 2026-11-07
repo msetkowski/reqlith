@@ -12,6 +12,8 @@
             <p class="muted">Specifications you own, contribute to or review.</p>
         </div>
         <div class="row">
+            <a class="btn" th:href="@{/roles}">Roles</a>
+            <a class="btn" th:if="${currentUser.admin}" th:href="@{/workspaces}">Workspaces</a>
             <a class="btn primary" th:href="@{/projects/new}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path d="M12 5v14M5 12h14"></path>
@@ -21,14 +23,87 @@
 
     <section aria-labelledby="attn" class="stack">
         <h2 id="attn">Needs your attention</h2>
-        <div class="card empty">Nothing needs your attention right now.</div>
+        <div class="card empty" th:if="${attention.isEmpty()}">Nothing needs your attention right now.</div>
+        <div class="grid-cards" th:unless="${attention.isEmpty()}">
+            <div class="card card-link" th:each="item : ${attention}">
+                <span class="badge strong" th:classappend="${item.badgeClass}" style="align-self: flex-start" th:text="${item.badge}">Badge</span>
+                <a th:href="${item.href}" style="font-weight: 600; text-decoration: none; color: inherit" th:text="${item.title}">Title</a>
+                <span class="small muted" th:text="${item.detail}">Detail</span>
+                <div class="row" th:if="${item.invitationId != null}" style="margin-top: 4px">
+                    <form th:action="@{/invitations/{id}/accept(id=${item.invitationId})}" method="post">
+                        <button class="btn sm primary" type="submit">Accept</button>
+                    </form>
+                    <form th:action="@{/invitations/{id}/decline(id=${item.invitationId})}" method="post">
+                        <button class="btn sm" type="submit">Decline</button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </section>
 
-    <section aria-labelledby="all" class="card">
-        <div class="card-head">
+    <section aria-labelledby="all" class="card" id="projects">
+        <form class="card-head" th:action="@{/}" method="get"
+              hx-get="/" hx-target="#projects" hx-select="#projects" hx-swap="outerHTML" hx-push-url="true"
+              hx-trigger="change, input from:input[name=q] delay:300ms">
             <h2 id="all">All projects</h2>
+            <div class="row">
+                <label class="sr-only" for="q">Search</label>
+                <input class="input sm" id="q" type="search" name="q" placeholder="Search name, key, tag…"
+                       th:value="${filter.q}" style="width: 220px">
+                <label class="sr-only" for="role">My role</label>
+                <select class="select sm" id="role" name="role" style="width: auto">
+                    <option value="">Any role</option>
+                    <option th:each="r : ${memberRoles}" th:value="${r}" th:text="${r.label}"
+                            th:selected="${filter.role == r}">Owner</option>
+                </select>
+                <label class="sr-only" for="ws">Workspace</label>
+                <select class="select sm" id="ws" name="ws" style="width: auto">
+                    <option value="">All workspaces</option>
+                    <option th:each="w : ${workspaces}" th:value="${w.id}" th:text="${w.name}"
+                            th:selected="${filter.ws == w.id}">Workspace</option>
+                </select>
+                <label class="sr-only" for="state">State</label>
+                <select class="select sm" id="state" name="state" style="width: auto">
+                    <option value="">Any state</option>
+                    <option value="DRAFT" th:selected="${filter.state == 'DRAFT'}">Draft</option>
+                    <option value="IN_REVIEW" th:selected="${filter.state == 'IN_REVIEW'}">In review</option>
+                </select>
+                <noscript><button class="btn sm" type="submit">Filter</button></noscript>
+            </div>
+        </form>
+        <div class="empty" th:if="${total == 0}">No projects yet. Create the first one.</div>
+        <div class="empty" th:if="${total > 0 and rows.isEmpty()}">No project matches these filters.</div>
+        <div class="table-wrap" th:unless="${rows.isEmpty()}">
+            <table class="data" style="min-width: 820px">
+                <thead>
+                <tr>
+                    <th>Project</th>
+                    <th>Workspace</th>
+                    <th>State</th>
+                    <th>Approved</th>
+                    <th>Owners</th>
+                    <th>Your role</th>
+                    <th>Modified</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="row : ${rows}">
+                    <td>
+                        <a class="cell-link" th:href="@{/p/{k}(k=${row.project.key})}">
+                            <span class="name" th:text="${row.project.title}">Name</span>
+                            <span class="key" style="font-size: 11px" th:text="${row.project.key}">KEY</span>
+                        </a>
+                    </td>
+                    <td th:text="${row.project.workspace.name}">Workspace</td>
+                    <td><span class="badge" th:classappend="${row.stateClass}" th:text="${row.state}">Draft</span></td>
+                    <td class="mono xs" th:text="${row.project.latestApprovedVersion != null} ? |v${row.project.latestApprovedVersion}| : '—'">—</td>
+                    <td th:text="${row.owners}">Owners</td>
+                    <td class="muted" th:text="${row.myRole != null} ? ${row.myRole.label} : '—'">Owner</td>
+                    <td class="muted" th:text="${@formats.date(row.project.updatedAt)}">3 Nov</td>
+                </tr>
+                </tbody>
+            </table>
         </div>
-        <div class="empty">No projects yet. Create the first one.</div>
     </section>
 </main>
 </body>

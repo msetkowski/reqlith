@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title th:text="${element != null} ? |Edit ${element.key}| : |New ${form.type.label}|">Edit</title>
+    <script th:src="@{/vendor/mermaid.min.js}" defer></script>
+    <script th:src="@{/js/editor.js}" defer></script>
+</head>
+<body>
+<nav layout:fragment="crumbs" class="crumbs" aria-label="Breadcrumb">
+    <th:block th:replace="~{fragments/project :: crumbs(${element != null} ? ${element.key} : 'New element')}"></th:block>
+</nav>
+<main class="page" style="max-width: 1440px" layout:fragment="content">
+    <a class="small" th:href="${element != null} ? @{/p/{k}/e/{ek}(k=${project.key},ek=${element.key})} : @{/p/{k}/draft(k=${project.key})}">← Back</a>
+
+    <form class="stack loose" data-guard method="post"
+          th:action="${element != null} ? @{/p/{k}/e/{ek}(k=${project.key},ek=${element.key})} : @{/p/{k}/elements(k=${project.key})}">
+        <input type="hidden" name="rowVersion" th:value="${form.rowVersion}">
+        <input type="hidden" name="type" th:value="${form.type}">
+
+        <section class="project-head">
+            <div class="title" style="flex: 1 1 480px">
+                <div class="row">
+                    <span class="key" th:text="${element != null} ? |${element.key} · ${form.type.label}| : |New · ${form.type.label}|">FR-12 · Functional</span>
+                    <span class="badge draft">Draft</span>
+                </div>
+                <label class="sr-only" for="title">Title</label>
+                <input class="input" id="title" name="title" th:value="${form.title}" required maxlength="300"
+                       placeholder="Short, specific title" style="font-size: 22px; font-weight: 600; min-height: 48px">
+            </div>
+            <div class="row">
+                <a class="btn" th:href="${element != null} ? @{/p/{k}/e/{ek}(k=${project.key},ek=${element.key})} : @{/p/{k}/draft(k=${project.key})}">Discard changes</a>
+                <button class="btn primary" type="submit">Save draft</button>
+            </div>
+        </section>
+
+        <div class="banner danger" th:if="${error}" th:text="${error.message}" role="alert">Error</div>
+
+        <div class="split">
+            <div class="main">
+                <div th:replace="~{fragments/editor :: editor('bodyMd', ${form.bodyMd}, ${previewHtml}, ${linkTargets})}"></div>
+            </div>
+            <aside class="side" style="flex-basis: 300px">
+                <section class="card">
+                    <div class="card-head"><h2 class="h-sm">Properties</h2></div>
+                    <div class="card-body">
+                        <div class="field">
+                            <span class="label">Element type</span>
+                            <span class="small" th:text="${form.type.label}">Functional</span>
+                        </div>
+                        <div class="field">
+                            <label for="priority">Priority (MoSCoW)</label>
+                            <select class="select" id="priority" name="priority">
+                                <option value="">Not set</option>
+                                <option th:each="p : ${priorities}" th:value="${p}" th:text="${p.label}" th:selected="${form.priority == p}">Must</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="tags">Tags</label>
+                            <input class="input" id="tags" name="tags" th:value="${form.tags}" placeholder="comma separated">
+                        </div>
+                    </div>
+                </section>
+                <section class="card">
+                    <div class="card-head"><h2 class="h-sm">Traceability</h2></div>
+                    <div class="card-body">
+                        <datalist id="link-targets">
+                            <option th:each="t : ${linkTargets}" th:value="${t.first}" th:text="${t.second}"></option>
+                        </datalist>
+                        <div class="link-row" th:each="row, it : ${form.linkRows()}">
+                            <label class="sr-only" th:for="|link-kind-${it.index}|">Link type</label>
+                            <select class="select sm" name="linkKinds" th:id="|link-kind-${it.index}|">
+                                <option th:each="k : ${linkKinds}" th:value="${k}" th:text="${k.label}" th:selected="${row.first == k}">Derived from</option>
+                            </select>
+                            <label class="sr-only" th:for="|link-target-${it.index}|">Target</label>
+                            <input class="input sm mono" name="linkTargets" list="link-targets" th:id="|link-target-${it.index}|"
+                                   th:value="${row.second}" th:placeholder="${it.last} ? 'Add link, e.g. SR-03' : ''">
+                            <button type="button" class="btn sm ghost" title="Remove link" aria-label="Remove link"
+                                    onclick="this.parentElement.querySelector('input').value=''">×</button>
+                        </div>
+                        <p class="hint xs muted">Links are saved with the element. Save to add another row.</p>
+                    </div>
+                </section>
+                <section class="card">
+                    <div class="card-head"><h2 class="h-sm">People</h2>
+                        <a class="btn sm" th:if="${isOwner}" th:href="@{/p/{k}/people(k=${project.key})}">Invite</a></div>
+                    <div class="card-body">
+                        <div class="row" th:each="p : ${people}">
+                            <span class="avatar sm" th:text="${p.first.initials}">OO</span>
+                            <span class="small" style="flex: 1" th:text="${p.first.displayName}">Name</span>
+                            <span class="xs muted" th:text="${p.second.label}">Owner</span>
+                        </div>
+                    </div>
+                </section>
+            </aside>
+        </div>
+    </form>
+
+    <form th:if="${element != null}" method="post" th:action="@{/p/{k}/e/{ek}/delete(k=${project.key},ek=${element.key})}"
+          onsubmit="return confirm('Delete this element? Its key will not be reused.')">
+        <button class="btn danger sm" type="submit" th:text="|Delete ${element.key}|">Delete</button>
+    </form>
+</main>
+</body>
+</html>

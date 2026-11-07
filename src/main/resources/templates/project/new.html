@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>New project</title>
+</head>
+<body>
+<nav layout:fragment="crumbs" class="crumbs" aria-label="Breadcrumb">
+    <a th:href="@{/}">Projects</a><span aria-hidden="true">/</span><span class="current">New project</span>
+</nav>
+<main class="page narrow" layout:fragment="content">
+    <a class="small" th:href="@{/}">← All projects</a>
+    <section class="title stack tight">
+        <h1>New project</h1>
+        <p class="muted">A project collects every requirement for one feature or product, up to a reviewed, versioned specification.</p>
+    </section>
+
+    <div class="banner danger" th:if="${error}" th:text="${error.message}" role="alert">Error</div>
+
+    <form class="split" th:action="@{/projects}" method="post" th:object="${form}">
+        <div class="main stack loose">
+            <section class="card">
+                <div class="card-head"><h2>Basics</h2></div>
+                <div class="card-body">
+                    <div class="field">
+                        <label for="title">Project name <span class="req">*</span></label>
+                        <input class="input" id="title" th:field="*{title}" required maxlength="200" autofocus>
+                    </div>
+                    <div class="form-grid">
+                        <div class="field">
+                            <label for="workspaceId">Workspace <span class="req">*</span></label>
+                            <select class="select" id="workspaceId" th:field="*{workspaceId}" required>
+                                <option th:each="w : ${workspaces}" th:value="${w.id}" th:text="|${w.name} (${w.key})|">Workspace</option>
+                            </select>
+                            <span class="hint">The project key is generated from the workspace, e.g. PRJ-PAY-014.</span>
+                        </div>
+                        <div class="field">
+                            <label for="domains">Domains</label>
+                            <input class="input" id="domains" th:field="*{domains}" placeholder="Payments, Customer care">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="summary">One-line summary</label>
+                        <input class="input" id="summary" th:field="*{summary}" maxlength="1000">
+                    </div>
+                    <div class="field">
+                        <label for="tags">Tags</label>
+                        <input class="input" id="tags" th:field="*{tags}" placeholder="refunds, self-service">
+                        <span class="hint">Comma separated.</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="card-head">
+                    <h2>People</h2>
+                </div>
+                <div class="card-body">
+                    <p class="small muted">You become the first owner. Others are invited by e-mail and join when they accept the invitation on their home page.</p>
+                    <div class="row" th:each="i : ${#numbers.sequence(0, 2)}">
+                        <label class="sr-only" th:for="|invite${i}|">E-mail</label>
+                        <input class="input" type="email" th:id="|invite${i}|" name="inviteEmails" placeholder="name@company.com"
+                               th:value="${i < form.inviteEmails.size()} ? ${form.inviteEmails[i]} : ''" style="flex: 1 1 240px">
+                        <label class="sr-only" th:for="|inviteRole${i}|">Role</label>
+                        <select class="select" th:id="|inviteRole${i}|" name="inviteRoles" style="width: 160px">
+                            <option th:each="r : ${memberRoles}" th:value="${r}" th:text="${r.label}"
+                                    th:selected="${r.name() == 'CONTRIBUTOR'}">Role</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <div class="row">
+                <button class="btn primary" type="submit">Create project</button>
+                <a class="btn ghost" th:href="@{/}">Cancel</a>
+            </div>
+        </div>
+
+        <aside class="side">
+            <section class="card">
+                <div class="card-head"><h2 class="h-sm">What gets created</h2></div>
+                <div class="card-body small">
+                    <p>A <strong>Draft</strong> project with basic information (problem statement, scope, success metrics) and these sections:</p>
+                    <ul style="margin: 0; padding-left: 18px">
+                        <li th:each="t : ${elementTypes}" th:text="${t.section}">Section</li>
+                        <li>Roles</li>
+                    </ul>
+                    <p class="muted">You also get a permanent link to paste into JIRA or ADO.</p>
+                </div>
+            </section>
+            <section class="card">
+                <div class="card-head"><h2 class="h-sm">Version lifecycle</h2></div>
+                <div class="card-body small">
+                    <ol style="margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px">
+                        <li><strong>Draft:</strong> owners and contributors edit</li>
+                        <li><strong>In review:</strong> reviewers accept, reject or suggest changes</li>
+                        <li><strong>Approved:</strong> the version becomes immutable</li>
+                        <li>Any later edit starts the next version</li>
+                    </ol>
+                </div>
+            </section>
+        </aside>
+    </form>
+</main>
+</body>
+</html>

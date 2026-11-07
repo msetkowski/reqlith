@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Basic information</title>
+    <script th:src="@{/vendor/mermaid.min.js}" defer></script>
+    <script th:src="@{/js/editor.js}" defer></script>
+</head>
+<body>
+<nav layout:fragment="crumbs" class="crumbs" aria-label="Breadcrumb">
+    <th:block th:replace="~{fragments/project :: crumbs('Basic information')}"></th:block>
+</nav>
+<main class="page" style="max-width: 1440px" layout:fragment="content">
+    <a class="small" th:href="@{/p/{k}/draft(k=${project.key})}">← Overview</a>
+    <form class="stack loose" data-guard method="post" th:action="@{/p/{k}/basic-info(k=${project.key})}">
+        <input type="hidden" name="rowVersion" th:value="${rowVersion}">
+        <section class="project-head">
+            <div class="title">
+                <span class="key" th:text="|${project.key} · Basic information|">KEY</span>
+                <h1 class="h-sm">Problem statement, scope and success metrics</h1>
+                <p class="summary">Keep the three headings; assumptions, risks and dependencies are separate elements so they can be traced.</p>
+            </div>
+            <div class="row">
+                <a class="btn" th:href="@{/p/{k}/draft(k=${project.key})}">Discard changes</a>
+                <button class="btn primary" type="submit" th:disabled="${!canEdit}">Save draft</button>
+            </div>
+        </section>
+        <div th:replace="~{fragments/project :: locked-banner}"></div>
+        <div th:replace="~{fragments/editor :: editor('markdown', ${markdown}, ${previewHtml}, null)}"></div>
+    </form>
+</main>
+</body>
+</html>

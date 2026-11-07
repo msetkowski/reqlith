@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title th:text="${title ?: 'Something went wrong'}">Error</title>
+</head>
+<body>
+<main class="page narrow" layout:fragment="content">
+    <section class="card card-pad stack">
+        <span class="key" th:text="${status}">500</span>
+        <h1 class="h-sm" th:text="${title ?: (status == 404 ? 'Not found' : 'Something went wrong')}">Something went wrong</h1>
+        <p th:text="${message != null and title != null} ? ${message} : 'Please go back and try again.'">Message</p>
+        <div class="row">
+            <a class="btn" href="javascript:history.back()">Go back</a>
+            <a class="btn primary" th:href="@{/}">Home</a>
+        </div>
+    </section>
+</main>
+</body>
+</html>

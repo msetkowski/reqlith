@@ -11,6 +11,17 @@
     }
   });
 
+  // <button data-copy="text"> copies its text to the clipboard.
+  document.addEventListener("click", function (event) {
+    var button = event.target.closest("[data-copy]");
+    if (!button || !navigator.clipboard) return;
+    navigator.clipboard.writeText(button.getAttribute("data-copy")).then(function () {
+      var label = button.textContent;
+      button.textContent = "Copied";
+      setTimeout(function () { button.textContent = label; }, 1500);
+    });
+  });
+
   var mermaidReady = false;
   function initMermaid() {
     if (mermaidReady || !window.mermaid) return !!window.mermaid;

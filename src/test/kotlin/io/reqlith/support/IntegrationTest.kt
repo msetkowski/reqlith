@@ -13,7 +13,7 @@ import org.testcontainers.mssqlserver.MSSQLServerContainer
 @Retention(AnnotationRetention.RUNTIME)
 @SpringBootTest
 @ActiveProfiles("test")
-@Import(MsSqlContainerConfig::class)
+@Import(MsSqlContainerConfig::class, TestUsers::class, Fixtures::class)
 annotation class IntegrationTest
 
 @TestConfiguration(proxyBeanMethods = false)

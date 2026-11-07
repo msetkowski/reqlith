@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--/* Breadcrumbs for project pages; `extra` is an optional last segment. */-->
+<th:block th:fragment="crumbs(extra)">
+    <a th:href="@{/}">Projects</a>
+    <span aria-hidden="true">/</span>
+    <span th:text="${project.workspace.name}">Workspace</span>
+    <span aria-hidden="true">/</span>
+    <a th:if="${extra != null}" th:href="@{/p/{k}/draft(k=${project.key})}" th:text="${project.title}">Project</a>
+    <span th:unless="${extra != null}" class="current" th:text="${project.title}">Project</span>
+    <th:block th:if="${extra != null}">
+        <span aria-hidden="true">/</span>
+        <span class="current" th:text="${extra}">Extra</span>
+    </th:block>
+</th:block>
+
+<!--/* Left navigation of every project page. */-->
+<aside class="sidenav" th:fragment="sidenav">
+    <nav aria-label="Project">
+        <a th:href="@{/p/{k}/draft(k=${project.key})}" th:attr="aria-current=${active == 'overview'} ? 'page' : null">Overview</a>
+        <a th:href="@{/p/{k}/draft/document(k=${project.key})}" th:attr="aria-current=${active == 'document'} ? 'page' : null">Read document</a>
+        <a th:href="@{/p/{k}/people(k=${project.key})}" th:attr="aria-current=${active == 'people'} ? 'page' : null">People</a>
+    </nav>
+    <div class="sidenav-label">Specification</div>
+    <nav class="sections" aria-label="Specification sections">
+        <a th:each="s : ${sections}" th:href="${s.href}" th:attr="aria-current=${active == s.id} ? 'page' : null">
+            <span th:text="${s.label}">Section</span>
+            <span class="count" th:if="${s.count != null}" th:text="${s.count}">0</span>
+        </a>
+    </nav>
+    <a class="add" th:if="${canEdit}" th:href="@{/p/{k}/elements/new(k=${project.key},type=FR)}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+        New element</a>
+</aside>
+
+<!--/* Project title block with key, state and actions. */-->
+<section class="project-head" th:fragment="head">
+    <div class="title">
+        <div class="row">
+            <span class="key" th:text="${project.key}">PRJ-GEN-001</span>
+            <span class="badge strong" th:classappend="${stateClass}" th:text="${stateLabel}">Draft</span>
+            <span class="badge approved" th:if="${project.latestApprovedVersion != null}"
+                  th:text="|Last approved v${project.latestApprovedVersion}|">Last approved</span>
+        </div>
+        <h1 th:text="${project.title}">Project</h1>
+        <p class="summary" th:if="${project.summary}" th:text="${project.summary}">Summary</p>
+    </div>
+    <div class="row">
+        <button type="button" class="btn sm" th:data-copy="${projectUrl}">Copy project link</button>
+        <a class="btn sm" th:if="${isOwner}" th:href="@{/p/{k}/people(k=${project.key})}">Invite</a>
+        <a class="btn sm" th:if="${canEdit}" th:href="@{/p/{k}/details(k=${project.key})}">Edit details</a>
+    </div>
+</section>
+
+<!--/* Banner shown on edit pages when the project is locked by a review. */-->
+<div th:fragment="locked-banner" th:if="${locked}" class="banner warn" role="status">
+    This project is in review, so the working copy is read-only. An owner can withdraw the review to make changes.
+</div>
+
+</body>
+</html>
