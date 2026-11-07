@@ -8,6 +8,7 @@ import org.springframework.boot.runApplication
 @ConfigurationPropertiesScan
 class ReqlithApplication
 
+
 fun main(args: Array<String>) {
     runApplication<ReqlithApplication>(*args)
 }

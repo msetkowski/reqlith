@@ -1,16 +1,16 @@
 package io.reqlith.support
 
-import io.reqlith.project.MemberId
-import io.reqlith.project.MemberRole
-import io.reqlith.project.Project
-import io.reqlith.project.ProjectDetails
-import io.reqlith.project.ProjectMember
-import io.reqlith.project.ProjectMemberRepository
-import io.reqlith.project.ProjectService
-import io.reqlith.user.CurrentUser
-import io.reqlith.workspace.WorkspaceRepository
-import org.springframework.stereotype.Component
+import io.reqlith.model.dto.CurrentUser
+import io.reqlith.model.dto.ProjectDetails
+import io.reqlith.model.entity.MemberId
+import io.reqlith.model.entity.MemberRole
+import io.reqlith.model.entity.Project
+import io.reqlith.model.entity.ProjectMember
+import io.reqlith.repository.ProjectMemberRepository
+import io.reqlith.repository.WorkspaceRepository
+import io.reqlith.service.ProjectService
 import java.time.Instant
+import org.springframework.stereotype.Component
 
 /** Shortcuts for setting up projects in integration tests. */
 @Component

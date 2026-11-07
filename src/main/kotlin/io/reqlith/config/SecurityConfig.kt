@@ -1,6 +1,6 @@
 package io.reqlith.config
 
-import io.reqlith.user.ProvisioningOidcUserService
+import io.reqlith.service.ProvisioningOidcUserService
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity

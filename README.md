@@ -115,11 +115,27 @@ PDF export renders the PRD Markdown with the same renderer as the UI and sends t
 
 | Path | Contents |
 |---|---|
-| `src/main/kotlin`, `src/main/resources` | Application (templates, static assets, Flyway migrations) |
+| `src/main/kotlin/io/reqlith` | Application code, by layer (see below) |
+| `src/main/resources` | Templates, static assets, Flyway migrations, configuration |
 | `src/main/docker/Dockerfile` | Application image: Alpine + JRE 25, built from Maven output (build context: repository root, see `.dockerignore`) |
 | `src/main/dev/compose.yaml` | Local environment for Docker compose |
 | `src/main/dev/keycloak`, `src/main/dev/mssql` | Keycloak realm with test users, database init script |
 | `src/main/dev/scripts` | `podman-dev.sh` (environment without compose), `test.sh`, `build-image.sh`, `update-vendor.sh` |
+
+Packages under `io.reqlith`:
+
+```
+├── config        Spring configuration: security (web UI and /mcp), properties, MCP read-only database
+├── controller    MVC controllers, MCP tools, view helpers (formats, project page support)
+├── service       business logic: projects, elements, roles, reviews, versions, snapshots, diff, export, markdown
+├── repository    Spring Data repositories and JDBC access (key counter, export cache, MCP read model and access log)
+├── model
+│   ├── entity    JPA entities and their enums
+│   └── dto       documents (snapshots), forms, view models, MCP results, principals
+└── exception     business exceptions and the error page handler
+```
+
+Tests mirror this layout (`*Test` unit tests, `*IT` integration tests). Shared test setup lives in `support`.
 
 The image has no builder stage. Maven builds everything into `target/`, and the Dockerfile only copies the results onto Alpine with the JRE installed from Alpine's packages (`openjdk25-jre-headless`; the build fails if it is not Java 25):
 
