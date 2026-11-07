@@ -4,8 +4,8 @@
 
 **Write requirements people can review, and agents can build from.**
 
-Reqlith collects BABOK-style requirements into a project, reviews the project as a whole and freezes every
-approved state as an immutable, numbered version. Product managers, analysts, engineers and QA work on one
+Reqlith structures requirements along selected [BABOK®](#babok-alignment) concepts, reviews a project as a whole
+and freezes every approved state as an immutable, numbered version. Product managers, analysts, engineers and QA work on one
 specification; development agents read exactly the version that was approved, through a read-only MCP server.
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
@@ -24,6 +24,7 @@ specification; development agents read exactly the version that was approved, th
 - [Screenshots](#screenshots)
 - [Architecture](#architecture)
 - [Quick start](#quick-start)
+- [BABOK alignment](#babok-alignment)
 - [How versions and reviews work](#how-versions-and-reviews-work)
 - [MCP server for agents](#mcp-server-for-agents)
 - [Development](#development)
@@ -34,8 +35,9 @@ specification; development agents read exactly the version that was approved, th
 
 ## Features
 
-- **Structured specification:** problem statement, scope and success metrics, plus business, stakeholder,
-  functional and non-functional requirements, assumptions, risks, dependencies, scenarios and roles. Every element
+- **Structured specification, following the BABOK requirements classification:** problem statement, scope and
+  success metrics, plus business, stakeholder, functional and non-functional requirements, assumptions, risks,
+  dependencies, scenarios and roles. See [BABOK alignment](#babok-alignment) for what is covered and what is not. Every element
   gets a permanent key (`BR-01`, `FR-12`, …) that is never reused.
 - **Markdown with Mermaid:** a two-pane editor with live preview. Diagrams are drawn in the browser and in
   PDFs. Writing `` `SR-03` `` links to that element.
@@ -127,6 +129,15 @@ All passwords are `password`. Local services:
 <details>
 <summary>Run everything in containers / stop the environment</summary>
 
+One command runs the tests, builds the image, starts the whole stack in a Podman pod and smoke-tests it
+(sign-in through Keycloak, probes, metrics, MCP, PDF and Markdown export):
+
+```bash
+src/main/dev/scripts/podman-test.sh                 # options: --skip-tests, --fresh (empty database), --down
+```
+
+Or step by step:
+
 ```bash
 ./mvnw -DskipTests package                                         # the image is built from target/
 docker compose -f src/main/dev/compose.yaml --profile full up -d --build
@@ -137,6 +148,37 @@ src/main/dev/scripts/podman-dev.sh down              # add --volumes to drop the
 ```
 
 </details>
+
+## BABOK alignment
+
+Reqlith takes **selected elements** of the [BABOK® Guide](https://www.iiba.org/career-resources/a-business-analysis-professionals-foundation-for-success/babok/)
+(International Institute of Business Analysis) as its structure. It covers the part of business analysis that turns
+agreed needs into a reviewed, development-ready specification. It is not a complete BABOK implementation.
+
+| BABOK concept | In Reqlith |
+|---|---|
+| Requirements classification schema: business, stakeholder and solution (functional, non-functional) requirements | element types `BR`, `SR`, `FR`, `NFR` |
+| Business need and solution scope (Strategy Analysis outputs) | basic information: problem statement, scope and out of scope, success metrics |
+| Assumptions, risks and dependencies | element types `AS`, `RK`, `DP`, each traceable like any requirement |
+| Stakeholders | roles shared across projects, each described in the context of a project |
+| Scenarios and use cases (technique) | element type `SC`, which verifies functional requirements |
+| Trace Requirements | typed links (derived from, verified by, depends on, mitigates) in both directions, traceability matrix in the PRD |
+| Prioritize Requirements | MoSCoW priority per element |
+| Verify and Approve Requirements | whole-project review: reviewer decisions, suggestions, immutable approved versions |
+| Maintain Requirements | versions, word-level comparison, reuse of roles across projects |
+
+**Not covered:**
+- transition requirements;
+- elicitation and collaboration activities (interview notes, workshops);
+- current and future state analysis;
+- solution evaluation;
+- a formal change request and impact analysis workflow;
+- additional requirement attributes such as source, stability or complexity.
+
+Constraints have no type of their own: capture them as non-functional requirements or in the scope.
+
+BABOK® is a registered trademark of the International Institute of Business Analysis. Reqlith is not affiliated
+with or endorsed by IIBA.
 
 ## How versions and reviews work
 
@@ -242,7 +284,7 @@ src/main/kotlin/io/reqlith
 └── exception     business exceptions and error handling
 src/main/resources   templates, static assets (vendored JS and fonts), Flyway migrations, configuration
 src/main/docker      Dockerfile (Alpine + JRE 25)
-src/main/dev         compose.yaml, Keycloak realm, database init, scripts (podman-dev, test, build-image, update-vendor)
+src/main/dev         compose.yaml, Keycloak realm, database init, scripts (podman-dev, podman-test, test, build-image, update-vendor)
 ```
 
 Tests mirror the package layout. Shared test setup lives in `support`.
@@ -342,7 +384,7 @@ ID token issuers are still validated against `REQLITH_IDP_ISSUER`.
 
 ## Contributing
 
-1. Start the local environment and run `src/main/dev/scripts/test.sh` before you open a pull request.
+1. Run `src/main/dev/scripts/test.sh` (or `podman-test.sh` for the full stack) before you open a pull request.
 2. Keep to the package layout (controllers stay thin, logic lives in services, data access in
    repositories) and to the logging conventions above.
 3. Schema changes go into a new Flyway migration in `src/main/resources/db/migration`. Never edit an applied
@@ -352,4 +394,5 @@ ID token issuers are still validated against `REQLITH_IDP_ISSUER`.
 
 ## License
 
-[Apache License 2.0](LICENSE)
+[Apache License 2.0](LICENSE). Bundled third-party files (htmx, Mermaid, IBM Plex fonts) keep their own licenses.
+See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

@@ -36,9 +36,16 @@ for w in 400 500; do
   cp "$WORK/mono/package/files/ibm-plex-mono-latin-${w}-normal.woff2" "$VENDOR/fonts/"
 done
 
+# Licenses travel with the redistributed files (the minified files carry no license header).
+mkdir -p "$VENDOR/licenses"
+cp "$WORK/htmx/package/LICENSE" "$VENDOR/licenses/htmx.LICENSE"
+cp "$WORK/mermaid/package/LICENSE" "$VENDOR/licenses/mermaid.LICENSE"
+cp "$WORK/sans/package/LICENSE" "$VENDOR/licenses/ibm-plex-sans.LICENSE"
+cp "$WORK/mono/package/LICENSE" "$VENDOR/licenses/ibm-plex-mono.LICENSE"
+
 cat > "$VENDOR/VERSIONS" <<EOF
-htmx.org ${HTMX_VERSION}
-mermaid ${MERMAID_VERSION}
+htmx.org ${HTMX_VERSION} (0BSD)
+mermaid ${MERMAID_VERSION} (MIT)
 @fontsource/ibm-plex-sans ${PLEX_SANS_VERSION} (OFL-1.1)
 @fontsource/ibm-plex-mono ${PLEX_MONO_VERSION} (OFL-1.1)
 EOF
