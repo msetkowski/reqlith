@@ -43,7 +43,9 @@ class VersionService(
         return version ?: throw NotFoundException("Version v$slug of ${project.key} not found")
     }
 
-    fun document(version: ProjectVersion): ProjectDocument = codec.read(version.snapshot)
+    /** Reads the snapshot with its own query, so it works for versions loaded in an earlier transaction too. */
+    fun document(version: ProjectVersion): ProjectDocument =
+        codec.read(versions.findSnapshot(version.id) ?: throw NotFoundException("Version ${version.label} has no snapshot"))
 
     fun approvedDocument(project: Project, versionNo: Int): ProjectDocument? =
         versions.findByProjectIdAndVersionNo(project.id, versionNo)?.let(::document)

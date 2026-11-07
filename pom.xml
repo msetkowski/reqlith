@@ -265,6 +265,36 @@
                     </dependency>
                 </dependencies>
             </plugin>
+            <!--
+              Hibernate bytecode enhancement: lets single columns load lazily. Used for the version snapshot
+              (whole project as JSON), so version lists never read snapshots.
+            -->
+            <plugin>
+                <groupId>org.hibernate.orm</groupId>
+                <artifactId>hibernate-maven-plugin</artifactId>
+                <version>${hibernate.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>enhance</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Only the entity with a lazy column; enhancing the shared mapped superclass breaks id writes. -->
+                            <fileSets>
+                                <fileSet>
+                                    <directory>${project.build.outputDirectory}</directory>
+                                    <includes>
+                                        <include>io/reqlith/model/entity/ProjectVersion.class</include>
+                                    </includes>
+                                </fileSet>
+                            </fileSets>
+                            <enableLazyInitialization>true</enableLazyInitialization>
+                            <enableDirtyTracking>false</enableDirtyTracking>
+                            <enableAssociationManagement>false</enableAssociationManagement>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- The project targets Java 25: build with JDK 25 or newer. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

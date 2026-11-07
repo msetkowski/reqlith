@@ -30,11 +30,11 @@ class MembershipServiceTest {
 
     @Test
     fun `invitations are normalized and renewed instead of duplicated`() {
-        every { invitations.findByProjectIdAndEmailIgnoreCase(project.id, "carla@reqlith.test") } returns null
+        every { invitations.findByProjectIdAndEmail(project.id, "carla@reqlith.test") } returns null
         val first = service.invite(owner, project, "  Carla@Reqlith.TEST ", MemberRole.CONTRIBUTOR)
         assertEquals("carla@reqlith.test", first.email)
 
-        every { invitations.findByProjectIdAndEmailIgnoreCase(project.id, "carla@reqlith.test") } returns first
+        every { invitations.findByProjectIdAndEmail(project.id, "carla@reqlith.test") } returns first
         val renewed = service.invite(owner, project, "carla@reqlith.test", MemberRole.REVIEWER)
         assertEquals(first.id, renewed.id)
         assertEquals(MemberRole.REVIEWER, renewed.role)
@@ -85,7 +85,7 @@ class MembershipServiceTest {
     @Test
     fun `pending invitations are found by the signed-in user's address`() {
         val carla = UnitFixtures.user("Carla Conti")
-        every { invitations.findByEmailIgnoreCase(carla.emailAddress!!) } returns emptyList()
+        every { invitations.findByEmail(carla.emailAddress!!) } returns emptyList()
         assertEquals(emptyList(), service.pendingInvitationsFor(carla))
         assertEquals(emptyList(), service.pendingInvitationsFor(carla.copy(emailAddress = null)))
     }

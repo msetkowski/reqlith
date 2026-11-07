@@ -1,10 +1,12 @@
 package io.reqlith.model.entity
 
 import io.reqlith.model.dto.Snapshot
+import jakarta.persistence.Basic
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
+import jakarta.persistence.FetchType
 import jakarta.persistence.Table
 import java.time.Instant
 import java.util.UUID
@@ -25,8 +27,7 @@ class ProjectVersion(
     val targetVersion: Int,
     @Column(name = "candidate_no", nullable = false, updatable = false)
     val candidateNo: Int,
-    @Column(nullable = false, updatable = false)
-    val snapshot: String,
+    snapshot: String,
     @Column(name = "schema_version", nullable = false, updatable = false)
     val schemaVersion: Int,
     @Column(name = "content_hash", nullable = false, updatable = false)
@@ -39,6 +40,12 @@ class ProjectVersion(
     @Column(name = "submitted_at", nullable = false, updatable = false)
     val submittedAt: Instant,
 ) : AbstractEntity() {
+
+    /** The whole project as canonical JSON; loaded only on access (bytecode-enhanced lazy column). */
+    @Basic(fetch = FetchType.LAZY)
+    @Column(nullable = false, updatable = false)
+    var snapshot: String = snapshot
+        protected set
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

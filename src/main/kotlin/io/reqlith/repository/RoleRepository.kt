@@ -7,7 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository
 interface RoleRepository : JpaRepository<Role, UUID> {
     fun findAllByOrderByName(): List<Role>
 
-    fun findByNameIgnoreCase(name: String): Role?
+    /** Case-insensitive through the database collation (SQL Server default), so the unique index on name is used. */
+    fun findByName(name: String): Role?
 
     fun findByKey(key: String): Role?
 }

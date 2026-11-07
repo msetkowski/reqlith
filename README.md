@@ -338,7 +338,7 @@ The image is about 350 MB. Building requires JDK 25 or newer, which the Maven en
 | Service | Notes |
 |---|---|
 | Reqlith | ports 8080 (application) and 8081 (actuator, cluster-internal) |
-| MS SQL Server | schema owned by `reqlith_app`. Create a `reqlith_mcp` login with read rights for MCP (see `src/main/dev/mssql/init.sql`). |
+| MS SQL Server | case-insensitive collation (the default, e.g. `SQL_Latin1_General_CP1_CI_AS`); schema owned by `reqlith_app`. Create a `reqlith_mcp` login with read rights for MCP (see `src/main/dev/mssql/init.sql`). |
 | OAuth 2 / OIDC IDP | Keycloak, Microsoft Entra ID or any OIDC provider. See [Identity provider](#identity-provider). |
 | Gotenberg | PDF rendering. Keep it internal, and start it with `--chromium-allow-list=^file:///tmp/.*` so rendered pages have no network access. |
 

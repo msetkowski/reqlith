@@ -32,6 +32,7 @@ class VersionServiceTest {
         every { versions.findByProjectIdAndVersionNo(project.id, 1) } returns v1
         every { versions.findByProjectIdAndTargetVersionAndCandidateNo(project.id, 2, 3) } returns rc
         every { versions.findByProjectIdAndVersionNo(project.id, 9) } returns null
+        every { versions.findSnapshot(v1.id) } returns v1.snapshot
 
         assertSame(v1, service.bySlug(project, "1"))
         assertSame(rc, service.bySlug(project, "2-rc3"))

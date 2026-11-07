@@ -14,6 +14,8 @@ spring:
     properties:
       hibernate:
         type.prefer_nationalized_character_data: true
+        # Element collections (tags, links) and project tags load in batches instead of one query per row.
+        default_batch_fetch_size: 64
         jdbc.time_zone: UTC
   flyway:
     locations: classpath:db/migration

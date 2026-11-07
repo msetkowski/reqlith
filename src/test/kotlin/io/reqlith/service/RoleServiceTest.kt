@@ -35,7 +35,7 @@ class RoleServiceTest {
     init {
         every { access.isEditorAnywhere(editor) } returns true
         every { access.isEditorAnywhere(viewer) } returns false
-        every { roles.findByNameIgnoreCase(any()) } returns null
+        every { roles.findByName(any()) } returns null
     }
 
     @Test
@@ -48,7 +48,7 @@ class RoleServiceTest {
     fun `role names are required, bounded and unique regardless of case`() {
         assertFailsWith<ValidationException> { service.create(editor, " ", null) }
         assertFailsWith<ValidationException> { service.create(editor, "x".repeat(201), null) }
-        every { roles.findByNameIgnoreCase("customer") } returns role
+        every { roles.findByName("customer") } returns role
         assertFailsWith<ValidationException> { service.create(editor, "customer", null) }
     }
 

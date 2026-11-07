@@ -119,7 +119,7 @@ class RoleService(
         }
         val trimmed = name.trim()
         if (trimmed.isEmpty()) throw ValidationException("name", "Role name is required")
-        roles.findByNameIgnoreCase(trimmed)?.let { if (it.id != role.id) throw ValidationException("name", "A role called $trimmed already exists") }
+        roles.findByName(trimmed)?.let { if (it.id != role.id) throw ValidationException("name", "A role called $trimmed already exists") }
         role.name = trimmed
         role.descriptionMd = normalize(descriptionMd)
         role.updatedAt = Instant.now(clock)
@@ -132,7 +132,7 @@ class RoleService(
         val trimmed = name.trim()
         if (trimmed.isEmpty()) throw ValidationException("name", "Role name is required")
         if (trimmed.length > 200) throw ValidationException("name", "Keep the name under 200 characters")
-        if (roles.findByNameIgnoreCase(trimmed) != null) {
+        if (roles.findByName(trimmed) != null) {
             throw ValidationException("name", "A role called $trimmed already exists. Select it from the list instead.")
         }
         return roles.save(

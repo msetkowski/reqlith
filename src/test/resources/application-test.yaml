@@ -1,6 +1,10 @@
 # Tests: SQL Server and the PDF renderer come from Testcontainers (MsSqlContainerConfig overrides these values);
 # the identity provider is never contacted.
 spring:
+  jpa:
+    properties:
+      # Query counts are asserted in QueryEfficiencyIT.
+      hibernate.generate_statistics: true
   datasource:
     url: jdbc:sqlserver://provided-by-testcontainers
     password: provided-by-testcontainers

@@ -9,8 +9,6 @@ import org.springframework.data.jpa.repository.Query
 interface AppUserRepository : JpaRepository<AppUser, UUID> {
     fun findBySubject(subject: String): AppUser?
 
-    fun findByEmailIgnoreCase(email: String): AppUser?
-
     /** Users whose name or e-mail contains [text] (case-insensitive). */
     @Query(
         """select u from AppUser u where u.email is not null

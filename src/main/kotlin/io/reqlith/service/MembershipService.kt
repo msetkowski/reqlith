@@ -33,7 +33,7 @@ class MembershipService(
     fun invitations(project: Project): List<Invitation> = invitations.findByProjectId(project.id)
 
     fun pendingInvitationsFor(user: CurrentUser): List<Invitation> =
-        user.emailAddress?.let { invitations.findByEmailIgnoreCase(it) }.orEmpty()
+        user.emailAddress?.let { invitations.findByEmail(it.trim().lowercase()) }.orEmpty()
 
     @Transactional
     fun invite(user: CurrentUser, project: Project, email: String, role: MemberRole): Invitation {
@@ -41,7 +41,7 @@ class MembershipService(
         val normalized = email.trim().lowercase()
         if (!EMAIL.matches(normalized)) throw ValidationException("email", "Enter a valid e-mail address")
         val now = Instant.now(clock)
-        val existing = invitations.findByProjectIdAndEmailIgnoreCase(project.id, normalized)
+        val existing = invitations.findByProjectIdAndEmail(project.id, normalized)
         if (existing != null) {
             existing.role = role
             existing.invitedBy = user.userId
