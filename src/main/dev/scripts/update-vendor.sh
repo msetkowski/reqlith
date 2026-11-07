@@ -9,7 +9,7 @@ MERMAID_VERSION=11.17.2
 PLEX_SANS_VERSION=5.3.0
 PLEX_MONO_VERSION=5.3.0
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"  # repository root
 VENDOR="$ROOT/src/main/resources/static/vendor"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT

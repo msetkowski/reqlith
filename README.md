@@ -3,7 +3,7 @@
 Requirement engineering tool. It collects BABOK-style requirements into a project, reviews the whole project and freezes each approved state as an immutable, numbered version that a development AI agent can consume (PRD export, read-only MCP server).
 
 Stack: Spring Boot 4.1 · Kotlin · Spring MVC + Thymeleaf + HTMX · MS SQL Server + Flyway · OAuth 2 / OIDC (Keycloak for local dev).
-All JavaScript and fonts are vendored in `src/main/resources/static/vendor` (see `scripts/update-vendor.sh`), so no CDN is needed.
+All JavaScript and fonts are vendored in `src/main/resources/static/vendor` (see `src/main/dev/scripts/update-vendor.sh`), so no CDN is needed.
 
 ## Prerequisites
 
@@ -16,7 +16,7 @@ All JavaScript and fonts are vendored in `src/main/resources/static/vendor` (see
 Start SQL Server and Keycloak:
 
 ```bash
-docker compose up -d          # or: scripts/podman-dev.sh up
+docker compose -f src/main/dev/compose.yaml up -d    # or: src/main/dev/scripts/podman-dev.sh up
 ```
 
 | Service  | Address                 | Credentials                                   |
@@ -33,21 +33,35 @@ mvnd spring-boot:run -Dspring-boot.run.profiles=local
 # open http://localhost:8080
 ```
 
-To run everything in containers instead, use `docker compose --profile full up -d --build` or `scripts/podman-dev.sh up --with-app`.
-Stop the environment with `scripts/podman-dev.sh down`. Add `--volumes` to also drop the database.
+To run everything in containers instead, use `docker compose -f src/main/dev/compose.yaml --profile full up -d --build` or `src/main/dev/scripts/podman-dev.sh up --with-app`.
+Stop the environment with `src/main/dev/scripts/podman-dev.sh down`. Add `--volumes` to also drop the database.
 
 ## Tests
 
 ```bash
-mvnd verify
+src/main/dev/scripts/test.sh            # = mvnd verify, plus container setup and cleanup
+src/main/dev/scripts/test.sh test       # any Maven arguments
 ```
 
-Integration tests (`*IT`) start SQL Server through Testcontainers. With Podman:
+Integration tests (`*IT`) start SQL Server through Testcontainers. The script:
 
-```bash
-systemctl --user start podman.socket
-export DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock TESTCONTAINERS_RYUK_DISABLED=true
-```
+- With Podman, starts the user API socket if needed and sets `DOCKER_HOST`. It also configures Testcontainers' Ryuk reaper for rootless Podman (`TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE`, `TESTCONTAINERS_RYUK_CONTAINER_PRIVILEGED`), so containers are removed even when the test JVM crashes or is killed.
+- On exit, including Ctrl+C, removes any container still labelled `io.reqlith.test`.
+- Failsafe kills a test JVM that hangs for more than 20 minutes.
+
+Running `mvnd verify` directly also works when Docker is available, or when the variables above are exported.
+
+## Repository layout
+
+| Path | Contents |
+|---|---|
+| `src/main/kotlin`, `src/main/resources` | Application (templates, static assets, Flyway migrations) |
+| `src/main/docker/Dockerfile` | Container image (build context: repository root, see `.dockerignore`) |
+| `src/main/dev/compose.yaml` | Local environment for Docker compose |
+| `src/main/dev/keycloak`, `src/main/dev/mssql` | Keycloak realm with test users, database init script |
+| `src/main/dev/scripts` | `podman-dev.sh` (environment without compose), `test.sh`, `update-vendor.sh` |
+
+Build the image with `docker build -f src/main/docker/Dockerfile .` (or `podman build`).
 
 ## Configuration
 

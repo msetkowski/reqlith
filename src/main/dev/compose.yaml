@@ -1,7 +1,7 @@
-# Local development environment.
-#   docker compose up -d                  -> MSSQL + Keycloak (run the app from the IDE / mvnd)
-#   docker compose --profile full up -d   -> also builds and runs the app container
-# Podman without compose: scripts/podman-dev.sh up
+# Local development environment. Run from the repository root:
+#   docker compose -f src/main/dev/compose.yaml up -d                         -> MSSQL + Keycloak (app runs on the host)
+#   docker compose -f src/main/dev/compose.yaml --profile full up -d --build  -> also builds and runs the app container
+# Podman without compose: src/main/dev/scripts/podman-dev.sh up
 name: reqlith
 
 services:
@@ -32,7 +32,7 @@ services:
       APP_PASSWORD: ${REQLITH_DB_PASSWORD:-Reqlith_dev_app_1}
       MCP_PASSWORD: ${REQLITH_MCP_DB_PASSWORD:-Reqlith_dev_mcp_1}
     volumes:
-      - ./dev/mssql/init.sql:/init.sql:ro,z
+      - ./mssql/init.sql:/init.sql:ro,z
     entrypoint:
       - /bin/bash
       - -c
@@ -52,11 +52,13 @@ services:
     ports:
       - "8180:8080"
     volumes:
-      - ./dev/keycloak/reqlith-realm.json:/opt/keycloak/data/import/reqlith-realm.json:ro,z
+      - ./keycloak/reqlith-realm.json:/opt/keycloak/data/import/reqlith-realm.json:ro,z
 
   app:
     profiles: ["full"]
-    build: .
+    build:
+      context: ../../..
+      dockerfile: src/main/docker/Dockerfile
     depends_on:
       mssql-init:
         condition: service_completed_successfully

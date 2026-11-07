@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
 import org.testcontainers.mssqlserver.MSSQLServerContainer
+import java.time.Duration
 
 /** Full application context against a real SQL Server (Testcontainers), shared by all integration tests. */
 @Target(AnnotationTarget.CLASS)
@@ -16,6 +17,10 @@ import org.testcontainers.mssqlserver.MSSQLServerContainer
 @Import(MsSqlContainerConfig::class, TestUsers::class, Fixtures::class)
 annotation class IntegrationTest
 
+/**
+ * One SQL Server per test JVM. It is stopped when the Spring context closes, and Ryuk removes it if the JVM
+ * dies. The label lets `src/main/dev/scripts/test.sh` sweep up anything that still survives.
+ */
 @TestConfiguration(proxyBeanMethods = false)
 class MsSqlContainerConfig {
     @Bean
@@ -23,5 +28,10 @@ class MsSqlContainerConfig {
     fun msSqlServer(): MSSQLServerContainer =
         MSSQLServerContainer("mcr.microsoft.com/mssql/server:2022-latest")
             .acceptLicense()
-            .withReuse(true)
+            .withLabel(TEST_CONTAINER_LABEL, "true")
+            .withStartupTimeout(Duration.ofMinutes(3))
+
+    companion object {
+        const val TEST_CONTAINER_LABEL = "io.reqlith.test"
+    }
 }
