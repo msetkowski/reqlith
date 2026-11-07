@@ -20,6 +20,11 @@
 <aside class="sidenav" th:fragment="sidenav">
     <nav aria-label="Project">
         <a th:href="@{/p/{k}/draft(k=${project.key})}" th:attr="aria-current=${active == 'overview'} ? 'page' : null">Overview</a>
+        <a th:href="@{/p/{k}/review(k=${project.key})}" th:attr="aria-current=${active == 'review'} ? 'page' : null">Review
+            <span class="badge review" th:if="${openReview != null}">1 open</span>
+            <span class="badge danger" th:if="${openReview == null and openSuggestionCount > 0}"
+                  th:text="|${openSuggestionCount} to resolve|">2 to resolve</span>
+        </a>
         <a th:href="@{/p/{k}/draft/document(k=${project.key})}" th:attr="aria-current=${active == 'document'} ? 'page' : null">Read document</a>
         <a th:href="@{/p/{k}/people(k=${project.key})}" th:attr="aria-current=${active == 'people'} ? 'page' : null">People</a>
     </nav>

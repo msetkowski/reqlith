@@ -10,7 +10,10 @@ import io.reqlith.project.MembershipService
 import io.reqlith.project.Project
 import io.reqlith.project.ProjectAccess
 import io.reqlith.project.ProjectStatus
+import io.reqlith.review.ReviewService
 import io.reqlith.user.CurrentUser
+import io.reqlith.version.SnapshotCodec
+import io.reqlith.version.VersionService
 import io.reqlith.user.UserService
 import org.springframework.stereotype.Component
 import org.springframework.ui.Model
@@ -26,6 +29,9 @@ class ProjectViewSupport(
     private val users: UserService,
     private val markdown: MarkdownRenderer,
     private val formats: Formats,
+    private val versions: VersionService,
+    private val reviews: ReviewService,
+    private val codec: SnapshotCodec,
 ) {
     fun populate(model: Model, project: Project, user: CurrentUser, document: ProjectDocument, active: String) {
         val role = access.roleOf(project, user)
@@ -41,8 +47,27 @@ class ProjectViewSupport(
         model.addAttribute("owners", owners)
         model.addAttribute("active", active)
         model.addAttribute("sections", sections(project, document))
-        model.addAttribute("stateLabel", stateLabel(project))
-        model.addAttribute("stateClass", if (project.status == ProjectStatus.IN_REVIEW) "review" else "draft")
+        val state = state(project, document)
+        model.addAttribute("stateLabel", state.first)
+        model.addAttribute("stateClass", state.second)
+        model.addAttribute("openReview", versions.openCandidate(project))
+        model.addAttribute("openSuggestionCount", reviews.openSuggestions(project).size)
+    }
+
+    /**
+     * Derived, never stored: "In review · v2-rc1", "Approved v1", "Draft after v1" or "Draft",
+     * with the badge style to use.
+     */
+    fun state(project: Project, document: ProjectDocument): Pair<String, String> {
+        if (project.status == ProjectStatus.IN_REVIEW) {
+            return "In review · ${versions.openCandidate(project)?.label.orEmpty()}" to "review"
+        }
+        val approved = versions.latestApproved(project) ?: return "Draft" to "draft"
+        return if (codec.write(document).hash == approved.contentHash) {
+            "Approved ${approved.label}" to "approved"
+        } else {
+            "Draft after ${approved.label}" to "draft"
+        }
     }
 
     fun absolute(path: String): String = formats.absolute(path)
@@ -51,14 +76,16 @@ class ProjectViewSupport(
     fun render(markdownText: String?, project: Project, document: ProjectDocument): String =
         markdown.render(markdownText, resolver(project, document))
 
+    /** Renders markdown of a frozen version: references point to anchors on the same page. */
+    fun renderInPage(markdownText: String?, document: ProjectDocument): String =
+        markdown.render(markdownText) { key ->
+            document.element(key)?.let { Reference("#$key", "$key · ${it.title}") }
+                ?: document.role(key)?.let { Reference("#$key", "$key · ${it.name}") }
+        }
+
     fun resolver(project: Project, document: ProjectDocument) = ReferenceResolver { key ->
         document.element(key)?.let { Reference("/p/${project.key}/e/$key", "$key · ${it.title}") }
             ?: document.role(key)?.let { Reference("/roles/$key", "$key · ${it.name}") }
-    }
-
-    fun stateLabel(project: Project): String = when (project.status) {
-        ProjectStatus.IN_REVIEW -> "In review"
-        ProjectStatus.DRAFT -> project.latestApprovedVersion?.let { "Draft after v$it" } ?: "Draft"
     }
 
     private fun sections(project: Project, document: ProjectDocument): List<NavSection> {

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--/*
+  A whole project document: basic information, element sections and roles.
+  Model: document, html (RenderedDocument), types, incoming; optional `version` (frozen: in-page links only),
+  optional `changes` (DocumentChanges) to mark new/changed elements,
+  optional `visibleKeys` (only these elements and roles are shown; sections without any are hidden),
+  optional `reviewBlock` (template with an `element-review(key)` fragment appended to each element).
+*/-->
+<th:block th:fragment="body">
+    <section class="doc-section" id="basic-information" th:if="${visibleKeys == null or changes.basicInfoChanged}">
+        <div class="row" style="justify-content: space-between">
+            <h2 style="font-size: 20px">Basic information
+                <span class="badge review" th:if="${changes != null and changes.basicInfoChanged}">Changed</span></h2>
+            <a class="btn sm" th:if="${version == null and canEdit}" th:href="@{/p/{k}/basic-info/edit(k=${project.key})}">Edit</a>
+        </div>
+        <div class="card card-pad md" th:utext="${html.basicInfo}">basic info</div>
+        <div class="card card-pad" th:if="${reviewBlock != null}" style="margin-top: -4px">
+            <div th:replace="~{${reviewBlock} :: element-review('BASIC_INFO')}"></div>
+        </div>
+    </section>
+
+    <th:block th:each="t : ${types}">
+        <section class="doc-section" id="roles"
+                 th:if="${t.name() == 'SC' and (visibleKeys == null or !#lists.isEmpty(document.roles.?[#vars.visibleKeys.contains(key)]))}">
+            <h2>Roles</h2>
+            <p class="muted small" th:if="${document.roles.isEmpty()}">None.</p>
+            <article class="card doc-element" th:each="r : ${document.roles}" th:id="${r.key}"
+                     th:if="${visibleKeys == null or visibleKeys.contains(r.key)}">
+                <header>
+                    <span class="key" th:text="${r.key}">RO-01</span>
+                    <h3 th:text="${r.name}">Role</h3>
+                    <th:block th:if="${changes != null}" th:with="kind=${changes.of(r.key)}">
+                        <span class="badge review" th:unless="${kind.name() == 'UNCHANGED'}" th:text="${kind.label}">New</span>
+                    </th:block>
+                </header>
+                <div class="md" th:utext="${html.roles[r.key].first}">global</div>
+                <div class="traces">
+                    <div class="label" style="margin-bottom: 4px">In this project</div>
+                    <div class="md" th:utext="${html.roles[r.key].second}">context</div>
+                </div>
+            </article>
+        </section>
+        <section class="doc-section" th:id="${t.name()}"
+                 th:with="items=${visibleKeys == null} ? ${document.elementsOf(t)} : ${document.elementsOf(t).?[#vars.visibleKeys.contains(key)]}"
+                 th:if="${visibleKeys == null or !#lists.isEmpty(items)}">
+            <h2 th:text="${t.section}">Section</h2>
+            <p class="muted small" th:if="${items.isEmpty()}">None.</p>
+            <article class="card doc-element" th:each="e : ${items}" th:id="${e.key}">
+                <header>
+                    <span class="key" th:text="${e.key}">FR-01</span>
+                    <h3 th:if="${version == null}"><a th:href="@{/p/{k}/e/{ek}(k=${project.key},ek=${e.key})}"
+                                                      style="color: inherit; text-decoration: none" th:text="${e.title}">Title</a></h3>
+                    <h3 th:unless="${version == null}" th:text="${e.title}">Title</h3>
+                    <span class="badge" th:if="${e.priority != null}" th:text="${e.priority.label}">Must</span>
+                    <span class="tag" th:each="tag : ${e.tags}" th:text="|#${tag}|">#tag</span>
+                    <th:block th:if="${changes != null}" th:with="kind=${changes.of(e.key)}">
+                        <span class="badge review" th:unless="${kind.name() == 'UNCHANGED'}" th:text="${kind.label}">New</span>
+                    </th:block>
+                </header>
+                <div class="md" th:utext="${html.elements[e.key]}">body</div>
+                <div class="traces link-list" th:if="${!e.links.isEmpty() or incoming[e.key] != null}">
+                    <div th:each="l : ${e.links}">
+                        <span class="kind" th:text="${l.kind.label}">Derived from</span>
+                        <a class="mono" th:href="|#${l.toKey}|" th:text="${l.toKey}">SR-01</a>
+                    </div>
+                    <div th:each="in : ${incoming[e.key]}">
+                        <span class="kind" th:text="${in.first.kind.inverseLabel}">Refined by</span>
+                        <a class="mono" th:href="|#${in.second}|" th:text="${in.second}">FR-01</a>
+                    </div>
+                </div>
+                <th:block th:if="${reviewBlock != null}">
+                    <div th:replace="~{${reviewBlock} :: element-review(${e.key})}"></div>
+                </th:block>
+            </article>
+        </section>
+    </th:block>
+</th:block>
+</body>
+</html>

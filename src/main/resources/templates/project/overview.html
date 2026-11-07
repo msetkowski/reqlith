@@ -51,8 +51,11 @@
                            th:attr="aria-current=${selectedType == null} ? 'true' : null"
                            th:text="|All ${document.elements.size()}|">All</a>
                         <a class="pill" th:each="t : ${types}" th:href="@{/p/{k}/draft(k=${project.key},type=${t})}"
-                           th:attr="aria-current=${selectedType == t} ? 'true' : null" th:title="${t.section}"
+                           th:attr="aria-current=${selectedType == t and !changedOnly} ? 'true' : null" th:title="${t.section}"
                            th:text="${t.name()}">BR</a>
+                        <a class="pill" th:if="${changes != null}" th:href="@{/p/{k}/draft(k=${project.key},changed=true)}"
+                           th:attr="aria-current=${changedOnly} ? 'true' : null"
+                           th:text="|Changed since v${project.latestApprovedVersion}|">Changed</a>
                     </div>
                 </div>
                 <div class="empty" th:if="${rows.isEmpty()}">
@@ -65,15 +68,20 @@
                 <div class="table-wrap" th:unless="${rows.isEmpty()}">
                     <table class="data" style="min-width: 640px">
                         <thead>
-                        <tr><th>ID</th><th>Title</th><th>Type</th><th>Priority</th><th>Traces to</th><th>Modified</th></tr>
+                        <tr><th>ID</th><th>Title</th><th>Type</th><th>Priority</th><th>Traces to</th><th>State</th><th>Modified</th></tr>
                         </thead>
                         <tbody>
-                        <tr th:each="e : ${rows}">
+                        <tr th:each="e : ${rows}" th:with="kind=${changes != null} ? ${changes.of(e.key).name()} : 'DRAFT'"
+                            th:style="${kind == 'NEW' or kind == 'CHANGED'} ? 'background: #FFFBF2'">
                             <td class="mono muted" th:text="${e.key}">FR-01</td>
                             <td><a th:href="@{/p/{k}/e/{ek}(k=${project.key},ek=${e.key})}" style="text-decoration: none; font-weight: 500" th:text="${e.title}">Title</a></td>
                             <td th:text="${e.type.shortLabel}">Functional</td>
                             <td th:text="${e.priority != null} ? ${e.priority.label} : '—'" class="muted">Must</td>
                             <td class="mono xs" th:text="${e.links.isEmpty()} ? '—' : ${#strings.listJoin(e.links.![toKey], ', ')}">—</td>
+                            <td>
+                                <span class="badge" th:classappend="${kind == 'UNCHANGED'} ? 'approved' : (${kind == 'DRAFT'} ? 'draft' : 'review')"
+                                      th:text="(${locked} ? 'In review · ' : '') + (${kind == 'UNCHANGED'} ? 'Approved' : (${kind == 'NEW'} ? 'New' : (${kind == 'CHANGED'} ? 'Changed' : 'Draft')))">Draft</span>
+                            </td>
                             <td class="muted" th:text="${@formats.date(modified[e.key])}">date</td>
                         </tr>
                         </tbody>
@@ -102,6 +110,14 @@
                             <span class="value" th:classappend="${brokenLinks.size() > 0} ? 'bad'" th:text="${brokenLinks.size()}">0</span>
                         </div>
                         <div class="xs muted" th:each="b : ${brokenLinks}" th:text="|${b.first} → ${b.second.toKey}|">FR-01 → SC-09</div>
+                        <div class="metric">
+                            <span>Open review suggestions</span>
+                            <span class="value" th:classappend="${openSuggestions.size() > 0} ? 'bad'" th:text="${openSuggestions.size()}">0</span>
+                        </div>
+                        <div class="metric" th:if="${changes != null}">
+                            <span th:text="|Since v${project.latestApprovedVersion}|">Since v1</span>
+                            <span class="xs" th:text="${changes.summary}">summary</span>
+                        </div>
                     </div>
                 </section>
                 <section class="card">
@@ -114,8 +130,20 @@
                     </div>
                 </section>
                 <section class="card">
-                    <div class="card-head"><h2 class="h-sm">Versions</h2></div>
-                    <div class="card-body small muted">No version has been approved yet.</div>
+                    <div class="card-head"><h2 class="h-sm">Versions</h2>
+                        <a class="btn sm" th:href="@{/p/{k}/review(k=${project.key})}" th:text="${locked} ? 'Open review' : 'Review'">Review</a></div>
+                    <div class="card-body small">
+                        <p class="muted" th:if="${history.isEmpty()}">Nothing has been submitted for review yet.</p>
+                        <a th:each="v : ${history}" th:href="@{/p/{k}/v/{s}(k=${project.key},s=${v.slug})}"
+                           class="stack tight" style="text-decoration: none; color: inherit; gap: 2px">
+                            <span class="row" style="gap: 6px">
+                                <strong class="mono" th:text="${v.label}">v1</strong>
+                                <span class="badge" th:classappend="${v.status.name() == 'APPROVED'} ? 'approved' : (${v.status.name() == 'IN_REVIEW'} ? 'review' : (${v.status.name() == 'WITHDRAWN'} ? 'draft' : 'danger'))"
+                                      th:text="${v.status.name() == 'APPROVED'} ? 'Approved, locked' : ${v.status.label}">Approved</span>
+                            </span>
+                            <span class="xs muted" th:text="|${@formats.date(v.closedAt ?: v.submittedAt)} · submitted by ${submitters[v.submittedBy]?.displayName}|">date</span>
+                        </a>
+                    </div>
                 </section>
             </aside>
         </div>

@@ -1,7 +1,12 @@
 package io.reqlith.web
 
 import io.reqlith.common.ValidationException
+import io.reqlith.document.ChangeKind
+import io.reqlith.document.DocumentChanges
 import io.reqlith.document.ProjectDocumentService
+import io.reqlith.review.ReviewService
+import io.reqlith.user.UserService
+import io.reqlith.version.VersionService
 import io.reqlith.element.ElementService
 import io.reqlith.element.ElementType
 import io.reqlith.project.MemberRole
@@ -24,6 +29,9 @@ class ProjectController(
     private val workspaces: WorkspaceService,
     private val documents: ProjectDocumentService,
     private val elements: ElementService,
+    private val versions: VersionService,
+    private val reviews: ReviewService,
+    private val users: UserService,
     private val support: ProjectViewSupport,
 ) {
     @GetMapping("/projects/new")
@@ -57,24 +65,32 @@ class ProjectController(
         return "project/new"
     }
 
-    /** Latest approved version; until there is one, the working copy. */
-    @GetMapping("/p/{key}")
-    fun project(@PathVariable key: String): String = "redirect:/p/$key/draft"
-
     @GetMapping("/p/{key}/draft")
     fun overview(
         @AuthenticationPrincipal user: CurrentUser,
         @PathVariable key: String,
         @RequestParam(required = false) type: ElementType?,
+        @RequestParam(defaultValue = "false") changed: Boolean,
         model: Model,
     ): String {
         val project = projects.get(key)
         val document = documents.fromWorkingCopy(project)
         support.populate(model, project, user, document, active = type?.name ?: "overview")
+        val changes = changesSinceApproval(project, document)
+        val history = versions.history(project)
         model.addAttribute("document", document)
         model.addAttribute("types", ElementType.entries)
         model.addAttribute("selectedType", type)
-        model.addAttribute("rows", if (type == null) document.elements else document.elementsOf(type))
+        model.addAttribute("changedOnly", changed && changes != null)
+        model.addAttribute("changes", changes)
+        model.addAttribute(
+            "rows",
+            (if (type == null) document.elements else document.elementsOf(type))
+                .filter { !changed || changes == null || changes.of(it.key) != ChangeKind.UNCHANGED },
+        )
+        model.addAttribute("history", history)
+        model.addAttribute("submitters", users.byIds(history.map { it.submittedBy }))
+        model.addAttribute("openSuggestions", reviews.openSuggestions(project))
         model.addAttribute("modified", elements.all(project).associate { it.key to it.updatedAt })
         model.addAttribute("brokenLinks", document.brokenLinks())
         model.addAttribute("functionalWithoutScenario", document.functionalWithoutScenario())
@@ -88,11 +104,16 @@ class ProjectController(
         val document = documents.fromWorkingCopy(project)
         support.populate(model, project, user, document, active = "document")
         model.addAttribute("document", document)
+        model.addAttribute("changes", changesSinceApproval(project, document))
         model.addAttribute("html", RenderedDocument.of(document) { support.render(it, project, document) })
         model.addAttribute("types", ElementType.entries)
         model.addAttribute("incoming", document.incomingLinks())
         return "project/document"
     }
+
+    /** Element states of the working copy relative to the latest approved version (null before the first approval). */
+    private fun changesSinceApproval(project: io.reqlith.project.Project, document: io.reqlith.document.ProjectDocument): DocumentChanges? =
+        project.latestApprovedVersion?.let { versions.approvedDocument(project, it) }?.let { DocumentChanges(it, document) }
 
     @GetMapping("/p/{key}/details")
     fun editDetails(@AuthenticationPrincipal user: CurrentUser, @PathVariable key: String, model: Model): String {

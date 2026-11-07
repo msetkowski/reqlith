@@ -161,8 +161,8 @@ code, kbd, .mono { font-family: var(--font-mono); }
   padding: 14px 16px; border-bottom: 1px solid var(--line);
 }
 .card-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-a.card-link { display: flex; flex-direction: column; gap: 6px; padding: 16px; text-decoration: none; color: var(--ink); }
-a.card-link:hover { border-color: var(--line-strong); color: var(--ink); box-shadow: 0 1px 3px rgba(21, 23, 28, .06); }
+.card-link { display: flex; flex-direction: column; gap: 6px; padding: 16px; text-decoration: none; color: var(--ink); }
+.card-link:hover { border-color: var(--line-strong); color: var(--ink); box-shadow: 0 1px 3px rgba(21, 23, 28, .06); }
 .empty { padding: 28px 16px; text-align: center; color: var(--muted); }
 .banner { display: flex; gap: 12px; align-items: center; padding: 10px 14px; border-radius: var(--radius); font-size: 13px; }
 .banner.info { background: var(--accent-soft); color: var(--accent-strong); }

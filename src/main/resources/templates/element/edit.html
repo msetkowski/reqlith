@@ -41,6 +41,19 @@
                 <div th:replace="~{fragments/editor :: editor('bodyMd', ${form.bodyMd}, ${previewHtml}, ${linkTargets})}"></div>
             </div>
             <aside class="side" style="flex-basis: 300px">
+                <section class="card" th:unless="${suggestions.isEmpty()}">
+                    <div class="card-head"><h2 class="h-sm">Review suggestions</h2>
+                        <span class="badge danger" th:text="${suggestions.size()}">1</span></div>
+                    <div class="card-body stack">
+                        <p class="xs muted">Applying replaces the text with the suggested wording and saves. Unsaved edits on this page are lost.</p>
+                        <div class="stack tight" th:each="s : ${suggestions}">
+                            <span class="xs muted" th:text="|${names[s.authorId]?.displayName} · ${@formats.date(s.createdAt)}|">by</span>
+                            <p class="small" th:if="${s.commentMd}" th:text="${s.commentMd}">comment</p>
+                            <div class="md small card card-pad" style="background: var(--page); max-height: 200px; overflow: auto"
+                                 th:if="${s.proposedMd}" th:utext="${suggestionHtml[s.id]}">proposed</div>
+                        </div>
+                    </div>
+                </section>
                 <section class="card">
                     <div class="card-head"><h2 class="h-sm">Properties</h2></div>
                     <div class="card-body">
@@ -95,6 +108,19 @@
             </aside>
         </div>
     </form>
+
+    <section class="card card-body" th:unless="${suggestions.isEmpty()}">
+        <h2 class="h-sm">Handle review suggestions</h2>
+        <div class="row" th:each="s : ${suggestions}">
+            <span class="small" style="flex: 1" th:text="|Suggestion by ${names[s.authorId]?.displayName}${s.commentMd != null ? ': ' + s.commentMd : ''}|">Suggestion</span>
+            <form method="post" th:if="${s.proposedMd}" th:action="@{/p/{k}/suggestions/{id}/apply(k=${project.key},id=${s.id},back=${'/p/' + project.key + '/e/' + element.key + '/edit'})}">
+                <button class="btn sm primary" type="submit">Apply wording</button>
+            </form>
+            <form method="post" th:action="@{/p/{k}/suggestions/{id}/dismiss(k=${project.key},id=${s.id},back=${'/p/' + project.key + '/e/' + element.key + '/edit'})}">
+                <button class="btn sm" type="submit">Dismiss</button>
+            </form>
+        </div>
+    </section>
 
     <form th:if="${element != null}" method="post" th:action="@{/p/{k}/e/{ek}/delete(k=${project.key},ek=${element.key})}"
           onsubmit="return confirm('Delete this element? Its key will not be reused.')">

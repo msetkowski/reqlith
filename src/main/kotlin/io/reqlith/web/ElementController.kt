@@ -14,6 +14,7 @@ import io.reqlith.markdown.MarkdownRenderer
 import io.reqlith.project.MembershipService
 import io.reqlith.project.Project
 import io.reqlith.project.ProjectService
+import io.reqlith.review.ReviewService
 import io.reqlith.user.CurrentUser
 import io.reqlith.user.UserService
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -32,6 +33,7 @@ class ElementController(
     private val documents: ProjectDocumentService,
     private val memberships: MembershipService,
     private val users: UserService,
+    private val reviews: ReviewService,
     private val support: ProjectViewSupport,
 ) {
     /** One element in read mode (working copy). */
@@ -126,9 +128,13 @@ class ElementController(
         model.addAttribute("priorities", Priority.entries)
         model.addAttribute("linkKinds", LinkKind.entries)
         model.addAttribute("linkTargets", linkTargets(document, element?.key))
+        val suggestions = element?.let { e -> reviews.openSuggestions(project).filter { it.elementKey == e.key } }.orEmpty()
         val members = memberships.members(project)
-        val names = users.byIds(members.map { it.userId })
+        val names = users.byIds(members.map { it.userId } + suggestions.map { it.authorId })
         model.addAttribute("people", members.mapNotNull { m -> names[m.userId]?.let { it to m.role } })
+        model.addAttribute("suggestions", suggestions)
+        model.addAttribute("suggestionHtml", suggestions.associate { it.id to support.render(it.proposedMd, project, document) })
+        model.addAttribute("names", names)
         return "element/edit"
     }
 
