@@ -11,7 +11,12 @@ data class ReqlithProperties(
     /** IDP role that grants workspace management. */
     val adminRole: String = "reqlith-admin",
     val idp: Idp,
+    val mcp: Mcp = Mcp(),
 ) {
+    data class Mcp(val datasource: Datasource = Datasource()) {
+        data class Datasource(val url: String? = null, val username: String = "reqlith_mcp", val password: String = "")
+    }
+
     data class Idp(
         /** Issuer as it appears in tokens; also where browsers are sent. */
         val issuer: String,

@@ -5,6 +5,7 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
+import org.springframework.test.context.DynamicPropertyRegistrar
 import org.springframework.test.context.ActiveProfiles
 import org.testcontainers.mssqlserver.MSSQLServerContainer
 import java.time.Duration
@@ -30,6 +31,15 @@ class MsSqlContainerConfig {
             .acceptLicense()
             .withLabel(TEST_CONTAINER_LABEL, "true")
             .withStartupTimeout(Duration.ofMinutes(3))
+            // Login for the read-only MCP connection; Flyway (V4) maps it to a db_datareader user.
+            .withInitScript("db/mcp-login.sql")
+
+    @Bean
+    fun mcpDatabaseProperties(container: MSSQLServerContainer) = DynamicPropertyRegistrar { registry ->
+        registry.add("reqlith.mcp.datasource.url", container::getJdbcUrl)
+        registry.add("reqlith.mcp.datasource.username") { "reqlith_mcp" }
+        registry.add("reqlith.mcp.datasource.password") { "Reqlith_test_mcp_1" }
+    }
 
     companion object {
         const val TEST_CONTAINER_LABEL = "io.reqlith.test"

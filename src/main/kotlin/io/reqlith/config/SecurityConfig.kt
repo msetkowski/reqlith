@@ -31,6 +31,7 @@ class SecurityConfig(private val properties: ReqlithProperties) {
                 authorize("/vendor/**", permitAll)
                 authorize("/favicon.svg", permitAll)
                 authorize("/actuator/health/**", permitAll)
+                authorize("/.well-known/oauth-protected-resource/**", permitAll)
                 authorize("/error", permitAll)
                 authorize(anyRequest, authenticated)
             }

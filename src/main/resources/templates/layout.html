@@ -30,6 +30,8 @@
                 <div th:text="${currentUser.displayName}">Name</div>
                 <div class="xs muted" th:text="${currentUser.emailAddress}">email</div>
             </div>
+            <a th:href="@{/account/tokens}">Access tokens for agents</a>
+            <a th:href="@{/roles}">Roles</a>
             <form th:action="@{/logout}" method="post">
                 <button type="submit">Sign out</button>
             </form>

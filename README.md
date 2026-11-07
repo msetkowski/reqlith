@@ -51,6 +51,22 @@ Integration tests (`*IT`) start SQL Server through Testcontainers. The script:
 
 Running `mvnd verify` directly also works when Docker is available, or when the variables above are exported.
 
+## MCP server for agents
+
+`/mcp` is a read-only [Model Context Protocol](https://modelcontextprotocol.io) server (streamable HTTP) for agents that assess requirements, suggest improvements or build a backlog (e.g. in ADO) with their own tools.
+
+- **Tools:** `list_projects`, `get_prd`, `search_requirements`, `get_requirement`, `get_traceability`, `list_versions`, `diff_versions`, `get_review_status`, `get_external_links`, `list_roles`. They return the **latest approved version** unless `version` is given (`"2"`, `"3-rc1"` or `"draft"`), so agents never build on unreviewed work by accident.
+- **Authentication:** either a personal access token (`rql_…`, created under *Account → Access tokens for agents*, stored hashed) or an OAuth 2.1 access token from the IDP. Unauthenticated requests get `401` with `WWW-Authenticate: Bearer resource_metadata=…` pointing to `/.well-known/oauth-protected-resource`. The local realm has a public client `reqlith-mcp` (authorization code + PKCE, device flow).
+- **Read-only by construction:** tools read through a separate connection pool logged in as `reqlith_mcp`, which only has `db_datareader` (configure it with `REQLITH_MCP_DB_URL`, `REQLITH_MCP_DB_USER` and `REQLITH_MCP_DB_PASSWORD`).
+- **Access log:** every call is logged with client, user, token and tool, and shown on the project's *Export, links & MCP* page and on the token page.
+
+Client configuration (Claude Code, Claude Desktop, …):
+
+```json
+{ "mcpServers": { "reqlith": { "type": "http", "url": "http://localhost:8080/mcp",
+                                "headers": { "Authorization": "Bearer rql_…" } } } }
+```
+
 ## PDF export
 
 PDF export renders the PRD Markdown with the same renderer as the UI and prints it with headless Chromium (Playwright). Mermaid diagrams are therefore drawn as in the browser. The page has no network access: fonts are embedded and mermaid.js is injected from the vendored copy.

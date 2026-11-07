@@ -40,13 +40,16 @@ spring:
             jwk-set-uri: ${reqlith.idp.internal-url}/protocol/openid-connect/certs
             user-info-uri: ${reqlith.idp.internal-url}/protocol/openid-connect/userinfo
             user-name-attribute: sub
-      resourceserver:
-        jwt:
-          jwk-set-uri: ${reqlith.idp.internal-url}/protocol/openid-connect/certs
 
 reqlith:
   # Public base URL, used for copyable links (JIRA/ADO) and the MCP client config.
   base-url: ${REQLITH_BASE_URL:http://localhost:8080}
+  mcp:
+    # The MCP server reads through its own login that only has SELECT rights.
+    datasource:
+      url: ${REQLITH_MCP_DB_URL:${spring.datasource.url}}
+      username: ${REQLITH_MCP_DB_USER:reqlith_mcp}
+      password: ${REQLITH_MCP_DB_PASSWORD:Reqlith_dev_mcp_1}
   # Claim in the ID token that carries IDP roles; 'reqlith-admin' grants workspace management.
   roles-claim: roles
   admin-role: reqlith-admin
@@ -58,6 +61,18 @@ reqlith:
     internal-url: ${REQLITH_IDP_INTERNAL_URL:${reqlith.idp.issuer}}
     # OIDC end-session endpoint for logout.
     end-session-path: /protocol/openid-connect/logout
+
+spring.ai.mcp.server:
+  name: reqlith
+  version: 1.0.0
+  type: SYNC
+  protocol: STREAMABLE
+  instructions: >-
+    Read-only access to Reqlith requirement specifications (BABOK: business, stakeholder and solution
+    requirements, scenarios, roles, risks). Tools default to the latest approved version of a project;
+    pass version="draft" only when you explicitly need unreviewed work in progress.
+  streamable-http:
+    mcp-endpoint: /mcp
 
 server:
   forward-headers-strategy: framework

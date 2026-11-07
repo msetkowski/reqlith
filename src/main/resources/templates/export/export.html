@@ -2,16 +2,16 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout}">
 <head>
-    <title>Export &amp; links</title>
+    <title>Export, links &amp; MCP</title>
 </head>
 <body>
 <nav layout:fragment="crumbs" class="crumbs" aria-label="Breadcrumb">
-    <th:block th:replace="~{fragments/project :: crumbs('Export & links')}"></th:block>
+    <th:block th:replace="~{fragments/project :: crumbs('Export, links & MCP')}"></th:block>
 </nav>
 <div class="workbench" layout:fragment="content">
     <aside th:replace="~{fragments/project :: sidenav}"></aside>
     <main class="content" style="max-width: 1040px">
-        <h1 class="h-sm">Export &amp; links</h1>
+        <h1 class="h-sm">Export, links &amp; agent access</h1>
         <div class="banner danger" th:if="${flashError}" th:text="${flashError}" role="alert">Error</div>
 
         <section class="card">
@@ -111,6 +111,25 @@
                     <button class="btn sm primary" type="submit">Add link</button>
                 </div>
             </form>
+        </section>
+        <section class="card" id="mcp">
+            <div class="card-head">
+                <div class="stack tight"><h2>MCP server for agents <span class="badge info">Read-only</span></h2>
+                    <p class="small muted">Agents can read projects, versions and reviews to assess quality, suggest improvements or build an ADO backlog
+                        with their own tools. Nothing can be changed through MCP; agents see only what the signed-in user can open,
+                        and get the latest approved version unless they ask for the draft.</p></div>
+                <a class="btn sm primary" th:href="@{/account/tokens}">Create access token</a>
+            </div>
+            <div class="card-body">
+                <div class="field">
+                    <span class="label">Server URL (OAuth 2.1 or personal access token)</span>
+                    <div class="row"><input class="input mono sm" readonly th:value="${mcpUrl}" style="flex: 1" aria-label="MCP server URL">
+                        <button type="button" class="btn sm" th:data-copy="${mcpUrl}">Copy</button></div>
+                </div>
+                <div th:replace="~{fragments/mcp :: tools}"></div>
+            </div>
+            <div class="card-head" style="border-top: 1px solid var(--line)"><h2 class="h-sm">Recent agent access to this project</h2></div>
+            <div th:replace="~{fragments/mcp :: access(${recentAccess})}"></div>
         </section>
     </main>
 </div>

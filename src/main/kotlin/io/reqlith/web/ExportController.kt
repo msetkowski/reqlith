@@ -7,6 +7,7 @@ import io.reqlith.export.ExportOptions
 import io.reqlith.export.ExportService
 import io.reqlith.link.ExternalLinkService
 import io.reqlith.link.LinkSystem
+import io.reqlith.mcp.McpAccessLog
 import io.reqlith.project.Project
 import io.reqlith.project.ProjectService
 import io.reqlith.user.CurrentUser
@@ -34,6 +35,7 @@ class ExportController(
     private val exports: ExportService,
     private val links: ExternalLinkService,
     private val documents: ProjectDocumentService,
+    private val accessLog: McpAccessLog,
     private val support: ProjectViewSupport,
 ) {
     @GetMapping("/p/{key}/export")
@@ -50,6 +52,8 @@ class ExportController(
         model.addAttribute("approvedNumbers", history.mapNotNull { it.versionNo })
         model.addAttribute("elementKeys", document.elements.map { it.key })
         model.addAttribute("latestUrl", support.absolute("/p/$key"))
+        model.addAttribute("mcpUrl", support.absolute("/mcp"))
+        model.addAttribute("recentAccess", accessLog.recent(projectKey = project.key))
         model.addAttribute("pinnedUrl", latest?.let { support.absolute("/p/$key/v/${it.slug}") })
         model.addAttribute("elementUrlExample", document.elements.firstOrNull()?.let { e ->
             latest?.let { support.absolute("/p/$key/v/${it.slug}#${e.key}") } ?: support.absolute("/p/$key/e/${e.key}")

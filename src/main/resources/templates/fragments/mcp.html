@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--/* Client configuration snippet for MCP clients; `token` is shown in place of the placeholder when given. */-->
+<th:block th:fragment="config(url, token)">
+    <pre class="mono xs card card-pad" style="background: var(--page); white-space: pre-wrap; margin: 0"
+         th:text="|{
+  &quot;mcpServers&quot;: {
+    &quot;reqlith&quot;: {
+      &quot;type&quot;: &quot;http&quot;,
+      &quot;url&quot;: &quot;${url}&quot;,
+      &quot;headers&quot;: { &quot;Authorization&quot;: &quot;Bearer ${token ?: '<your access token>'}&quot; }
+    }
+  }
+}|">config</pre>
+</th:block>
+
+<!--/* The tools the server offers. */-->
+<div th:fragment="tools" class="table-wrap">
+    <table class="data">
+        <tbody>
+        <tr><td class="mono">list_projects</td><td class="muted">Projects, owners, state, tags, domains</td></tr>
+        <tr><td class="mono">get_prd</td><td class="muted">Full PRD as Markdown for a version</td></tr>
+        <tr><td class="mono">search_requirements</td><td class="muted">Filter by type, tag and text</td></tr>
+        <tr><td class="mono">get_requirement</td><td class="muted">One element with traceability and external links</td></tr>
+        <tr><td class="mono">get_traceability</td><td class="muted">BR → SR → FR/NFR → scenario graph and gaps</td></tr>
+        <tr><td class="mono">list_versions · diff_versions</td><td class="muted">Version history and changes</td></tr>
+        <tr><td class="mono">get_review_status</td><td class="muted">Reviewers, decisions, open suggestions</td></tr>
+        <tr><td class="mono">get_external_links · list_roles</td><td class="muted">JIRA / ADO references, shared roles</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!--/* Recent agent access (AccessLogEntry list). */-->
+<div th:fragment="access(entries)" class="table-wrap">
+    <div class="empty" th:if="${entries.isEmpty()}">No agent has used the MCP server yet.</div>
+    <table class="data" th:unless="${entries.isEmpty()}">
+        <thead><tr><th>When</th><th>Client</th><th>On behalf of</th><th>Tool</th></tr></thead>
+        <tbody>
+        <tr th:each="e : ${entries}">
+            <td class="muted" th:text="${@formats.relative(e.occurredAt)}">Today 09:12</td>
+            <td th:text="${e.clientName ?: (e.tokenName ?: '—')}">Backlog agent</td>
+            <td th:text="${e.userName}">Name</td>
+            <td class="mono xs" th:text="|${e.tool}${e.projectKey != null ? ' · ' + e.projectKey : ''}|">get_prd</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Access tokens</title>
+</head>
+<body>
+<nav layout:fragment="crumbs" class="crumbs" aria-label="Breadcrumb">
+    <a th:href="@{/}">Projects</a><span aria-hidden="true">/</span><span class="current">Access tokens</span>
+</nav>
+<main class="page narrow" layout:fragment="content">
+    <section class="title stack tight">
+        <h1>Access tokens for agents</h1>
+        <p class="muted">Agents use the read-only MCP server on your behalf: they see what you can open, and nothing can be changed through MCP.
+            A token is shown once; store it in the agent's configuration.</p>
+    </section>
+    <div class="banner danger" th:if="${flashError}" th:text="${flashError}" role="alert">Error</div>
+
+    <section class="card" th:if="${newToken}">
+        <div class="card-head"><h2 th:text="|Token “${newTokenName}” created|">Token created</h2></div>
+        <div class="card-body">
+            <div class="banner warn">Copy it now. It cannot be shown again.</div>
+            <div class="row"><input class="input mono sm" readonly th:value="${newToken}" style="flex: 1" aria-label="New access token">
+                <button type="button" class="btn sm primary" th:data-copy="${newToken}">Copy token</button></div>
+            <span class="label">Client configuration (Claude Code, Claude Desktop and other MCP clients)</span>
+            <div th:replace="~{fragments/mcp :: config(${mcpUrl}, ${newToken})}"></div>
+        </div>
+    </section>
+
+    <section class="card">
+        <div class="card-head"><h2>Your tokens</h2></div>
+        <form class="card-body" method="post" th:action="@{/account/tokens}">
+            <div class="row">
+                <label class="sr-only" for="name">Token name</label>
+                <input class="input" id="name" name="name" required maxlength="100" placeholder="e.g. Backlog agent" style="flex: 1 1 260px">
+                <button class="btn primary" type="submit">Create access token</button>
+            </div>
+        </form>
+        <div class="empty" th:if="${tokens.isEmpty()}">No tokens yet.</div>
+        <div class="table-wrap" th:unless="${tokens.isEmpty()}">
+            <table class="data">
+                <thead><tr><th>Name</th><th>Token</th><th>Created</th><th>Last used</th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="t : ${tokens}">
+                    <td th:text="${t.name}">Backlog agent</td>
+                    <td class="mono xs" th:text="|${t.tokenPrefix}…|">rql_abc…</td>
+                    <td class="muted" th:text="${@formats.date(t.createdAt)}">date</td>
+                    <td class="muted" th:text="${t.lastUsedAt != null} ? ${@formats.relative(t.lastUsedAt)} : 'never'">never</td>
+                    <td style="text-align: right">
+                        <form th:if="${t.active}" method="post" th:action="@{/account/tokens/{id}/revoke(id=${t.id})}"
+                              onsubmit="return confirm('Revoke this token? Agents using it stop working immediately.')">
+                            <button class="btn sm ghost danger" type="submit">Revoke</button>
+                        </form>
+                        <span class="badge danger" th:unless="${t.active}">Revoked</span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="card">
+        <div class="card-head"><h2>Connect an agent</h2><span class="badge info">Read-only</span></div>
+        <div class="card-body">
+            <p class="small">Server URL: <span class="mono" th:text="${mcpUrl}">url</span>. Authenticate with an access token as above,
+                or with OAuth 2.1 through the company identity provider.</p>
+            <div th:replace="~{fragments/mcp :: config(${mcpUrl}, null)}"></div>
+            <div th:replace="~{fragments/mcp :: tools}"></div>
+        </div>
+    </section>
+
+    <section class="card">
+        <div class="card-head"><h2>Recent use of your access</h2></div>
+        <div th:replace="~{fragments/mcp :: access(${recent})}"></div>
+    </section>
+</main>
+</body>
+</html>
