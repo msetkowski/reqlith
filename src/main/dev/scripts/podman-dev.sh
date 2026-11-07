@@ -84,6 +84,7 @@ up() {
     "$DEV/scripts/build-image.sh" "$APP_IMAGE"
     podman rm -f "$POD-app" >/dev/null 2>&1 || true
     podman run -d --pod "$POD" --name "$POD-app" \
+      -e SPRING_PROFILES_ACTIVE=local \
       -e REQLITH_DB_PASSWORD="$APP_DB_PASSWORD" -e REQLITH_MCP_DB_PASSWORD="$MCP_DB_PASSWORD" \
       "$APP_IMAGE" >/dev/null
   fi

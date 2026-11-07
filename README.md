@@ -367,17 +367,26 @@ renderer.
 
 ## Configuration
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `REQLITH_DB_URL` / `REQLITH_DB_USER` / `REQLITH_DB_PASSWORD` | local SQL Server | main datasource (schema owner, Flyway) |
-| `REQLITH_MCP_DB_URL` / `REQLITH_MCP_DB_USER` / `REQLITH_MCP_DB_PASSWORD` | main URL / `reqlith_mcp` / dev password | read-only connection for the MCP server |
-| `REQLITH_IDP_ISSUER` | `http://localhost:8180/realms/reqlith` | token issuer, also where browsers are redirected |
-| `REQLITH_IDP_INTERNAL_URL` | the issuer | how the server reaches the IDP, when that differs (containers) |
-| `REQLITH_IDP_CLIENT_ID` / `REQLITH_IDP_CLIENT_SECRET` | `reqlith-app` / dev secret | OIDC client |
-| `REQLITH_BASE_URL` | `http://localhost:8080` | public URL for copyable links and the MCP configuration |
-| `REQLITH_PDF_URL` | `http://localhost:3000` | PDF rendering service (Gotenberg) |
-| `MANAGEMENT_PORT` | `8081` | actuator port |
-| `LOGGING_LEVEL_IO_REQLITH` | `INFO` (`DEBUG` with the `local` profile) | application log level |
+Environment-specific settings and secrets have **no defaults**. If any is missing, the application refuses to
+start and lists all missing variables at once. The `local` profile (`SPRING_PROFILES_ACTIVE=local`, used by
+the commands above and by the dev containers) provides values for the local environment. Each of them can
+still be overridden with the variable.
+
+| Variable | Required | `local` profile value | Purpose |
+|---|---|---|---|
+| `REQLITH_DB_URL` | yes | `jdbc:sqlserver://localhost:1433;databaseName=reqlith;…` | main datasource |
+| `REQLITH_DB_PASSWORD` | yes | dev password | main datasource (schema owner, Flyway) |
+| `REQLITH_MCP_DB_PASSWORD` | yes | dev password | read-only connection for the MCP server |
+| `REQLITH_IDP_CLIENT_SECRET` | yes | `reqlith-dev-secret` | OIDC client secret |
+| `REQLITH_IDP_ISSUER` | yes | `http://localhost:8180/realms/reqlith` | token issuer, also where browsers are redirected |
+| `REQLITH_BASE_URL` | yes | `http://localhost:8080` | public URL for copyable links and the MCP configuration |
+| `REQLITH_PDF_URL` | yes | `http://localhost:3000` | PDF rendering service (Gotenberg) |
+| `REQLITH_DB_USER` / `REQLITH_MCP_DB_USER` | no | `reqlith_app` / `reqlith_mcp` | database users |
+| `REQLITH_MCP_DB_URL` | no | main URL | read-only connection, if it differs |
+| `REQLITH_IDP_CLIENT_ID` | no | `reqlith-app` | OIDC client |
+| `REQLITH_IDP_INTERNAL_URL` | no | the issuer | how the server reaches the IDP, when that differs (containers) |
+| `MANAGEMENT_PORT` | no | `8081` | actuator port |
+| `LOGGING_LEVEL_IO_REQLITH` | no | `DEBUG` (`INFO` otherwise) | application log level |
 
 The IDP endpoints are configured explicitly rather than discovered, so the app starts even when the IDP is down.
 ID token issuers are still validated against `REQLITH_IDP_ISSUER`.

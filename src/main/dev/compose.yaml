@@ -76,6 +76,7 @@ services:
       pdf-renderer:
         condition: service_started
     environment:
+      SPRING_PROFILES_ACTIVE: local
       REQLITH_DB_URL: jdbc:sqlserver://mssql:1433;databaseName=reqlith;encrypt=true;trustServerCertificate=true
       REQLITH_DB_PASSWORD: ${REQLITH_DB_PASSWORD:-Reqlith_dev_app_1}
       REQLITH_MCP_DB_PASSWORD: ${REQLITH_MCP_DB_PASSWORD:-Reqlith_dev_mcp_1}
