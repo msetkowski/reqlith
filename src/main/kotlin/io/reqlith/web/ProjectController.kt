@@ -9,6 +9,7 @@ import io.reqlith.user.UserService
 import io.reqlith.version.VersionService
 import io.reqlith.element.ElementService
 import io.reqlith.element.ElementType
+import io.reqlith.link.ExternalLinkService
 import io.reqlith.project.MemberRole
 import io.reqlith.project.ProjectDetails
 import io.reqlith.project.ProjectService
@@ -32,6 +33,7 @@ class ProjectController(
     private val versions: VersionService,
     private val reviews: ReviewService,
     private val users: UserService,
+    private val links: ExternalLinkService,
     private val support: ProjectViewSupport,
 ) {
     @GetMapping("/projects/new")
@@ -91,6 +93,7 @@ class ProjectController(
         model.addAttribute("history", history)
         model.addAttribute("submitters", users.byIds(history.map { it.submittedBy }))
         model.addAttribute("openSuggestions", reviews.openSuggestions(project))
+        model.addAttribute("externalLinks", links.all(project))
         model.addAttribute("modified", elements.all(project).associate { it.key to it.updatedAt })
         model.addAttribute("brokenLinks", document.brokenLinks())
         model.addAttribute("functionalWithoutScenario", document.functionalWithoutScenario())

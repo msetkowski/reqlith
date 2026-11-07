@@ -55,6 +55,36 @@
                     </div>
                 </section>
                 <section class="card">
+                    <div class="card-head"><h2 class="h-sm">External links</h2></div>
+                    <div class="card-body link-list">
+                        <p class="muted" th:if="${externalLinks.isEmpty()}">None.</p>
+                        <div class="row" th:each="l : ${externalLinks}">
+                            <span class="badge info" th:text="${l.system.label}">JIRA</span>
+                            <a th:href="${l.url}" target="_blank" rel="noopener noreferrer" th:text="${l.label}" style="flex: 1">PAY-2291</a>
+                            <form th:if="${myRole != null and myRole.name() != 'REVIEWER'}" method="post"
+                                  th:action="@{/p/{k}/links/{id}/remove(k=${project.key},id=${l.id},back=${'/p/' + project.key + '/e/' + element.key})}">
+                                <button class="btn sm ghost" type="submit" aria-label="Remove link">×</button>
+                            </form>
+                        </div>
+                        <details th:if="${myRole != null and myRole.name() != 'REVIEWER'}">
+                            <summary class="small" style="cursor: pointer; color: var(--accent)">+ Add link</summary>
+                            <form class="stack tight" style="margin-top: 8px" method="post"
+                                  th:action="@{/p/{k}/links(k=${project.key},back=${'/p/' + project.key + '/e/' + element.key})}">
+                                <input type="hidden" name="scope" th:value="${element.key}">
+                                <label class="sr-only" for="link-system">System</label>
+                                <select class="select sm" id="link-system" name="system">
+                                    <option th:each="s : ${systems}" th:value="${s}" th:text="${s.label}">JIRA</option>
+                                </select>
+                                <label class="sr-only" for="link-url">URL</label>
+                                <input class="input sm" id="link-url" name="url" type="url" required placeholder="https://…">
+                                <label class="sr-only" for="link-label">Label</label>
+                                <input class="input sm" id="link-label" name="label" placeholder="Label">
+                                <div><button class="btn sm primary" type="submit">Add</button></div>
+                            </form>
+                        </details>
+                    </div>
+                </section>
+                <section class="card">
                     <div class="card-head"><h2 class="h-sm">History</h2></div>
                     <div class="card-body small">
                         <div>Created <span th:text="${@formats.dateTime(element.createdAt)}">date</span></div>

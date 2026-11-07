@@ -51,6 +51,15 @@ Integration tests (`*IT`) start SQL Server through Testcontainers. The script:
 
 Running `mvnd verify` directly also works when Docker is available, or when the variables above are exported.
 
+## PDF export
+
+PDF export renders the PRD Markdown with the same renderer as the UI and prints it with headless Chromium (Playwright). Mermaid diagrams are therefore drawn as in the browser. The page has no network access: fonts are embedded and mermaid.js is injected from the vendored copy.
+
+- **Running on the host:** Playwright downloads Chromium (about 120 MB, into `~/.cache/ms-playwright`) the first time a PDF is exported. To fetch it in advance, run
+  `java -cp "$(./mvnw -q dependency:build-classpath -Dmdep.outputFile=/dev/stdout)" com.microsoft.playwright.CLI install chromium`.
+- **Container image:** Chromium is installed at build time (`PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright`), and runtime downloads are disabled.
+- **Caching:** PDFs of closed versions are cached in `export_cache`, keyed by content hash, version, status and export options.
+
 ## Repository layout
 
 | Path | Contents |

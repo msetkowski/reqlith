@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Export &amp; links</title>
+</head>
+<body>
+<nav layout:fragment="crumbs" class="crumbs" aria-label="Breadcrumb">
+    <th:block th:replace="~{fragments/project :: crumbs('Export & links')}"></th:block>
+</nav>
+<div class="workbench" layout:fragment="content">
+    <aside th:replace="~{fragments/project :: sidenav}"></aside>
+    <main class="content" style="max-width: 1040px">
+        <h1 class="h-sm">Export &amp; links</h1>
+        <div class="banner danger" th:if="${flashError}" th:text="${flashError}" role="alert">Error</div>
+
+        <section class="card">
+            <div class="card-head">
+                <div class="stack tight"><h2>Export as a single PRD</h2>
+                    <p class="small muted">All sections in one document, ordered as in the project, with IDs and traceability kept.</p></div>
+            </div>
+            <form class="card-body" method="get" th:action="@{/p/{k}/export/download(k=${project.key})}">
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="version">Version</label>
+                        <select class="select" id="version" name="version">
+                            <option th:each="v : ${exportable}" th:value="${v.slug}"
+                                    th:text="|${v.label} · ${v.status.label}${latest != null and v.id == latest.id ? ' (recommended)' : ''}|"
+                                    th:selected="${latest != null and v.id == latest.id}">v1</option>
+                            <option value="draft" th:selected="${latest == null}">Working copy (marked DRAFT)</option>
+                        </select>
+                    </div>
+                    <fieldset class="field" style="border: 0; padding: 0; margin: 0">
+                        <legend class="label" style="margin-bottom: 6px">Format</legend>
+                        <label class="row small"><input type="radio" name="format" value="md" checked> Markdown <span class="mono muted">.md</span></label>
+                        <label class="row small"><input type="radio" name="format" value="pdf"> PDF <span class="mono muted">.pdf</span></label>
+                    </fieldset>
+                </div>
+                <fieldset class="stack tight" style="border: 0; padding: 0; margin: 0">
+                    <legend class="label" style="margin-bottom: 6px">Include</legend>
+                    <label class="row small"><input type="checkbox" checked disabled> Mermaid diagrams (drawn in PDF, code blocks in Markdown)</label>
+                    <label class="row small"><input type="checkbox" name="traceability" value="true" checked> Traceability matrix appendix</label>
+                    <label class="row small"><input type="checkbox" name="approvals" value="true" checked> Version and approval record</label>
+                    <label class="row small"><input type="checkbox" name="comments" value="true"> Review comments and suggestions</label>
+                </fieldset>
+                <div><button class="btn primary" type="submit">Download PRD</button></div>
+                <p class="xs muted">PDF exports of closed versions are generated once and reused.</p>
+            </form>
+        </section>
+
+        <section class="card">
+            <div class="card-head"><div class="stack tight"><h2>Link to this project</h2>
+                <p class="small muted">Paste into JIRA or ADO. Links open for signed-in users only.</p></div></div>
+            <div class="card-body">
+                <div class="field">
+                    <span class="label">Latest approved version</span>
+                    <div class="row"><input class="input mono sm" readonly th:value="${latestUrl}" style="flex: 1" aria-label="Latest approved version link">
+                        <button type="button" class="btn sm" th:data-copy="${latestUrl}">Copy</button></div>
+                </div>
+                <div class="field" th:if="${pinnedUrl != null}">
+                    <span class="label" th:text="|Pinned to ${latest.label} (never changes)|">Pinned</span>
+                    <div class="row"><input class="input mono sm" readonly th:value="${pinnedUrl}" style="flex: 1" aria-label="Pinned version link">
+                        <button type="button" class="btn sm" th:data-copy="${pinnedUrl}">Copy</button></div>
+                </div>
+                <div class="field" th:if="${elementUrlExample != null}">
+                    <span class="label">Single requirement</span>
+                    <div class="row"><input class="input mono sm" readonly th:value="${elementUrlExample}" style="flex: 1" aria-label="Single requirement link">
+                        <button type="button" class="btn sm" th:data-copy="${elementUrlExample}">Copy</button></div>
+                    <span class="hint">Any element: append <code>#KEY</code> to a version link, or use the "Copy link" button on the element.</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="card" id="links">
+            <div class="card-head"><h2>External links</h2></div>
+            <div class="empty" th:if="${links.isEmpty()}">No external links yet.</div>
+            <div class="table-wrap" th:unless="${links.isEmpty()}">
+                <table class="data">
+                    <thead><tr><th>System</th><th>Link</th><th>Applies to</th><th></th></tr></thead>
+                    <tbody>
+                    <tr th:each="l : ${links}">
+                        <td><span class="badge info" th:text="${l.system.label}">JIRA</span></td>
+                        <td><a th:href="${l.url}" target="_blank" rel="noopener noreferrer" th:text="${l.label}">PAY-2291</a></td>
+                        <td class="mono xs" th:text="${l.scope}">Project</td>
+                        <td style="text-align: right">
+                            <form th:if="${myRole != null and myRole.name() != 'REVIEWER'}" method="post" th:action="@{/p/{k}/links/{id}/remove(k=${project.key},id=${l.id})}">
+                                <button class="btn sm ghost" type="submit" aria-label="Remove link">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <form class="card-body" style="border-top: 1px solid var(--line)" th:if="${myRole != null and myRole.name() != 'REVIEWER'}"
+                  method="post" th:action="@{/p/{k}/links(k=${project.key})}">
+                <div class="row">
+                    <label class="sr-only" for="system">System</label>
+                    <select class="select sm" id="system" name="system" style="width: auto">
+                        <option th:each="s : ${systems}" th:value="${s}" th:text="${s.label}">JIRA</option>
+                    </select>
+                    <label class="sr-only" for="url">URL</label>
+                    <input class="input sm" id="url" name="url" type="url" required placeholder="https://…" style="flex: 2 1 240px">
+                    <label class="sr-only" for="label">Label</label>
+                    <input class="input sm" id="label" name="label" placeholder="Label, e.g. PAY-2291 Refunds epic" style="flex: 2 1 200px">
+                    <label class="sr-only" for="scope">Applies to</label>
+                    <select class="select sm" id="scope" name="scope" style="width: auto">
+                        <option value="project">Project</option>
+                        <option th:each="n : ${approvedNumbers}" th:value="|v${n}|" th:text="|Version v${n}|">v1</option>
+                        <option th:each="k : ${elementKeys}" th:value="${k}" th:text="${k}">FR-01</option>
+                    </select>
+                    <button class="btn sm primary" type="submit">Add link</button>
+                </div>
+            </form>
+        </section>
+    </main>
+</div>
+</body>
+</html>

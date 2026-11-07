@@ -26,6 +26,8 @@
                   th:text="|${openSuggestionCount} to resolve|">2 to resolve</span>
         </a>
         <a th:href="@{/p/{k}/draft/document(k=${project.key})}" th:attr="aria-current=${active == 'document'} ? 'page' : null">Read document</a>
+        <a th:href="@{/p/{k}/diff(k=${project.key})}" th:attr="aria-current=${active == 'diff'} ? 'page' : null">Compare</a>
+        <a th:href="@{/p/{k}/export(k=${project.key})}" th:attr="aria-current=${active == 'export'} ? 'page' : null">Export &amp; links</a>
         <a th:href="@{/p/{k}/people(k=${project.key})}" th:attr="aria-current=${active == 'people'} ? 'page' : null">People</a>
     </nav>
     <div class="sidenav-label">Specification</div>
@@ -56,6 +58,7 @@
         <button type="button" class="btn sm" th:data-copy="${projectUrl}">Copy project link</button>
         <a class="btn sm" th:if="${isOwner}" th:href="@{/p/{k}/people(k=${project.key})}">Invite</a>
         <a class="btn sm" th:if="${canEdit}" th:href="@{/p/{k}/details(k=${project.key})}">Edit details</a>
+        <a class="btn sm primary" th:href="@{/p/{k}/export(k=${project.key})}">Export PRD</a>
     </div>
 </section>
 

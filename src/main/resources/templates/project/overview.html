@@ -131,7 +131,10 @@
                 </section>
                 <section class="card">
                     <div class="card-head"><h2 class="h-sm">Versions</h2>
-                        <a class="btn sm" th:href="@{/p/{k}/review(k=${project.key})}" th:text="${locked} ? 'Open review' : 'Review'">Review</a></div>
+                        <div class="row">
+                            <a class="btn sm" th:if="${!history.isEmpty()}" th:href="@{/p/{k}/diff(k=${project.key})}">Compare</a>
+                            <a class="btn sm" th:href="@{/p/{k}/review(k=${project.key})}" th:text="${locked} ? 'Open review' : 'Review'">Review</a>
+                        </div></div>
                     <div class="card-body small">
                         <p class="muted" th:if="${history.isEmpty()}">Nothing has been submitted for review yet.</p>
                         <a th:each="v : ${history}" th:href="@{/p/{k}/v/{s}(k=${project.key},s=${v.slug})}"
@@ -143,6 +146,18 @@
                             </span>
                             <span class="xs muted" th:text="|${@formats.date(v.closedAt ?: v.submittedAt)} · submitted by ${submitters[v.submittedBy]?.displayName}|">date</span>
                         </a>
+                    </div>
+                </section>
+                <section class="card">
+                    <div class="card-head"><h2 class="h-sm">External links</h2>
+                        <a class="btn sm" th:href="@{/p/{k}/export(k=${project.key})} + '#links'">Manage</a></div>
+                    <div class="card-body link-list">
+                        <p class="muted small" th:if="${externalLinks.isEmpty()}">No links to JIRA, ADO or other systems yet.</p>
+                        <div class="row" th:each="l : ${externalLinks}">
+                            <span class="badge info" th:text="${l.system.label}">JIRA</span>
+                            <a th:href="${l.url}" target="_blank" rel="noopener noreferrer" th:text="${l.label}" style="flex: 1">PAY-2291</a>
+                            <span class="mono xs muted" th:text="${l.scope}">Project</span>
+                        </div>
                     </div>
                 </section>
             </aside>

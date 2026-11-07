@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Compare</title>
+    <script th:src="@{/vendor/mermaid.min.js}" defer th:if="${view == 'rendered'}"></script>
+</head>
+<body>
+<nav layout:fragment="crumbs" class="crumbs" aria-label="Breadcrumb">
+    <th:block th:replace="~{fragments/project :: crumbs('Compare')}"></th:block>
+</nav>
+<div class="workbench" layout:fragment="content">
+    <aside th:replace="~{fragments/project :: sidenav}"></aside>
+    <main class="content">
+        <section class="project-head">
+            <div class="title">
+                <h1 class="h-sm">Compare versions</h1>
+                <p class="summary" th:text="${diff.changes.summary}">3 new, 2 changed</p>
+            </div>
+        </section>
+        <form class="card card-body" method="get" th:action="@{/p/{k}/diff(k=${project.key})}">
+            <div class="row">
+                <label class="label" for="from">From</label>
+                <select class="select sm" id="from" name="from" style="width: auto">
+                    <option th:each="c : ${choices}" th:value="${c.first}" th:text="${c.second}" th:selected="${c.first == from}">v1</option>
+                </select>
+                <span aria-hidden="true">→</span>
+                <label class="label" for="to">To</label>
+                <select class="select sm" id="to" name="to" style="width: auto">
+                    <option th:each="c : ${choices}" th:value="${c.first}" th:text="${c.second}" th:selected="${c.first == to}">draft</option>
+                </select>
+                <input type="hidden" name="view" th:value="${view}">
+                <button class="btn sm primary" type="submit">Compare</button>
+                <span style="flex: 1"></span>
+                <a class="pill" th:href="@{/p/{k}/diff(k=${project.key},from=${from},to=${to},view='source')}" th:attr="aria-current=${view != 'rendered'} ? 'true' : null">Source</a>
+                <a class="pill" th:href="@{/p/{k}/diff(k=${project.key},from=${from},to=${to},view='rendered')}" th:attr="aria-current=${view == 'rendered'} ? 'true' : null">Rendered</a>
+            </div>
+            <p class="xs muted" th:if="${from == null}">Nothing is approved yet, so everything in the working copy is new.</p>
+        </form>
+
+        <div class="row" aria-label="Summary">
+            <span class="badge approved" th:text="|${diff.changes.newCount} new|">0 new</span>
+            <span class="badge review" th:text="|${diff.changes.changedCount} changed|">0 changed</span>
+            <span class="badge danger" th:text="|${diff.changes.removedCount} removed|">0 removed</span>
+            <span class="badge info" th:if="${diff.changes.basicInfoChanged}">basic information changed</span>
+        </div>
+
+        <section class="card card-pad stack" th:unless="${diff.projectProperties.isEmpty()}">
+            <h2 class="h-sm">Project</h2>
+            <div class="small" th:each="p : ${diff.projectProperties}" th:text="${p}">Title changed</div>
+        </section>
+
+        <section class="card card-pad stack" th:if="${diff.changes.basicInfoChanged}" id="basic-information">
+            <h2 class="h-sm">Basic information</h2>
+            <div th:if="${view != 'rendered'}" th:replace="~{fragments/diff :: lines(${diff.basicInfo})}"></div>
+            <div class="diff-pair" th:if="${view == 'rendered'}">
+                <div><div class="side-label">Before</div><div class="md small" th:utext="${basicOld}">old</div></div>
+                <div><div class="side-label">After</div><div class="md small" th:utext="${basicNew}">new</div></div>
+            </div>
+        </section>
+
+        <p class="muted" th:if="${diff.items.isEmpty() and !diff.changes.basicInfoChanged}">No differences.</p>
+
+        <article class="card card-pad stack" th:each="item : ${diff.items}" th:id="${item.key}">
+            <header class="row">
+                <span class="key" th:text="${item.key}">FR-01</span>
+                <h2 class="h-sm diff-inline" th:utext="${item.titleHtml}">Title</h2>
+                <span class="muted xs" th:text="${item.typeLabel}">Functional</span>
+                <span class="badge" th:classappend="${item.kind.name() == 'NEW'} ? 'approved' : (${item.kind.name() == 'REMOVED'} ? 'danger' : 'review')"
+                      th:text="${item.kind.label}">Changed</span>
+            </header>
+            <div class="small" th:each="p : ${item.properties}" th:text="${p}">Priority: Should → Must</div>
+            <th:block th:if="${view != 'rendered'}">
+                <div th:replace="~{fragments/diff :: lines(${item.lines})}"></div>
+            </th:block>
+            <div class="diff-pair" th:if="${view == 'rendered'}">
+                <div><div class="side-label">Before</div><div class="md small" th:utext="${renderedOld[item.key]}">old</div></div>
+                <div><div class="side-label">After</div><div class="md small" th:utext="${renderedNew[item.key]}">new</div></div>
+            </div>
+        </article>
+    </main>
+</div>
+</body>
+</html>

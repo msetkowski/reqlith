@@ -36,6 +36,10 @@ class DocumentChanges(before: ProjectDocument?, after: ProjectDocument) {
         else -> elements.values.count { it == kind } + roles.values.count { it == kind }
     }
 
+    val newCount: Int get() = count(ChangeKind.NEW)
+    val changedCount: Int get() = count(ChangeKind.CHANGED)
+    val removedCount: Int get() = count(ChangeKind.REMOVED)
+
     val hasChanges: Boolean
         get() = basicInfoChanged || projectChanged || count(ChangeKind.NEW) + count(ChangeKind.CHANGED) + count(ChangeKind.REMOVED) > 0
 

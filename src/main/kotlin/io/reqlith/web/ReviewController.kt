@@ -1,6 +1,7 @@
 package io.reqlith.web
 
 import io.reqlith.common.ValidationException
+import io.reqlith.diff.ProjectDiff
 import io.reqlith.document.ChangeKind
 import io.reqlith.document.DocumentChanges
 import io.reqlith.document.ProjectDocumentService
@@ -71,6 +72,7 @@ class ReviewController(
         // A first version has nothing to compare against, so no element gets a "New" badge.
         model.addAttribute("changes", if (basedOn != null) changes else null)
         model.addAttribute("changeSummary", changes.summary)
+        model.addAttribute("itemDiff", basedOn?.let { ProjectDiff(it, document) })
         model.addAttribute("changesOnly", changesOnly)
         model.addAttribute("visibleKeys", if (changesOnly) changes.elements.filterValues { it != ChangeKind.UNCHANGED }.keys + changes.roles.filterValues { it != ChangeKind.UNCHANGED }.keys else null)
         model.addAttribute("html", RenderedDocument.of(document) { support.renderInPage(it, document) })

@@ -10,6 +10,8 @@ import io.reqlith.element.ElementType
 import io.reqlith.element.LinkKind
 import io.reqlith.element.Priority
 import io.reqlith.element.TraceLink
+import io.reqlith.link.ExternalLinkService
+import io.reqlith.link.LinkSystem
 import io.reqlith.markdown.MarkdownRenderer
 import io.reqlith.project.MembershipService
 import io.reqlith.project.Project
@@ -34,6 +36,7 @@ class ElementController(
     private val memberships: MembershipService,
     private val users: UserService,
     private val reviews: ReviewService,
+    private val links: ExternalLinkService,
     private val support: ProjectViewSupport,
 ) {
     /** One element in read mode (working copy). */
@@ -49,6 +52,8 @@ class ElementController(
         model.addAttribute("incoming", document.incomingLinks()[element.key].orEmpty())
         model.addAttribute("document", document)
         model.addAttribute("updatedBy", users.byIds(listOf(element.updatedBy))[element.updatedBy])
+        model.addAttribute("externalLinks", links.forElement(project, element.key))
+        model.addAttribute("systems", LinkSystem.entries)
         return "element/show"
     }
 

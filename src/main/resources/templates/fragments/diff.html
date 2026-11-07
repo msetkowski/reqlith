@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--/* Diff lines with context; null entries are gaps. Line html is escaped text with <ins>/<del>. */-->
+<th:block th:fragment="lines(lines)">
+<p class="small muted" th:if="${lines.isEmpty()}">Text unchanged.</p>
+<div class="diff" th:unless="${lines.isEmpty()}" role="table" aria-label="Changes">
+    <th:block th:each="l : ${lines}">
+        <div class="gap" th:if="${l == null}">…</div>
+        <div class="line" th:unless="${l == null}" th:classappend="${l.change}" role="row">
+            <span class="sign" aria-hidden="true" th:text="${l.sign}">+</span><span th:utext="${l.html}">text</span>
+        </div>
+    </th:block>
+</div>
+</th:block>
+</body>
+</html>

@@ -21,6 +21,8 @@
         <java.version>25</java.version>
         <commonmark.version>0.32.0</commonmark.version>
         <owasp-html-sanitizer.version>20261103.2</owasp-html-sanitizer.version>
+        <java-diff-utils.version>4.18</java-diff-utils.version>
+        <playwright.version>1.64.0</playwright.version>
     </properties>
 
     <dependencies>
@@ -114,6 +116,20 @@
             <groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
             <artifactId>owasp-java-html-sanitizer</artifactId>
             <version>${owasp-html-sanitizer.version}</version>
+        </dependency>
+
+        <!-- Version comparison -->
+        <dependency>
+            <groupId>io.github.java-diff-utils</groupId>
+            <artifactId>java-diff-utils</artifactId>
+            <version>${java-diff-utils.version}</version>
+        </dependency>
+
+        <!-- PDF export: headless Chromium renders the print view (including Mermaid diagrams) -->
+        <dependency>
+            <groupId>com.microsoft.playwright</groupId>
+            <artifactId>playwright</artifactId>
+            <version>${playwright.version}</version>
         </dependency>
 
         <!-- Kotlin -->

@@ -6,7 +6,8 @@
   Model: document, html (RenderedDocument), types, incoming; optional `version` (frozen: in-page links only),
   optional `changes` (DocumentChanges) to mark new/changed elements,
   optional `visibleKeys` (only these elements and roles are shown; sections without any are hidden),
-  optional `reviewBlock` (template with an `element-review(key)` fragment appended to each element).
+  optional `reviewBlock` (template with an `element-review(key)` fragment appended to each element),
+  optional `itemDiff` (ProjectDiff) to show what changed in changed elements.
 */-->
 <th:block th:fragment="body">
     <section class="doc-section" id="basic-information" th:if="${visibleKeys == null or changes.basicInfoChanged}">
@@ -15,6 +16,10 @@
                 <span class="badge review" th:if="${changes != null and changes.basicInfoChanged}">Changed</span></h2>
             <a class="btn sm" th:if="${version == null and canEdit}" th:href="@{/p/{k}/basic-info/edit(k=${project.key})}">Edit</a>
         </div>
+        <details class="card card-pad" open th:if="${itemDiff != null and changes != null and changes.basicInfoChanged}">
+            <summary class="small muted" style="cursor: pointer; margin-bottom: 8px">What changed</summary>
+            <div th:replace="~{fragments/diff :: lines(${itemDiff.basicInfo})}"></div>
+        </details>
         <div class="card card-pad md" th:utext="${html.basicInfo}">basic info</div>
         <div class="card card-pad" th:if="${reviewBlock != null}" style="margin-top: -4px">
             <div th:replace="~{${reviewBlock} :: element-review('BASIC_INFO')}"></div>
@@ -42,9 +47,9 @@
                 </div>
             </article>
         </section>
-        <section class="doc-section" th:id="${t.name()}"
-                 th:with="items=${visibleKeys == null} ? ${document.elementsOf(t)} : ${document.elementsOf(t).?[#vars.visibleKeys.contains(key)]}"
-                 th:if="${visibleKeys == null or !#lists.isEmpty(items)}">
+        <!--/* th:with on its own block: on one tag th:if would be evaluated before th:with. */-->
+        <th:block th:with="items=${visibleKeys == null} ? ${document.elementsOf(t)} : ${document.elementsOf(t).?[#vars.visibleKeys.contains(key)]}">
+        <section class="doc-section" th:id="${t.name()}" th:if="${visibleKeys == null or !#lists.isEmpty(items)}">
             <h2 th:text="${t.section}">Section</h2>
             <p class="muted small" th:if="${items.isEmpty()}">None.</p>
             <article class="card doc-element" th:each="e : ${items}" th:id="${e.key}">
@@ -59,6 +64,14 @@
                         <span class="badge review" th:unless="${kind.name() == 'UNCHANGED'}" th:text="${kind.label}">New</span>
                     </th:block>
                 </header>
+                <details open style="margin-bottom: 12px"
+                         th:if="${itemDiff != null and itemDiff.item(e.key) != null and itemDiff.item(e.key).kind.name() == 'CHANGED'}"
+                         th:with="d=${itemDiff.item(e.key)}">
+                    <summary class="small muted" style="cursor: pointer; margin-bottom: 8px">What changed</summary>
+                    <div class="small diff-inline" th:if="${d.titleChanged}">Title: <span th:utext="${d.titleHtml}">title</span></div>
+                    <div class="small" th:each="prop : ${d.properties}" th:text="${prop}">Priority</div>
+                    <div th:replace="~{fragments/diff :: lines(${d.lines})}"></div>
+                </details>
                 <div class="md" th:utext="${html.elements[e.key]}">body</div>
                 <div class="traces link-list" th:if="${!e.links.isEmpty() or incoming[e.key] != null}">
                     <div th:each="l : ${e.links}">
@@ -75,6 +88,7 @@
                 </th:block>
             </article>
         </section>
+        </th:block>
     </th:block>
 </th:block>
 </body>
