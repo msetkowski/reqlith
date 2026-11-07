@@ -2,6 +2,7 @@ package io.reqlith.controller
 
 import com.github.difflib.DiffUtils
 import com.github.difflib.UnifiedDiffUtils
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.reqlith.config.ReqlithProperties
 import io.reqlith.exception.NotFoundException
 import io.reqlith.exception.ValidationException
@@ -35,13 +36,14 @@ import io.reqlith.repository.McpAccessLog
 import io.reqlith.repository.McpReadModel
 import io.reqlith.service.PrdMarkdownWriter
 import io.reqlith.service.ProjectDiff
-import org.slf4j.LoggerFactory
 import org.springframework.ai.mcp.annotation.McpTool
 import org.springframework.ai.mcp.annotation.McpToolParam
 import org.springframework.ai.mcp.annotation.context.McpSyncRequestContext
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * Read-only MCP tools for agents (assess requirements, suggest improvements, build a backlog elsewhere).
@@ -53,8 +55,6 @@ class ReqlithMcpTools(
     private val log: McpAccessLog,
     private val properties: ReqlithProperties,
 ) {
-    private val logger = LoggerFactory.getLogger(javaClass)
-
     @McpTool(name = "list_projects", description = "List requirement projects with state, latest approved version, owners, tags and domains.",
         annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, idempotentHint = true))
     fun listProjects(
@@ -267,18 +267,18 @@ class ReqlithMcpTools(
     private fun <T> tool(name: String, block: () -> T): T {
         val started = System.nanoTime()
         try {
-            return block().also { logger.debug("MCP tool {} finished in {} ms", name, (System.nanoTime() - started) / 1_000_000) }
+            return block().also { logger.debug { "MCP tool $name finished in ${(System.nanoTime() - started) / 1_000_000} ms" } }
         } catch (e: NotFoundException) {
-            logger.debug("MCP tool {} rejected: {}", name, e.message)
+            logger.debug { "MCP tool $name rejected: ${e.message}" }
             throw e
         } catch (e: ValidationException) {
-            logger.debug("MCP tool {} rejected: {}", name, e.message)
+            logger.debug { "MCP tool $name rejected: ${e.message}" }
             throw e
         } catch (e: AccessDeniedException) {
-            logger.info("MCP tool {} denied: {}", name, e.message)
+            logger.info { "MCP tool $name denied: ${e.message}" }
             throw e
         } catch (e: Exception) {
-            logger.error("MCP tool {} failed", name, e)
+            logger.error(e) { "MCP tool $name failed" }
             throw e
         }
     }
@@ -288,7 +288,7 @@ class ReqlithMcpTools(
             ?: throw AccessDeniedException("Not authenticated")
         val client = runCatching { context.clientInfo()?.name() }.getOrNull()
         val key = projectKey?.trim()?.uppercase()
-        logger.info("MCP tool call tool={} project={} client={} token={}", tool, key ?: "-", client ?: "-", user.tokenId ?: "jwt")
+        logger.info { "MCP tool call tool=$tool project=${key ?: "-"} client=${client ?: "-"} token=${user.tokenId ?: "jwt"}" }
         log.record(user, client, tool, key, args)
     }
 

@@ -1,5 +1,6 @@
 package io.reqlith.service
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.reqlith.exception.NotFoundException
 import io.reqlith.exception.ValidationException
 import io.reqlith.model.dto.CurrentUser
@@ -22,10 +23,11 @@ import io.reqlith.repository.SuggestionRepository
 import java.time.Clock
 import java.time.Instant
 import java.util.UUID
-import org.slf4j.LoggerFactory
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * The review lifecycle of a project:
@@ -55,8 +57,6 @@ class ReviewService(
     private val access: ProjectAccess,
     private val clock: Clock,
 ) {
-    private val logger = LoggerFactory.getLogger(javaClass)
-
     @Transactional
     fun submit(owner: CurrentUser, project: Project, reviewerIds: Collection<UUID>): ProjectVersion {
         access.requireOwner(project, owner)
@@ -91,10 +91,8 @@ class ReviewService(
         project.status = ProjectStatus.IN_REVIEW
         project.currentCandidateId = version.id
         projects.save(project)
-        logger.info("Review submitted project={} candidate={} reviewers={} basedOn={}", project.key, version.label, reviewers.size,
-            version.basedOnVersion?.let { "v$it" } ?: "-")
-        logger.debug("Candidate snapshot project={} candidate={} hash={} schema={} bytes={}", project.key, version.label,
-            snapshot.hash, snapshot.schemaVersion, snapshot.json.length)
+        logger.info { "Review submitted project=${project.key} candidate=${version.label} reviewers=${reviewers.size} basedOn=${version.basedOnVersion?.let { "v$it" } ?: "-"}" }
+        logger.debug { "Candidate snapshot project=${project.key} candidate=${version.label} hash=${snapshot.hash} schema=${snapshot.schemaVersion} bytes=${snapshot.json.length}" }
         return version
     }
 
@@ -117,7 +115,7 @@ class ReviewService(
         }
 
         val now = Instant.now(clock)
-        logger.info("Review decision project={} candidate={} decision={}", project.key, version.label, decision)
+        logger.info { "Review decision project=${project.key} candidate=${version.label} decision=$decision" }
         assignment.decision = decision
         assignment.commentMd = text
         assignment.decidedAt = now
@@ -130,7 +128,7 @@ class ReviewService(
                 closeRound(project, version, VersionStatus.APPROVED, now)
                 project.latestApprovedVersion = version.versionNo
                 projects.save(project)
-                logger.info("Version approved project={} version={} hash={}", project.key, version.label, version.contentHash)
+                logger.info { "Version approved project=${project.key} version=${version.label} hash=${version.contentHash}" }
             }
         }
         return version
@@ -155,7 +153,7 @@ class ReviewService(
         val text = comment?.trim()?.ifEmpty { null }
         if (proposed == null && text == null) throw ValidationException("proposedMd", "Suggest new wording or add a comment")
         return suggestions.save(Suggestion(version.id, elementKey, proposed, text, reviewer.userId, Instant.now(clock)))
-            .also { logger.info("Suggestion added project={} candidate={} target={} wording={}", project.key, version.label, elementKey, proposed != null) }
+            .also { logger.info { "Suggestion added project=${project.key} candidate=${version.label} target=$elementKey wording=${proposed != null}" } }
     }
 
     /** Comments are open to project members and assigned reviewers while the review runs. */
@@ -166,7 +164,7 @@ class ReviewService(
         if (!assigned && access.roleOf(project, user) == null) throw AccessDeniedException("Only members of ${project.key} can comment")
         if (body.isBlank()) throw ValidationException("body", "Write a comment first")
         return comments.save(ReviewComment(version.id, elementKey?.ifBlank { null }, user.userId, body.trim(), Instant.now(clock)))
-            .also { logger.info("Review comment added project={} candidate={} target={}", project.key, version.label, it.elementKey ?: "general") }
+            .also { logger.info { "Review comment added project=${project.key} candidate=${version.label} target=${it.elementKey ?: "general"}" } }
     }
 
     /**
@@ -197,7 +195,7 @@ class ReviewService(
         suggestion.status = if (apply) SuggestionStatus.APPLIED else SuggestionStatus.DISMISSED
         suggestion.resolvedAt = Instant.now(clock)
         suggestion.resolvedBy = user.userId
-        logger.info("Suggestion {} project={} round={} target={}", if (apply) "applied" else "dismissed", project.key, version.label, suggestion.elementKey)
+        logger.info { "Suggestion ${if (apply) "applied" else "dismissed"} project=${project.key} round=${version.label} target=${suggestion.elementKey}" }
     }
 
     // ------------------------------------------------------------------ queries
@@ -223,7 +221,7 @@ class ReviewService(
     private fun closeRound(project: Project, version: ProjectVersion, status: VersionStatus, at: Instant) {
         version.close(status, at)
         versions.save(version)
-        if (status != VersionStatus.APPROVED) logger.info("Review round closed project={} candidate={} result={}", project.key, version.label, status)
+        if (status != VersionStatus.APPROVED) logger.info { "Review round closed project=${project.key} candidate=${version.label} result=$status" }
         project.status = ProjectStatus.DRAFT
         project.currentCandidateId = null
         projects.save(project)

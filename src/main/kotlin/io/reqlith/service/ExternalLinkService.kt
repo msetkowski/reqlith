@@ -1,5 +1,6 @@
 package io.reqlith.service
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.reqlith.exception.NotFoundException
 import io.reqlith.exception.ValidationException
 import io.reqlith.model.dto.CurrentUser
@@ -11,9 +12,10 @@ import java.net.URI
 import java.time.Clock
 import java.time.Instant
 import java.util.UUID
-import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+
+private val logger = KotlinLogging.logger {}
 
 @Service
 class ExternalLinkService(
@@ -21,8 +23,6 @@ class ExternalLinkService(
     private val access: ProjectAccess,
     private val clock: Clock,
 ) {
-    private val logger = LoggerFactory.getLogger(javaClass)
-
     fun all(project: Project): List<ExternalLink> = links.findByProjectIdOrderByCreatedAt(project.id)
 
     fun forElement(project: Project, key: String): List<ExternalLink> = all(project).filter { it.elementKey == key }
@@ -42,7 +42,7 @@ class ExternalLinkService(
         val text = label?.trim()?.takeIf { it.isNotEmpty() } ?: target.substringAfterLast('/').ifEmpty { target }
         return links.save(
             ExternalLink(project.id, versionNo, elementKey?.trim()?.uppercase()?.ifEmpty { null }, system, target, text.take(300), Instant.now(clock), user.userId),
-        ).also { logger.info("External link added project={} system={} scope={}", project.key, system, it.scope) }
+        ).also { logger.info { "External link added project=${project.key} system=$system scope=${it.scope}" } }
     }
 
     @Transactional
@@ -51,6 +51,6 @@ class ExternalLinkService(
         val link = links.findById(linkId).orElseThrow { NotFoundException("Link not found") }
         require(link.projectId == project.id)
         links.delete(link)
-        logger.info("External link removed project={} system={} scope={}", project.key, link.system, link.scope)
+        logger.info { "External link removed project=${project.key} system=${link.system} scope=${link.scope}" }
     }
 }

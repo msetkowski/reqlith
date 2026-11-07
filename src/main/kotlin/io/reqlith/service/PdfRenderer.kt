@@ -1,8 +1,8 @@
 package io.reqlith.service
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.reqlith.config.ReqlithProperties
 import io.reqlith.exception.PdfRenderingException
-import org.slf4j.LoggerFactory
 import org.springframework.core.io.ByteArrayResource
 import org.springframework.http.MediaType
 import org.springframework.http.client.SimpleClientHttpRequestFactory
@@ -11,6 +11,8 @@ import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientException
 
+private val logger = KotlinLogging.logger {}
+
 /**
  * Prints self-contained HTML to PDF in the separate rendering service (Gotenberg: headless Chromium behind
  * an HTTP API), so Mermaid diagrams are drawn exactly as in the browser while the application image stays
@@ -18,8 +20,6 @@ import org.springframework.web.client.RestClientException
  */
 @Component
 class PdfRenderer(properties: ReqlithProperties) {
-    private val logger = LoggerFactory.getLogger(javaClass)
-
     private val settings = properties.pdf
 
     private val client = RestClient.builder()
@@ -54,7 +54,7 @@ class PdfRenderer(properties: ReqlithProperties) {
             add("waitForExpression", "window.mermaidDone === true")
         }
         val started = System.nanoTime()
-        logger.debug("Sending page to PDF renderer url={} htmlBytes={} mermaid={}", settings.url, html.length, html.contains(MERMAID_MARKER))
+        logger.debug { "Sending page to PDF renderer url=${settings.url} htmlBytes=${html.length} mermaid=${html.contains(MERMAID_MARKER)}" }
         return try {
             client.post()
                 .uri("/forms/chromium/convert/html")
@@ -63,7 +63,7 @@ class PdfRenderer(properties: ReqlithProperties) {
                 .body(form)
                 .retrieve()
                 .body(ByteArray::class.java)
-                ?.also { logger.debug("PDF renderer answered in {} ms with {} bytes", (System.nanoTime() - started) / 1_000_000, it.size) }
+                ?.also { logger.debug { "PDF renderer answered in ${(System.nanoTime() - started) / 1_000_000} ms with ${it.size} bytes" } }
                 ?: throw PdfRenderingException("The PDF rendering service returned no document")
         } catch (e: RestClientException) {
             throw PdfRenderingException("The PDF rendering service at ${settings.url} failed: ${e.message}", e)

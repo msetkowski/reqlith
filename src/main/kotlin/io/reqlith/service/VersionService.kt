@@ -1,14 +1,16 @@
 package io.reqlith.service
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.reqlith.exception.NotFoundException
 import io.reqlith.model.dto.ProjectDocument
 import io.reqlith.model.entity.Project
 import io.reqlith.model.entity.ProjectVersion
 import io.reqlith.model.entity.VersionStatus
 import io.reqlith.repository.ProjectVersionRepository
-import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+
+private val logger = KotlinLogging.logger {}
 
 /** Read access to the history of a project. */
 @Service
@@ -18,8 +20,6 @@ class VersionService(
     private val codec: SnapshotCodec,
     private val documents: ProjectDocumentService,
 ) {
-    private val logger = LoggerFactory.getLogger(javaClass)
-
     /** Every candidate and approved version, newest first. */
     fun history(project: Project): List<ProjectVersion> = versions.findByProjectIdOrderBySubmittedAtDesc(project.id)
 
@@ -52,7 +52,7 @@ class VersionService(
     fun hasChangesSinceApproval(project: Project): Boolean {
         val approved = latestApproved(project) ?: return true
         val hash = codec.write(documents.fromWorkingCopy(project)).hash
-        logger.debug("Working copy of {} hash={} vs {} hash={}", project.key, hash, approved.label, approved.contentHash)
+        logger.debug { "Working copy of ${project.key} hash=$hash vs ${approved.label} hash=${approved.contentHash}" }
         return hash != approved.contentHash
     }
 

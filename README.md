@@ -95,6 +95,14 @@ prometheus.io/port: "8081"
 | `DEBUG` | Hints for engineers | key numbers allocated, snapshot hashes, stale forms rejected, PDF cache hits and renderer timings, how MCP requests were authenticated, expected 4xx outcomes |
 | `ERROR` | Failures that need attention | unexpected exceptions (with an error id that the error page shows, so users can report it), PDF renderer failures, failing MCP tools |
 
+- **API:** [kotlin-logging](https://github.com/oshai/kotlin-logging) on top of SLF4J/Logback. Declare one logger per file and pass messages as lambdas, so they are only built when the level is enabled:
+
+  ```kotlin
+  private val logger = KotlinLogging.logger {}
+
+  logger.info { "Version approved project=${project.key} version=${version.label}" }
+  logger.error(e) { "PDF export failed: ${e.message}" }
+  ```
 - **Correlation:** every line carries `[requestId userId]`. The request id comes from an incoming `X-Request-Id` header (or is generated) and is returned in the response.
 - **Personal data:** logs contain ids, never e-mail addresses, tokens or document content.
 - **Levels:** production runs `io.reqlith` at `INFO`; the `local` profile sets `DEBUG`. Change it at runtime with `LOGGING_LEVEL_IO_REQLITH=DEBUG`.

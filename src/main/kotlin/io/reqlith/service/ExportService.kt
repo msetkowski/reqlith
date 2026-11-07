@@ -1,5 +1,6 @@
 package io.reqlith.service
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.reqlith.controller.Formats
 import io.reqlith.model.dto.ApprovalRow
 import io.reqlith.model.dto.ExportFile
@@ -12,10 +13,11 @@ import io.reqlith.model.entity.Suggestion
 import io.reqlith.model.entity.VersionStatus
 import io.reqlith.repository.ExportCache
 import java.util.Base64
-import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.thymeleaf.TemplateEngine
 import org.thymeleaf.context.Context
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * Exports a project version (or the working copy, marked DRAFT) as a single PRD. The PDF is the
@@ -33,12 +35,10 @@ class ExportService(
     private val cache: ExportCache,
     private val formats: Formats,
 ) {
-    private val logger = LoggerFactory.getLogger(javaClass)
-
     /** [version] null exports the working copy. */
     fun markdown(project: Project, version: ProjectVersion?, options: ExportOptions): ExportFile {
         val text = PrdMarkdownWriter.write(input(project, version), options)
-        logger.info("PRD exported project={} version={} format=md", project.key, version?.label ?: "draft")
+        logger.info { "PRD exported project=${project.key} version=${version?.label ?: "draft"} format=md" }
         return ExportFile("${fileName(project, version)}.md", "text/markdown; charset=UTF-8", text.toByteArray())
     }
 
@@ -49,8 +49,8 @@ class ExportService(
         val cacheKey = version?.takeIf { it.status != VersionStatus.IN_REVIEW }?.let { "${options.key}|${it.label}|${it.status}" }
         cacheKey?.let { key ->
             cache.get(version.contentHash, "pdf", key)?.let {
-                logger.info("PRD exported project={} version={} format=pdf", project.key, version.label)
-                logger.debug("PDF served from cache project={} version={} options={}", project.key, version.label, options.key)
+                logger.info { "PRD exported project=${project.key} version=${version.label} format=pdf" }
+                logger.debug { "PDF served from cache project=${project.key} version=${version.label} options=${options.key}" }
                 return ExportFile(name, "application/pdf", it)
             }
         }
@@ -58,8 +58,8 @@ class ExportService(
         val html = printHtml(input, PrdMarkdownWriter.write(input, options))
         val bytes = pdf.render(html, "${project.key} · ${input.versionLabel} · ${input.document.project.title}")
         cacheKey?.let { cache.put(version.contentHash, "pdf", it, bytes) }
-        logger.info("PRD exported project={} version={} format=pdf", project.key, version?.label ?: "draft")
-        logger.debug("PDF rendered project={} version={} bytes={} cached={}", project.key, version?.label ?: "draft", bytes.size, cacheKey != null)
+        logger.info { "PRD exported project=${project.key} version=${version?.label ?: "draft"} format=pdf" }
+        logger.debug { "PDF rendered project=${project.key} version=${version?.label ?: "draft"} bytes=${bytes.size} cached=${cacheKey != null}" }
         return ExportFile(name, "application/pdf", bytes)
     }
 

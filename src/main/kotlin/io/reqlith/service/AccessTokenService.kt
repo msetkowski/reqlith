@@ -1,5 +1,6 @@
 package io.reqlith.service
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.reqlith.exception.NotFoundException
 import io.reqlith.exception.ValidationException
 import io.reqlith.model.dto.CurrentUser
@@ -12,17 +13,16 @@ import java.time.Clock
 import java.time.Instant
 import java.util.Base64
 import java.util.UUID
-import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+
+private val logger = KotlinLogging.logger {}
 
 @Service
 class AccessTokenService(
     private val tokens: AccessTokenRepository,
     private val clock: Clock,
 ) {
-    private val logger = LoggerFactory.getLogger(javaClass)
-
     private val random = SecureRandom()
 
     fun forUser(user: CurrentUser): List<AccessToken> = tokens.findByUserIdOrderByCreatedAtDesc(user.userId)
@@ -34,7 +34,7 @@ class AccessTokenService(
         val bytes = ByteArray(32).also(random::nextBytes)
         val value = PREFIX + Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
         val token = tokens.save(AccessToken(user.userId, label, sha256(value), value.take(12), Instant.now(clock)))
-        logger.info("Access token created token={} name={}", token.id, label)
+        logger.info { "Access token created token=${token.id} name=$label" }
         return NewToken(token, value)
     }
 
@@ -44,7 +44,7 @@ class AccessTokenService(
         if (token.userId != user.userId) throw NotFoundException("Token not found")
         if (token.revokedAt == null) {
             token.revokedAt = Instant.now(clock)
-            logger.info("Access token revoked token={}", token.id)
+            logger.info { "Access token revoked token=${token.id}" }
         }
     }
 
@@ -53,7 +53,7 @@ class AccessTokenService(
     fun authenticate(value: String): AccessToken? {
         val token = tokens.findByTokenHash(sha256(value))?.takeIf { it.active }
         if (token == null) {
-            logger.debug("Access token rejected: unknown or revoked (prefix {})", value.take(8))
+            logger.debug { "Access token rejected: unknown or revoked (prefix ${value.take(8)})" }
             return null
         }
         token.lastUsedAt = Instant.now(clock)

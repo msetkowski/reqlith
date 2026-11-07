@@ -1,14 +1,16 @@
 package io.reqlith.exception
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import org.slf4j.LoggerFactory
+import java.util.UUID
 import org.springframework.core.Ordered
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.servlet.HandlerExceptionResolver
 import org.springframework.web.servlet.ModelAndView
-import java.util.UUID
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * Last resort for exceptions nobody else handled: business exceptions are handled by [ErrorAdvice] and
@@ -17,14 +19,12 @@ import java.util.UUID
  */
 @Component
 class UnexpectedErrorResolver : HandlerExceptionResolver, Ordered {
-    private val logger = LoggerFactory.getLogger(javaClass)
-
     override fun getOrder(): Int = Ordered.LOWEST_PRECEDENCE
 
     override fun resolveException(request: HttpServletRequest, response: HttpServletResponse, handler: Any?, ex: Exception): ModelAndView? {
         if (response.isCommitted) return null
         val errorId = UUID.randomUUID().toString().take(8)
-        logger.error("Unexpected error id={} on {} {}", errorId, request.method, request.requestURI, ex)
+        logger.error(ex) { "Unexpected error id=$errorId on ${request.method} ${request.requestURI}" }
         response.status = HttpStatus.INTERNAL_SERVER_ERROR.value()
         return ModelAndView(
             "error",

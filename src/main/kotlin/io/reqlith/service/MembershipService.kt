@@ -1,5 +1,6 @@
 package io.reqlith.service
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.reqlith.exception.NotFoundException
 import io.reqlith.exception.ValidationException
 import io.reqlith.model.dto.CurrentUser
@@ -13,10 +14,11 @@ import io.reqlith.repository.ProjectMemberRepository
 import java.time.Clock
 import java.time.Instant
 import java.util.UUID
-import org.slf4j.LoggerFactory
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+
+private val logger = KotlinLogging.logger {}
 
 /** Owners, contributors and reviewers of a project, and invitations by e-mail. */
 @Service
@@ -26,8 +28,6 @@ class MembershipService(
     private val access: ProjectAccess,
     private val clock: Clock,
 ) {
-    private val logger = LoggerFactory.getLogger(javaClass)
-
     fun members(project: Project): List<ProjectMember> = members.findByIdProjectId(project.id)
 
     fun invitations(project: Project): List<Invitation> = invitations.findByProjectId(project.id)
@@ -46,11 +46,11 @@ class MembershipService(
             existing.role = role
             existing.invitedBy = user.userId
             existing.invitedAt = now
-            logger.info("Invitation renewed project={} invitation={} role={}", project.key, existing.id, role)
+            logger.info { "Invitation renewed project=${project.key} invitation=${existing.id} role=$role" }
             return invitations.save(existing)
         }
         return invitations.save(Invitation(project.id, normalized, role, user.userId, now))
-            .also { logger.info("Invitation sent project={} invitation={} role={}", project.key, it.id, role) }
+            .also { logger.info { "Invitation sent project=${project.key} invitation=${it.id} role=$role" } }
     }
 
     @Transactional
@@ -59,7 +59,7 @@ class MembershipService(
         val invitation = invitations.findById(invitationId).orElseThrow { NotFoundException("Invitation not found") }
         require(invitation.projectId == project.id)
         invitations.delete(invitation)
-        logger.info("Invitation cancelled project={} invitation={}", project.key, invitationId)
+        logger.info { "Invitation cancelled project=${project.key} invitation=$invitationId" }
     }
 
     /** The invitee joins the project with the invited role (an existing membership is updated). */
@@ -74,14 +74,14 @@ class MembershipService(
             member.role = invitation.role
         }
         invitations.delete(invitation)
-        logger.info("Invitation accepted projectId={} invitation={} role={}", invitation.projectId, invitation.id, invitation.role)
+        logger.info { "Invitation accepted projectId=${invitation.projectId} invitation=${invitation.id} role=${invitation.role}" }
         return invitation.projectId
     }
 
     @Transactional
     fun decline(user: CurrentUser, invitationId: UUID) {
         invitations.delete(ownInvitation(user, invitationId))
-        logger.info("Invitation declined invitation={}", invitationId)
+        logger.info { "Invitation declined invitation=$invitationId" }
     }
 
     @Transactional
@@ -90,7 +90,7 @@ class MembershipService(
         val member = members.findById(MemberId(project.id, memberUserId)).orElseThrow { NotFoundException("Member not found") }
         if (member.role == MemberRole.OWNER && role != MemberRole.OWNER) requireAnotherOwner(project)
         member.role = role
-        logger.info("Member role changed project={} member={} role={}", project.key, memberUserId, role)
+        logger.info { "Member role changed project=${project.key} member=$memberUserId role=$role" }
     }
 
     @Transactional
@@ -99,12 +99,12 @@ class MembershipService(
         val member = members.findById(MemberId(project.id, memberUserId)).orElseThrow { NotFoundException("Member not found") }
         if (member.role == MemberRole.OWNER) requireAnotherOwner(project)
         members.delete(member)
-        logger.info("Member removed project={} member={}", project.key, memberUserId)
+        logger.info { "Member removed project=${project.key} member=$memberUserId" }
     }
 
     private fun requireAnotherOwner(project: Project) {
         if (members.findByIdProjectId(project.id).count { it.role == MemberRole.OWNER } <= 1) {
-            logger.debug("Last owner of {} cannot be removed or demoted", project.key)
+            logger.debug { "Last owner of ${project.key} cannot be removed or demoted" }
             throw ValidationException(null, "A project needs at least one owner. Add another owner first.")
         }
     }

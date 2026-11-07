@@ -24,6 +24,7 @@
         <java-diff-utils.version>4.18</java-diff-utils.version>
         <spring-ai.version>2.0.2</spring-ai.version>
         <jacoco.version>0.8.16</jacoco.version>
+        <kotlin-logging.version>8.0.6</kotlin-logging.version>
         <!-- Set by the JaCoCo agents; empty when JaCoCo is skipped (-Djacoco.skip=true). -->
         <surefireJacocoAgent/>
         <failsafeJacocoAgent/>
@@ -163,6 +164,12 @@
         <dependency>
             <groupId>tools.jackson.module</groupId>
             <artifactId>jackson-module-kotlin</artifactId>
+        </dependency>
+        <!-- Idiomatic logging on top of SLF4J/Logback: lazy message lambdas with string templates. -->
+        <dependency>
+            <groupId>io.github.oshai</groupId>
+            <artifactId>kotlin-logging-jvm</artifactId>
+            <version>${kotlin-logging.version}</version>
         </dependency>
 
         <!-- Dev -->
