@@ -17,10 +17,8 @@ class ReqlithOidcUser(
 
     override val emailAddress: String? get() = email
 
-    override val isAdmin: Boolean get() = authorities.any { it.authority == ROLE_ADMIN }
 
     companion object {
-        const val ROLE_ADMIN = "ROLE_ADMIN"
         private const val serialVersionUID = 1L
     }
 }

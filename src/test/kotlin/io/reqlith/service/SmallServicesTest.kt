@@ -106,14 +106,14 @@ class SmallServicesTest {
         private val service = WorkspaceService(repository, UnitFixtures.clock)
 
         @Test
-        fun `admins create workspaces with short upper-case keys`() {
+        fun `any signed-in user creates workspaces with short, unique upper-case keys`() {
             every { repository.existsByKey(any()) } returns false
-            assertEquals("PAY", service.create(UnitFixtures.user(admin = true), " pay ", " Payments ").key)
-            assertFailsWith<AccessDeniedException> { service.create(UnitFixtures.user(), "FIN", "Finance") }
-            assertFailsWith<ValidationException> { service.create(UnitFixtures.user(admin = true), "P", "Too short") }
-            assertFailsWith<ValidationException> { service.create(UnitFixtures.user(admin = true), "PAY-1", "Dash") }
+            assertEquals("PAY", service.create(UnitFixtures.user(), " pay ", " Payments ").key)
+            assertFailsWith<ValidationException> { service.create(UnitFixtures.user(), "P", "Too short") }
+            assertFailsWith<ValidationException> { service.create(UnitFixtures.user(), "PAY-1", "Dash") }
+            assertFailsWith<ValidationException> { service.create(UnitFixtures.user(), "OPS", " ") }
             every { repository.existsByKey("FIN") } returns true
-            assertFailsWith<ValidationException> { service.create(UnitFixtures.user(admin = true), "FIN", "Finance") }
+            assertFailsWith<ValidationException> { service.create(UnitFixtures.user(), "FIN", "Finance") }
         }
     }
 

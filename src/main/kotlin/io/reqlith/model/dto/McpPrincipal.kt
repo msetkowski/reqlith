@@ -12,9 +12,7 @@ class McpPrincipal(
     override val emailAddress: String?,
     /** Set when authenticated with a personal access token. */
     val tokenId: UUID?,
-) : CurrentUser {
-    override val isAdmin: Boolean = false
-}
+) : CurrentUser
 
 
 class McpAuthentication(private val principal: McpPrincipal, private val credential: String) :

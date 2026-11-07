@@ -115,7 +115,7 @@ Open <http://localhost:8080> and sign in as `owner1` / `password`.
 
 | Test user | Use it for |
 |---|---|
-| `owner1` | owner, also `reqlith-admin` (manages workspaces) |
+| `owner1` | owner of the sample project |
 | `owner2`, `contrib1` | second owner, contributor |
 | `reviewer1`, `reviewer2` | reviewers |
 | `viewer1` | read-only user |
@@ -408,7 +408,6 @@ from the issuer. Every endpoint can be overridden with `REQLITH_IDP_*_URI`.
 |---|---|---|---|
 | Issuer | `https://host/realms/<realm>` | `https://login.microsoftonline.com/<tenant-id>/v2.0` | as in its tokens |
 | Endpoints | `…/protocol/openid-connect/{auth,token,certs,userinfo,logout}` | `…/oauth2/v2.0/{authorize,token,logout}`, `…/discovery/v2.0/keys`; claims from the ID token | set authorization, token and JWKS URIs |
-| Admin role | realm role `reqlith-admin` in the `roles` claim | app role `reqlith-admin` (`roles` claim) | a `roles` claim containing `reqlith-admin` |
 | User directory | `KEYCLOAK` | `ENTRA` or `ENTRA_ASSIGNED` | `NONE` |
 
 User e-mail addresses (used to match invitations) come from the `email` claim. When that claim is missing, as it
@@ -420,8 +419,8 @@ the app can be suggested, which also shows those names and addresses to every si
 <details>
 <summary>Keycloak setup</summary>
 
-- **Client:** confidential OIDC client with redirect URI `https://<reqlith>/login/oauth2/code/idp`. Map realm
-  roles into a `roles` claim (see `src/main/dev/keycloak/reqlith-realm.json`).
+- **Client:** confidential OIDC client with redirect URI `https://<reqlith>/login/oauth2/code/idp` (see
+  `src/main/dev/keycloak/reqlith-realm.json`).
 - **Directory (`REQLITH_IDP_DIRECTORY=KEYCLOAK`):** enable the client's service account and give it the
   `realm-management` role `view-users`. Add the client scope `kc-admin-api` as an **optional** scope; Keycloak's
   admin API (26.4+) requires it, and Reqlith requests it only for directory calls. Suggestions list the realm's
@@ -435,18 +434,16 @@ the app can be suggested, which also shows those names and addresses to every si
 
 1. **App registration** (single tenant). Add the web redirect URI `https://<reqlith>/login/oauth2/code/idp`
    and the front-channel logout / post-logout redirect `https://<reqlith>/`. Create a client secret.
-2. **App role** `reqlith-admin` (allowed member types: users/groups). Assign it to workspace administrators under
-   *Enterprise applications → Reqlith → Users and groups*.
-3. **Token configuration:** add the optional claim `email` to the ID token. Without it, Reqlith uses
+2. **Token configuration:** add the optional claim `email` to the ID token. Without it, Reqlith uses
    `preferred_username`.
-4. **Who may sign in:** in the enterprise application, set *Assignment required* to *Yes* and assign users or
+3. **Who may sign in:** in the enterprise application, set *Assignment required* to *Yes* and assign users or
    groups. Otherwise every user in the tenant can sign in.
-5. **Directory for suggestions**, under *API permissions → Application permissions → Microsoft Graph*, then grant
+4. **Directory for suggestions**, under *API permissions → Application permissions → Microsoft Graph*, then grant
    admin consent:
    - `REQLITH_IDP_DIRECTORY=ENTRA`: `User.Read.All`. Suggests enabled users of the tenant.
    - `REQLITH_IDP_DIRECTORY=ENTRA_ASSIGNED`: additionally `Application.Read.All`. Suggests only users assigned
      directly to the enterprise application (group assignments are not expanded; matching is by display name).
-6. **MCP with Entra tokens (optional):** under *Expose an API*, set an application ID URI (e.g.
+5. **MCP with Entra tokens (optional):** under *Expose an API*, set an application ID URI (e.g.
    `api://reqlith`) and a scope. In the manifest, set `requestedAccessTokenVersion` (or `accessTokenAcceptedVersion`)
    to `2` so access tokens carry the v2 issuer. Set `REQLITH_IDP_MCP_AUDIENCE` to the audience of those tokens
    (usually the application ID URI or client id). Personal access tokens work regardless.

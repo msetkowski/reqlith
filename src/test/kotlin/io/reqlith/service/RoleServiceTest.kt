@@ -30,7 +30,6 @@ class RoleServiceTest {
 
     private val editor = UnitFixtures.user("Olive Owens")
     private val viewer = UnitFixtures.user("Vera Voss")
-    private val admin = UnitFixtures.user("Ada Admin", admin = true)
     private val role = Role("RO-01", "Customer", "Buys", NOW, editor.userId)
 
     init {
@@ -40,9 +39,8 @@ class RoleServiceTest {
     }
 
     @Test
-    fun `editors and admins create roles with the next global key`() {
+    fun `editors create roles with the next global key`() {
         assertEquals("RO-03", service.create(editor, "  Claims handler ", "Handles claims").key)
-        assertTrue(service.canCreate(admin))
         assertFailsWith<AccessDeniedException> { service.create(viewer, "Auditor", null) }
     }
 
@@ -66,7 +64,6 @@ class RoleServiceTest {
         every { access.roleOf(projectId, viewer.userId) } returns MemberRole.CONTRIBUTOR
         assertFalse(service.canEditGlobal(editor, role))
         assertTrue(service.canEditGlobal(viewer, role))
-        assertTrue(service.canEditGlobal(admin, role))
         assertFailsWith<AccessDeniedException> { service.updateGlobal(editor, role, "Customer", "Rewritten") }
     }
 

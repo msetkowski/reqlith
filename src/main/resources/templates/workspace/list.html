@@ -27,7 +27,7 @@
                 </tbody>
             </table>
         </div>
-        <form class="card-body" style="border-top: 1px solid var(--line)" th:if="${currentUser.admin}" method="post" th:action="@{/workspaces}">
+        <form class="card-body" style="border-top: 1px solid var(--line)" method="post" th:action="@{/workspaces}">
             <div class="row">
                 <label class="sr-only" for="key">Key</label>
                 <input class="input mono" id="key" name="key" required maxlength="8" placeholder="PAY" th:value="${newKey}" style="width: 120px">

@@ -35,9 +35,6 @@ reqlith:
   pdf:
     # Separate rendering service (Gotenberg) that prints the PRD with headless Chromium.
     url: ${REQLITH_PDF_URL}
-  # Claim in the ID token that carries IDP roles; 'reqlith-admin' grants workspace management.
-  roles-claim: roles
-  admin-role: reqlith-admin
   idp:
     # KEYCLOAK, ENTRA or GENERIC: fills in the endpoints from the issuer (see README "Identity provider").
     type: ${REQLITH_IDP_TYPE:KEYCLOAK}

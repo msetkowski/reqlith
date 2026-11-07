@@ -8,5 +8,4 @@ interface CurrentUser {
     val displayName: String
     val initials: String
     val emailAddress: String?
-    val isAdmin: Boolean
 }

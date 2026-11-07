@@ -1,7 +1,6 @@
 package io.reqlith.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.reqlith.config.ReqlithProperties
 import io.reqlith.model.dto.ReqlithOidcUser
 import io.reqlith.model.entity.AppUser
 import org.springframework.security.core.GrantedAuthority
@@ -14,11 +13,10 @@ import org.springframework.stereotype.Component
 
 private val logger = KotlinLogging.logger {}
 
-/** Loads the OIDC user, provisions the matching [AppUser] and maps IDP roles to authorities. */
+/** Loads the OIDC user and provisions the matching [AppUser]. */
 @Component
 class ProvisioningOidcUserService(
     private val userService: UserService,
-    private val properties: ReqlithProperties,
 ) : OAuth2UserService<OidcUserRequest, OidcUser> {
 
     private val delegate = OidcUserService()
@@ -33,12 +31,9 @@ class ProvisioningOidcUserService(
         val authorities = buildList<GrantedAuthority> {
             addAll(oidcUser.authorities)
             add(SimpleGrantedAuthority("ROLE_USER"))
-            if (properties.adminRole in idpRoles(oidcUser)) add(SimpleGrantedAuthority(ReqlithOidcUser.ROLE_ADMIN))
         }
-        logger.info { "User signed in user=${appUser.id} admin=${authorities.any { it.authority == ReqlithOidcUser.ROLE_ADMIN }}" }
+        logger.info { "User signed in user=${appUser.id}" }
         return ReqlithOidcUser(oidcUser, authorities, appUser.id, appUser.displayName, appUser.initials)
     }
 
-    private fun idpRoles(user: OidcUser): Set<String> =
-        (user.getClaimAsStringList(properties.rolesClaim) ?: emptyList()).toSet()
 }

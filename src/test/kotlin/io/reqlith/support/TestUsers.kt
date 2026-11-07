@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component
 @Component
 class TestUsers(private val userService: UserService) {
 
-    fun create(name: String = "Test User", admin: Boolean = false): ReqlithOidcUser {
+    fun create(name: String = "Test User"): ReqlithOidcUser {
         val unique = UUID.randomUUID().toString().take(8)
         val email = name.lowercase().replace(' ', '.') + ".$unique@reqlith.test"
         val subject = "sub-$unique"
@@ -22,7 +22,6 @@ class TestUsers(private val userService: UserService) {
             .issuedAt(Instant.now()).expiresAt(Instant.now().plusSeconds(600)).build()
         val authorities = buildList {
             add(SimpleGrantedAuthority("ROLE_USER"))
-            if (admin) add(SimpleGrantedAuthority(ReqlithOidcUser.ROLE_ADMIN))
         }
         return ReqlithOidcUser(DefaultOidcUser(authorities, token), authorities, user.id, user.displayName, user.initials)
     }

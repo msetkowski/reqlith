@@ -6,10 +6,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 data class ReqlithProperties(
     /** Public base URL used for copyable links and the MCP client configuration. */
     val baseUrl: String = "http://localhost:8080",
-    /** ID token claim carrying the IDP roles. */
-    val rolesClaim: String = "roles",
-    /** IDP role that grants workspace management. */
-    val adminRole: String = "reqlith-admin",
     val idp: Idp,
     val mcp: Mcp = Mcp(),
     val pdf: Pdf = Pdf(),

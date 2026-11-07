@@ -22,11 +22,10 @@ object UnitFixtures {
         override val displayName: String = "Test User",
         override val initials: String = "TU",
         override val emailAddress: String? = "test.user@reqlith.test",
-        override val isAdmin: Boolean = false,
     ) : CurrentUser
 
-    fun user(name: String = "Test User", email: String? = null, admin: Boolean = false) =
-        TestUser(displayName = name, emailAddress = email ?: name.lowercase().replace(' ', '.') + "@reqlith.test", isAdmin = admin)
+    fun user(name: String = "Test User", email: String? = null) =
+        TestUser(displayName = name, emailAddress = email ?: name.lowercase().replace(' ', '.') + "@reqlith.test")
 
     val workspace = Workspace("PAY", "Payments", NOW)
 

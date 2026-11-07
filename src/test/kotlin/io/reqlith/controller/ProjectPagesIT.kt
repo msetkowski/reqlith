@@ -43,7 +43,7 @@ class ProjectPagesIT(
 
     @Test
     fun `every project page renders for owners and readers`() {
-        val owner = users.create("Olive Owens", admin = true)
+        val owner = users.create("Olive Owens")
         val reader = users.create("Vera Voss")
         val project = fixtures.project(owner)
         val sr = elements.create(owner, project, ElementType.SR, ElementContent("Status visible", "Body", null, emptySet(), emptySet()))

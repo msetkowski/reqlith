@@ -48,17 +48,14 @@ class RoleService(
     /** Number of projects using each role. */
     fun usage(): Map<UUID, Int> = projectRoles.findAll().groupingBy { it.id.roleId }.eachCount()
 
-    /**
-     * Admins, editors of a project using the role, and, while no project uses it yet, anyone who may create roles.
-     */
+    /** Editors of a project using the role, and, while no project uses it yet, anyone who may create roles. */
     fun canEditGlobal(user: CurrentUser, role: Role): Boolean {
-        if (user.isAdmin) return true
         val usedBy = projectIdsUsing(role)
         return if (usedBy.isEmpty()) canCreate(user) else usedBy.any { access.roleOf(it, user.userId) in EDITOR_ROLES }
     }
 
-    /** Admins and editors of at least one project can define new roles. */
-    fun canCreate(user: CurrentUser): Boolean = user.isAdmin || access.isEditorAnywhere(user)
+    /** Editors of at least one project can define new roles. */
+    fun canCreate(user: CurrentUser): Boolean = access.isEditorAnywhere(user)
 
     /** A new role that projects can then select, created from the roles overview. */
     @Transactional
