@@ -25,6 +25,7 @@
         <spring-ai.version>2.0.2</spring-ai.version>
         <jacoco.version>0.8.16</jacoco.version>
         <kotlin-logging.version>8.0.6</kotlin-logging.version>
+        <mockk.version>1.14.12</mockk.version>
         <!-- Set by the JaCoCo agents; empty when JaCoCo is skipped (-Djacoco.skip=true). -->
         <surefireJacocoAgent/>
         <failsafeJacocoAgent/>
@@ -214,6 +215,12 @@
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-test-junit5</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.mockk</groupId>
+            <artifactId>mockk-jvm</artifactId>
+            <version>${mockk.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
