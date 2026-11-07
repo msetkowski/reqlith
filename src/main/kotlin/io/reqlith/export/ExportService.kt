@@ -93,7 +93,9 @@ class ExportService(
     private fun printHtml(input: PrdInput, prd: String): String {
         val context = Context().apply {
             setVariable("title", "${input.document.project.title} ${input.versionLabel}")
-            setVariable("body", markdown.render(prd))
+            val body = markdown.render(prd)
+            setVariable("body", body)
+            setVariable("mermaid", body.contains(PdfRenderer.MERMAID_MARKER))
             setVariable("draft", input.versionLabel == PrdMarkdownWriter.DRAFT)
             setVariable("fonts", fontFaces)
         }

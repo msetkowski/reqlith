@@ -4,6 +4,7 @@ import io.reqlith.common.ConcurrentEditException
 import io.reqlith.common.NotFoundException
 import io.reqlith.common.ProjectLockedException
 import io.reqlith.common.ValidationException
+import io.reqlith.export.PdfRenderingException
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.http.HttpStatus
 import org.springframework.security.access.AccessDeniedException
@@ -26,6 +27,9 @@ class ErrorAdvice {
 
     @ExceptionHandler(AccessDeniedException::class)
     fun denied(e: Exception, response: HttpServletResponse) = page(response, HttpStatus.FORBIDDEN, "Not allowed", e)
+
+    @ExceptionHandler(PdfRenderingException::class)
+    fun pdf(e: Exception, response: HttpServletResponse) = page(response, HttpStatus.SERVICE_UNAVAILABLE, "PDF export is unavailable", e)
 
     @ExceptionHandler(ValidationException::class)
     fun invalid(e: Exception, response: HttpServletResponse) = page(response, HttpStatus.BAD_REQUEST, "Cannot do that", e)

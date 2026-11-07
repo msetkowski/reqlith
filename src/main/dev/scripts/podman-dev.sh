@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Podman equivalent of compose.yaml, without podman-compose.
 # All containers run in one pod and share localhost, so ports match the compose setup:
-#   1433 MSSQL, 8180 Keycloak, 8080 app (only with --with-app; otherwise run the app on the host).
+#   1433 MSSQL, 8180 Keycloak, 3000 PDF renderer, 8080/8081 app + actuator (only with --with-app;
+#   otherwise run the app on the host).
 #
 # Usage: src/main/dev/scripts/podman-dev.sh up [--with-app] | down [--volumes] | status | logs <container>
 set -euo pipefail
@@ -11,6 +12,7 @@ ROOT="$(cd "$DEV/../../.." && pwd)"              # repository root
 POD=reqlith
 MSSQL_IMAGE=mcr.microsoft.com/mssql/server:2022-latest
 KEYCLOAK_IMAGE=quay.io/keycloak/keycloak:26.8.2
+RENDERER_IMAGE=docker.io/gotenberg/gotenberg:8.40.0
 APP_IMAGE=localhost/reqlith:dev
 SA_PASSWORD="${MSSQL_SA_PASSWORD:-Reqlith_dev_SA_1}"
 APP_DB_PASSWORD="${REQLITH_DB_PASSWORD:-Reqlith_dev_app_1}"
@@ -41,8 +43,8 @@ up() {
       exit 1
     fi
   else
-    local ports=(-p 1433:1433 -p 8180:8180)
-    $with_app && ports+=(-p 8080:8080)
+    local ports=(-p 1433:1433 -p 8180:8180 -p 3000:3000)
+    $with_app && ports+=(-p 8080:8080 -p 8081:8081)
     podman pod create --name "$POD" "${ports[@]}"
   fi
   podman volume exists "$POD-mssql-data" || podman volume create "$POD-mssql-data" >/dev/null
@@ -66,13 +68,20 @@ up() {
     podman start "$POD-keycloak" >/dev/null
   fi
 
+  if ! podman container exists "$POD-pdf-renderer"; then
+    podman run -d --pod "$POD" --name "$POD-pdf-renderer" "$RENDERER_IMAGE" \
+      gotenberg --chromium-allow-list='^file:///tmp/.*' --api-timeout=90s >/dev/null
+  else
+    podman start "$POD-pdf-renderer" >/dev/null
+  fi
+
   wait_for_mssql
   podman cp "$DEV/mssql/init.sql" "$POD-mssql:/tmp/init.sql"
   podman exec -e APP_PASSWORD="$APP_DB_PASSWORD" -e MCP_PASSWORD="$MCP_DB_PASSWORD" "$POD-mssql" \
     "$SQLCMD" -C -S localhost -U sa -P "$SA_PASSWORD" -b -i /tmp/init.sql
 
   if $with_app; then
-    podman build -t "$APP_IMAGE" -f "$ROOT/src/main/docker/Dockerfile" "$ROOT"
+    "$DEV/scripts/build-image.sh" "$APP_IMAGE"
     podman rm -f "$POD-app" >/dev/null 2>&1 || true
     podman run -d --pod "$POD" --name "$POD-app" \
       -e REQLITH_DB_PASSWORD="$APP_DB_PASSWORD" -e REQLITH_MCP_DB_PASSWORD="$MCP_DB_PASSWORD" \
@@ -81,7 +90,8 @@ up() {
 
   echo "MSSQL     localhost:1433 (db reqlith, user reqlith_app)"
   echo "Keycloak  http://localhost:8180 (admin/admin, realm reqlith, users owner1..viewer1 / password)"
-  $with_app && echo "App       http://localhost:8080"
+  echo "Renderer  http://localhost:3000 (Gotenberg, PDF export)"
+  $with_app && echo "App       http://localhost:8080 (actuator on http://localhost:8081/actuator)"
   return 0
 }
 
@@ -97,6 +107,6 @@ case "${1:-}" in
   up) shift; up "$@" ;;
   down) shift; down "$@" ;;
   status) podman pod ps --filter "name=^$POD\$"; podman ps -a --pod --filter "pod=$POD" ;;
-  logs) podman logs -f "$POD-${2:?container: mssql|keycloak|app}" ;;
-  *) echo "Usage: $0 up [--with-app] | down [--volumes] | status | logs <mssql|keycloak|app>" >&2; exit 2 ;;
+  logs) podman logs -f "$POD-${2:?container: mssql|keycloak|pdf-renderer|app}" ;;
+  *) echo "Usage: $0 up [--with-app] | down [--volumes] | status | logs <mssql|keycloak|pdf-renderer|app>" >&2; exit 2 ;;
 esac

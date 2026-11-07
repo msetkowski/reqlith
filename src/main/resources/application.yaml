@@ -50,6 +50,9 @@ reqlith:
       url: ${REQLITH_MCP_DB_URL:${spring.datasource.url}}
       username: ${REQLITH_MCP_DB_USER:reqlith_mcp}
       password: ${REQLITH_MCP_DB_PASSWORD:Reqlith_dev_mcp_1}
+  pdf:
+    # Separate rendering service (Gotenberg) that prints the PRD with headless Chromium.
+    url: ${REQLITH_PDF_URL:http://localhost:3000}
   # Claim in the ID token that carries IDP roles; 'reqlith-admin' grants workspace management.
   roles-claim: roles
   admin-role: reqlith-admin
@@ -78,10 +81,14 @@ server:
   forward-headers-strategy: framework
 
 management:
+  # Actuator on its own port: reachable by Kubernetes and Prometheus inside the cluster, not exposed with the app.
+  server:
+    port: ${MANAGEMENT_PORT:8081}
   endpoints:
     web:
       exposure:
-        # Unauthenticated (see SecurityConfig): health incl. Kubernetes probes, info, Prometheus scrape endpoint.
+        # Unauthenticated (see SecurityConfig), on the management port only: health incl. Kubernetes probes,
+        # info and the Prometheus scrape endpoint.
         include: health,info,prometheus
   endpoint:
     health:

@@ -1,31 +1,22 @@
-# syntax=docker/dockerfile:1
-# Build context: repository root (docker build -f src/main/docker/Dockerfile .)
-FROM docker.io/library/maven:3.9-eclipse-temurin-25 AS build
-WORKDIR /src
-COPY pom.xml .
-RUN --mount=type=cache,target=/root/.m2 mvn -B -q dependency:go-offline
-COPY src ./src
-RUN --mount=type=cache,target=/root/.m2 mvn -B -q -DskipTests -Djacoco.skip=true package \
-    && cp target/reqlith-*.jar /app.jar
-# Split the Spring Boot jar into layers (dependencies change rarely, the application often):
-# each layer holds part of app.jar + lib/, whose manifest class path ties them together again.
-RUN java -Djarmode=tools -jar /app.jar extract --layers --destination /layers
+# Application image: Alpine + JRE 25, no builder stage.
+# Maven builds everything into target/ first; this file only copies the results:
+#   ./mvnw -DskipTests package            (or: mvnd -DskipTests package)
+#   docker build -f src/main/docker/Dockerfile .
+# or simply: src/main/dev/scripts/build-image.sh
+FROM docker.io/library/alpine:3.24.4
 
-FROM docker.io/library/eclipse-temurin:25-jre
+# The project targets Java 25; fail the build if the package delivers anything else.
+RUN apk add --no-cache openjdk25-jre-headless \
+    && java -version 2>&1 | grep -q 'version "25' \
+    && addgroup -S reqlith \
+    && adduser -S -D -H -u 10001 -G reqlith reqlith
+
 WORKDIR /opt/reqlith
-# Least frequently changing layers first, so a code change only rebuilds the last small layer.
-COPY --from=build /layers/dependencies/ ./
-# Headless Chromium for PDF export, installed with the Playwright version from the dependencies.
-# This layer is rebuilt only when dependencies change.
-ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
-RUN java -cp "lib/*" com.microsoft.playwright.CLI install --with-deps --only-shell chromium \
-    && rm -rf /var/lib/apt/lists/* /tmp/playwright-java-* \
-    && useradd --system --uid 10001 reqlith
-ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-COPY --from=build /layers/spring-boot-loader/ ./
-COPY --from=build /layers/snapshot-dependencies/ ./
-COPY --from=build /layers/application/ ./
+# Dependencies change rarely, the application often: separate layers, dependencies first.
+COPY target/docker/lib/ lib/
+COPY target/classes/ classes/
+
 USER reqlith
-EXPOSE 8080
-# Kubernetes: livenessProbe /actuator/health/liveness, readinessProbe /actuator/health/readiness (port 8080).
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "/opt/reqlith/app.jar"]
+# 8080: application, 8081: actuator (Kubernetes probes, Prometheus) for cluster-internal use.
+EXPOSE 8080 8081
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-cp", "/opt/reqlith/classes:/opt/reqlith/lib/*", "io.reqlith.ReqlithApplicationKt"]

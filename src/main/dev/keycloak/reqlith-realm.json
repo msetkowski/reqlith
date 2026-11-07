@@ -88,6 +88,7 @@
   ],
   "users": [
     {
+      "id": "50d6a495-9c56-4965-88c7-2141eebe12a2",
       "username": "owner1",
       "email": "owner1@reqlith.local",
       "firstName": "Olive",
@@ -107,6 +108,7 @@
       ]
     },
     {
+      "id": "c5c7a97c-6a10-44a8-8775-937a529d68b7",
       "username": "owner2",
       "email": "owner2@reqlith.local",
       "firstName": "Oscar",
@@ -125,6 +127,7 @@
       ]
     },
     {
+      "id": "a461d807-0eed-49ad-a522-adcfdb38e78c",
       "username": "contrib1",
       "email": "contrib1@reqlith.local",
       "firstName": "Carla",
@@ -143,6 +146,7 @@
       ]
     },
     {
+      "id": "4cc14bab-9db0-4205-813b-493127097847",
       "username": "reviewer1",
       "email": "reviewer1@reqlith.local",
       "firstName": "Rita",
@@ -161,6 +165,7 @@
       ]
     },
     {
+      "id": "f169468c-8b0f-4ae5-96a2-a037870a14d8",
       "username": "reviewer2",
       "email": "reviewer2@reqlith.local",
       "firstName": "Raj",
@@ -179,6 +184,7 @@
       ]
     },
     {
+      "id": "30ac119d-c71a-4971-93fe-cf7d6025292f",
       "username": "viewer1",
       "email": "viewer1@reqlith.local",
       "firstName": "Vera",

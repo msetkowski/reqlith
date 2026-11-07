@@ -1,5 +1,4 @@
-# Build context for src/main/docker/Dockerfile (context = repository root)
+# Build context for src/main/docker/Dockerfile (context = repository root): only the Maven output it copies.
 *
-!pom.xml
-!src/main/kotlin
-!src/main/resources
+!target/docker/lib
+!target/classes

@@ -1,3 +1,7 @@
 reqlith:
   idp:
     issuer: http://idp.test/realms/reqlith
+management:
+  server:
+    # Random management port for tests that start a real server (see ActuatorIT).
+    port: 0

@@ -29,5 +29,16 @@
 <body>
 <div class="draft-mark" th:if="${draft}">DRAFT</div>
 <main th:utext="${body}"></main>
+<!--/* mermaid.min.js is uploaded next to this page by the renderer; the renderer waits for mermaidDone. */-->
+<script th:if="${mermaid}" src="mermaid.min.js"></script>
+<script>
+    (function () {
+        if (!window.mermaid) { window.mermaidDone = true; return; }
+        mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: "neutral",
+                             fontFamily: "IBM Plex Sans, sans-serif", flowchart: { htmlLabels: false } });
+        mermaid.run({ querySelector: "pre.mermaid", suppressErrors: true })
+            .finally(function () { window.mermaidDone = true; });
+    })();
+</script>
 </body>
 </html>

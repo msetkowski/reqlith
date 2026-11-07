@@ -12,7 +12,14 @@ data class ReqlithProperties(
     val adminRole: String = "reqlith-admin",
     val idp: Idp,
     val mcp: Mcp = Mcp(),
+    val pdf: Pdf = Pdf(),
 ) {
+    /** The separate PDF rendering service (Gotenberg). */
+    data class Pdf(
+        val url: String = "http://localhost:3000",
+        val timeout: java.time.Duration = java.time.Duration.ofSeconds(90),
+    )
+
     data class Mcp(val datasource: Datasource = Datasource()) {
         data class Datasource(val url: String? = null, val username: String = "reqlith_mcp", val password: String = "")
     }

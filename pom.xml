@@ -22,7 +22,6 @@
         <commonmark.version>0.32.0</commonmark.version>
         <owasp-html-sanitizer.version>20261103.2</owasp-html-sanitizer.version>
         <java-diff-utils.version>4.18</java-diff-utils.version>
-        <playwright.version>1.64.0</playwright.version>
         <spring-ai.version>2.0.2</spring-ai.version>
         <jacoco.version>0.8.16</jacoco.version>
         <!-- Set by the JaCoCo agents; empty when JaCoCo is skipped (-Djacoco.skip=true). -->
@@ -146,13 +145,6 @@
             <version>${java-diff-utils.version}</version>
         </dependency>
 
-        <!-- PDF export: headless Chromium renders the print view (including Mermaid diagrams) -->
-        <dependency>
-            <groupId>com.microsoft.playwright</groupId>
-            <artifactId>playwright</artifactId>
-            <version>${playwright.version}</version>
-        </dependency>
-
         <!-- MCP server for agents (read-only tools, streamable HTTP) -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
@@ -258,6 +250,70 @@
                         <version>${kotlin.version}</version>
                     </dependency>
                 </dependencies>
+            </plugin>
+            <!-- The project targets Java 25: build with JDK 25 or newer. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>require-java-25</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[25,)</version>
+                                </requireJavaVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!--
+              Container image input (src/main/docker/Dockerfile): runtime dependencies in target/docker/lib,
+              compiled classes and resources in target/classes. No fat jar inside the image.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <executions>
+                    <!-- copy-dependencies never removes jars: start empty so upgraded or removed ones don't linger. -->
+                    <execution>
+                        <id>clean-image-dependencies</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                        <configuration>
+                            <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                            <filesets>
+                                <fileset>
+                                    <directory>${project.build.directory}/docker/lib</directory>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>image-dependencies</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <includeScope>runtime</includeScope>
+                            <excludeArtifactIds>spring-boot-devtools</excludeArtifactIds>
+                            <outputDirectory>${project.build.directory}/docker/lib</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <!-- Unit tests (*Test): fast, no containers -->
             <plugin>

@@ -7,7 +7,10 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.DynamicPropertyRegistrar
 import org.springframework.test.context.ActiveProfiles
+import org.testcontainers.containers.GenericContainer
+import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.mssqlserver.MSSQLServerContainer
+import org.testcontainers.utility.DockerImageName
 import java.time.Duration
 
 /** Full application context against a real SQL Server (Testcontainers), shared by all integration tests. */
@@ -34,6 +37,7 @@ class MsSqlContainerConfig {
         registry.add("reqlith.mcp.datasource.url", shared::getJdbcUrl)
         registry.add("reqlith.mcp.datasource.username") { "reqlith_mcp" }
         registry.add("reqlith.mcp.datasource.password") { "Reqlith_test_mcp_1" }
+        registry.add("reqlith.pdf.url") { "http://${pdfRenderer.host}:${pdfRenderer.getMappedPort(3000)}" }
     }
 
     companion object {
@@ -48,5 +52,24 @@ class MsSqlContainerConfig {
                 .withInitScript("db/mcp-login.sql")
                 .apply { start() }
         }
+
+        /** The PDF rendering service, configured like in production (no network for rendered pages). */
+        private val pdfRenderer: PdfRendererContainer by lazy {
+            PdfRendererContainer()
+                .withLabel(TEST_CONTAINER_LABEL, "true")
+                .apply { start() }
+        }
+    }
+}
+
+class PdfRendererContainer : GenericContainer<PdfRendererContainer>(DockerImageName.parse(IMAGE)) {
+    init {
+        withExposedPorts(3000)
+        withCommand("gotenberg", "--chromium-allow-list=^file:///tmp/.*", "--api-timeout=90s")
+        waitingFor(Wait.forHttp("/health").forPort(3000).withStartupTimeout(Duration.ofMinutes(3)))
+    }
+
+    companion object {
+        const val IMAGE = "docker.io/gotenberg/gotenberg:8.40.0"
     }
 }

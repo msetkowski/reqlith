@@ -23,6 +23,7 @@ docker compose -f src/main/dev/compose.yaml up -d    # or: src/main/dev/scripts/
 |----------|-------------------------|-----------------------------------------------|
 | MSSQL    | `localhost:1433`        | db `reqlith`, `reqlith_app` / `Reqlith_dev_app_1` |
 | Keycloak | http://localhost:8180   | admin console `admin` / `admin`, realm `reqlith` |
+| PDF renderer | http://localhost:3000 | Gotenberg (headless Chromium), used by PDF export |
 
 Test users (password `password` for all): `owner1` (also `reqlith-admin`), `owner2`, `contrib1`, `reviewer1`, `reviewer2`, `viewer1`.
 
@@ -56,13 +57,13 @@ Test split and coverage:
 | Plugin | Runs | Phase |
 |---|---|---|
 | Surefire | unit tests `*Test` (no Spring context, no containers) | `test` |
-| Failsafe | integration tests `*IT` (Spring context, SQL Server via Testcontainers, Chromium, MCP over HTTP) | `integration-test` / `verify` |
+| Failsafe | integration tests `*IT` (Spring context, SQL Server and the PDF renderer via Testcontainers, MCP over HTTP) | `integration-test` / `verify` |
 
 JaCoCo measures both runs separately and merges them. HTML/XML/CSV reports go to `target/site/jacoco-unit`, `target/site/jacoco-it` and `target/site/jacoco` (merged). Skip measurement with `-Djacoco.skip=true`.
 
 ## Observability
 
-These endpoints are open without authentication, for Kubernetes and Prometheus:
+Actuator runs on a separate **management port, 8081** (`MANAGEMENT_PORT`). Keep that port cluster-internal: do not route it through the ingress. The application port (8080) does not serve `/actuator` at all. On the management port these endpoints are open without authentication, for Kubernetes and Prometheus:
 
 | Endpoint | Purpose |
 |---|---|
@@ -76,14 +77,14 @@ No other actuator endpoint is exposed.
 ```yaml
 # Kubernetes container spec
 livenessProbe:
-  httpGet: { path: /actuator/health/liveness, port: 8080 }
+  httpGet: { path: /actuator/health/liveness, port: 8081 }
   initialDelaySeconds: 30
 readinessProbe:
-  httpGet: { path: /actuator/health/readiness, port: 8080 }
+  httpGet: { path: /actuator/health/readiness, port: 8081 }
 # Pod annotations for annotation-based Prometheus scraping
 prometheus.io/scrape: "true"
 prometheus.io/path: /actuator/prometheus
-prometheus.io/port: "8080"
+prometheus.io/port: "8081"
 ```
 
 ## MCP server for agents
@@ -104,24 +105,35 @@ Client configuration (Claude Code, Claude Desktop, …):
 
 ## PDF export
 
-PDF export renders the PRD Markdown with the same renderer as the UI and prints it with headless Chromium (Playwright). Mermaid diagrams are therefore drawn as in the browser. The page has no network access: fonts are embedded and mermaid.js is injected from the vendored copy.
+PDF export renders the PRD Markdown with the same renderer as the UI and sends the HTML to a separate rendering service, [Gotenberg](https://gotenberg.dev). Gotenberg prints it with headless Chromium, so Mermaid diagrams are drawn as in the browser, while the application image needs no browser.
 
-- **Running on the host:** Playwright downloads Chromium (about 120 MB, into `~/.cache/ms-playwright`) the first time a PDF is exported. To fetch it in advance, run
-  `java -cp "$(./mvnw -q dependency:build-classpath -Dmdep.outputFile=/dev/stdout)" com.microsoft.playwright.CLI install chromium`.
-- **Container image:** Chromium is installed at build time (`PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright`), and runtime downloads are disabled.
-- **Caching:** PDFs of closed versions are cached in `export_cache`, keyed by content hash, version, status and export options.
+- **No network for rendered pages:** fonts are embedded, and `mermaid.min.js` is uploaded with the page. The renderer runs with `--chromium-allow-list=^file:///tmp/.*`, so a page can only read its own uploaded files.
+- **Configuration:** `REQLITH_PDF_URL` (default `http://localhost:3000`). In Kubernetes, run the renderer as its own Deployment and Service, without an ingress.
+- **Caching:** PDFs of closed versions are cached in `export_cache`, keyed by content hash, version, status and export options. Only the first export needs the renderer.
 
 ## Repository layout
 
 | Path | Contents |
 |---|---|
 | `src/main/kotlin`, `src/main/resources` | Application (templates, static assets, Flyway migrations) |
-| `src/main/docker/Dockerfile` | Container image (build context: repository root, see `.dockerignore`) |
+| `src/main/docker/Dockerfile` | Application image: Alpine + JRE 25, built from Maven output (build context: repository root, see `.dockerignore`) |
 | `src/main/dev/compose.yaml` | Local environment for Docker compose |
 | `src/main/dev/keycloak`, `src/main/dev/mssql` | Keycloak realm with test users, database init script |
-| `src/main/dev/scripts` | `podman-dev.sh` (environment without compose), `test.sh`, `update-vendor.sh` |
+| `src/main/dev/scripts` | `podman-dev.sh` (environment without compose), `test.sh`, `build-image.sh`, `update-vendor.sh` |
 
-Build the image with `docker build -f src/main/docker/Dockerfile .` (or `podman build`). The Spring Boot jar is extracted into layers (`dependencies`, `spring-boot-loader`, `snapshot-dependencies`, `application`). Chromium is installed right after the dependencies layer, so a code change only rebuilds the small application layer (about 2 MB).
+The image has no builder stage. Maven builds everything into `target/`, and the Dockerfile only copies the results onto Alpine with the JRE installed from Alpine's packages (`openjdk25-jre-headless`; the build fails if it is not Java 25):
+
+```bash
+src/main/dev/scripts/build-image.sh           # = mvnd -DskipTests package && docker/podman build -f src/main/docker/Dockerfile .
+```
+
+| Layer | Source | Changes |
+|---|---|---|
+| Alpine + JRE 25 | `apk add openjdk25-jre-headless` | rarely |
+| `/opt/reqlith/lib` | `target/docker/lib`: runtime dependencies (`dependency:copy-dependencies`, without devtools) | when dependencies change |
+| `/opt/reqlith/classes` | `target/classes`: compiled Kotlin, templates, static assets, migrations | with every code change (about 5 MB) |
+
+The app starts with `java -cp classes:lib/* io.reqlith.ReqlithApplicationKt`. The image is about 350 MB, compared with 1.3 GB when Chromium was part of it. Building requires JDK 25 or newer, which the Maven enforcer plugin checks.
 
 ## Configuration
 
@@ -132,6 +144,9 @@ Build the image with `docker build -f src/main/docker/Dockerfile .` (or `podman 
 | `REQLITH_IDP_INTERNAL_URL` | issuer | How the server reaches the IDP, when that differs (containers) |
 | `REQLITH_IDP_CLIENT_ID` / `REQLITH_IDP_CLIENT_SECRET` | `reqlith-app` / dev secret | OIDC client |
 | `REQLITH_BASE_URL` | `http://localhost:8080` | Public URL for copyable links and the MCP config |
+| `REQLITH_PDF_URL` | `http://localhost:3000` | PDF rendering service (Gotenberg) |
+| `REQLITH_MCP_DB_URL` / `REQLITH_MCP_DB_USER` / `REQLITH_MCP_DB_PASSWORD` | main URL / `reqlith_mcp` / dev password | Read-only connection used by the MCP server |
+| `MANAGEMENT_PORT` | `8081` | Actuator port (probes, Prometheus) |
 
 The IDP endpoints are configured explicitly rather than discovered, so the app starts even when the IDP is down. The ID token issuer is still validated against `REQLITH_IDP_ISSUER`. IDP realm roles are read from the `roles` claim, and `reqlith-admin` grants workspace management.
 
