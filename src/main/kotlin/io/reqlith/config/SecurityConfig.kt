@@ -19,7 +19,7 @@ import org.springframework.web.util.UriComponentsBuilder
 
 @Configuration(proxyBeanMethods = false)
 @EnableMethodSecurity
-class SecurityConfig(private val properties: ReqlithProperties) {
+class SecurityConfig(private val properties: ReqlithProperties, private val endpoints: IdpEndpoints) {
 
     /** Browser UI: every page requires an authenticated user from the OAuth 2 / OIDC IDP. */
     @Bean
@@ -51,10 +51,7 @@ class SecurityConfig(private val properties: ReqlithProperties) {
         return http.build()
     }
 
-    /**
-     * Discovery is not used (see application.yaml), so the ID token issuer is checked
-     * against the configured issuer explicitly.
-     */
+    /** Discovery is not used (see IdpConfig), so the ID token issuer is checked against the configured issuer. */
     @Bean
     fun idTokenDecoderFactory(): JwtDecoderFactory<ClientRegistration> =
         OidcIdTokenDecoderFactory().apply {
@@ -66,11 +63,12 @@ class SecurityConfig(private val properties: ReqlithProperties) {
             }
         }
 
-    /** Ends the IDP session too (RP-initiated logout), then returns to the home page. */
+    /** Ends the IDP session too (RP-initiated logout) when the IDP has an end-session endpoint, then returns home. */
     private fun idpLogout() = LogoutSuccessHandler { request, response, authentication ->
         val home = UriComponentsBuilder.fromUriString(request.requestURL.toString())
             .replacePath(request.contextPath + "/").replaceQuery(null).toUriString()
-        val target = UriComponentsBuilder.fromUriString(properties.idp.browserUrl + properties.idp.endSessionPath)
+        val endSession = endpoints.endSession ?: return@LogoutSuccessHandler response.sendRedirect(home)
+        val target = UriComponentsBuilder.fromUriString(endSession)
             .queryParam("post_logout_redirect_uri", home)
         (authentication?.principal as? OidcUser)?.let { target.queryParam("id_token_hint", it.idToken.tokenValue) }
         response.sendRedirect(target.encode().toUriString())

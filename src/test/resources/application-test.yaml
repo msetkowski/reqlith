@@ -4,12 +4,6 @@ spring:
   datasource:
     url: jdbc:sqlserver://provided-by-testcontainers
     password: provided-by-testcontainers
-  security:
-    oauth2:
-      client:
-        registration:
-          idp:
-            client-secret: test-secret
 reqlith:
   base-url: http://localhost:8080
   mcp:
@@ -19,6 +13,7 @@ reqlith:
     url: http://provided-by-testcontainers
   idp:
     issuer: http://idp.test/realms/reqlith
+    client-secret: test-secret
 management:
   server:
     # Random management port for tests that start a real server (see ActuatorIT).

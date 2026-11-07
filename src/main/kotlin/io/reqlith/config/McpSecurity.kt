@@ -5,6 +5,7 @@ import io.reqlith.model.dto.McpAuthentication
 import io.reqlith.model.dto.McpPrincipal
 import io.reqlith.repository.AppUserRepository
 import io.reqlith.service.AccessTokenService
+import io.reqlith.service.IdpClaims
 import io.reqlith.service.UserService
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.context.annotation.Bean
@@ -17,6 +18,11 @@ import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.invoke
 import org.springframework.security.config.http.SessionCreationPolicy
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator
+import org.springframework.security.oauth2.core.OAuth2TokenValidator
+import org.springframework.security.oauth2.jwt.Jwt
+import org.springframework.security.oauth2.jwt.JwtClaimNames
+import org.springframework.security.oauth2.jwt.JwtClaimValidator
 import org.springframework.security.oauth2.jwt.JwtDecoder
 import org.springframework.security.oauth2.jwt.JwtValidators
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder
@@ -54,8 +60,7 @@ class McpSecurity(private val properties: ReqlithProperties) {
         val jwtProvider = JwtAuthenticationProvider(jwtDecoder)
         val jwtManager = AuthenticationManager { authentication ->
             val jwt = jwtProvider.authenticate(authentication).credentials as org.springframework.security.oauth2.jwt.Jwt
-            val name = jwt.getClaimAsString("name") ?: jwt.getClaimAsString("preferred_username")
-            val user = userService.provision(requireNotNull(jwt.subject) { "Token without subject" }, jwt.getClaimAsString("email"), name)
+            val user = userService.provision(requireNotNull(jwt.subject) { "Token without subject" }, IdpClaims.email(jwt.claims), IdpClaims.name(jwt.claims))
             logger.debug { "MCP request authenticated with IDP token user=${user.id} client=${jwt.getClaimAsString("azp")}" }
             McpAuthentication(McpPrincipal(user.id, user.displayName, user.initials, user.email, null), jwt.tokenValue)
         }
@@ -79,9 +84,15 @@ class McpSecurity(private val properties: ReqlithProperties) {
 
     /** Access tokens from the IDP: signature from its keys, issuer must match. */
     @Bean
-    fun jwtDecoder(): JwtDecoder =
-        NimbusJwtDecoder.withJwkSetUri(properties.idp.internalUrl + "/protocol/openid-connect/certs").build().apply {
-            setJwtValidator(JwtValidators.createDefaultWithIssuer(properties.idp.issuer))
+    fun jwtDecoder(endpoints: IdpEndpoints): JwtDecoder =
+        NimbusJwtDecoder.withJwkSetUri(endpoints.jwks).build().apply {
+            val validators = buildList<OAuth2TokenValidator<Jwt>> {
+                add(JwtValidators.createDefaultWithIssuer(properties.idp.issuer))
+                properties.idp.mcpAudience?.takeIf { it.isNotBlank() }?.let { audience ->
+                    add(JwtClaimValidator<List<String>>(JwtClaimNames.AUD) { aud -> aud != null && audience in aud })
+                }
+            }
+            setJwtValidator(DelegatingOAuth2TokenValidator(validators))
         }
 
     /** 401 with a pointer to the protected resource metadata, as MCP clients expect (RFC 9728). */

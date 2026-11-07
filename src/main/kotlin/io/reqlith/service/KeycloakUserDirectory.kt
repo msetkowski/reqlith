@@ -1,21 +1,19 @@
 package io.reqlith.service
 
+import io.reqlith.config.IdpConfig
 import io.reqlith.config.ReqlithProperties
 import io.reqlith.model.dto.DirectoryUser
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager
-import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.body
 
 /**
  * The enabled users of the Keycloak realm, through its admin REST API. Reqlith authenticates with the
  * client credentials of its own client (registration `directory`); the client's service account needs the
- * `realm-management` role `view-users`. Enabled with `reqlith.idp.directory=KEYCLOAK`.
+ * `realm-management` role `view-users` and the client scope `kc-admin-api`. Enabled with
+ * `reqlith.idp.directory=KEYCLOAK` (see IdpConfig).
  */
-@Component
-@ConditionalOnProperty(name = ["reqlith.idp.directory"], havingValue = "KEYCLOAK")
 class KeycloakUserDirectory(
     properties: ReqlithProperties,
     private val clients: OAuth2AuthorizedClientManager,
@@ -25,7 +23,7 @@ class KeycloakUserDirectory(
     private val http = RestClient.create()
 
     override fun search(text: String, limit: Int): List<DirectoryUser> {
-        val token = clients.authorize(OAuth2AuthorizeRequest.withClientRegistrationId(REGISTRATION).principal("reqlith").build())
+        val token = clients.authorize(OAuth2AuthorizeRequest.withClientRegistrationId(IdpConfig.DIRECTORY).principal("reqlith").build())
             ?.accessToken?.tokenValue
             ?: error("No access token for the Keycloak user directory")
         val users = http.get()
@@ -48,8 +46,4 @@ class KeycloakUserDirectory(
         val email: String? = null,
         val enabled: Boolean? = null,
     )
-
-    companion object {
-        const val REGISTRATION = "directory"
-    }
 }

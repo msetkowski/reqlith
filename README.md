@@ -30,6 +30,7 @@ specification; development agents read exactly the version that was approved, th
 - [Development](#development)
 - [Deployment and operations](#deployment-and-operations)
 - [Configuration](#configuration)
+- [Identity provider (Keycloak, Entra ID, other OIDC)](#identity-provider)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -43,8 +44,8 @@ specification; development agents read exactly the version that was approved, th
   PDFs. Writing `` `SR-03` `` links to that element.
 - **Traceability:** typed links (derived from, verified by, depends on, mitigates) in both directions, plus
   readiness checks such as functional requirements without a scenario or broken references.
-- **Invite by name:** while you type, invitation fields suggest people who signed in before and, with Keycloak,
-  every enabled user of the realm.
+- **Invite by name:** while you type, invitation fields suggest people who signed in before, and optionally everyone
+  allowed to use the app from the identity provider's directory (Keycloak or Microsoft Entra ID).
 - **Roles across projects:** select an existing role or create one, then describe what it does in this
   project.
 - **Whole-project review:** reviewers accept, request changes or reject a frozen candidate, and can suggest
@@ -338,7 +339,7 @@ The image is about 350 MB. Building requires JDK 25 or newer, which the Maven en
 |---|---|
 | Reqlith | ports 8080 (application) and 8081 (actuator, cluster-internal) |
 | MS SQL Server | schema owned by `reqlith_app`. Create a `reqlith_mcp` login with read rights for MCP (see `src/main/dev/mssql/init.sql`). |
-| OAuth 2 / OIDC IDP | any provider. Realm roles are read from the `roles` claim, and `reqlith-admin` manages workspaces. For `REQLITH_IDP_DIRECTORY=KEYCLOAK`, the client needs a service account with the `realm-management` role `view-users` and the optional client scope `kc-admin-api` (see `src/main/dev/keycloak/reqlith-realm.json`). Suggestions show names and e-mail addresses of the realm's users to every signed-in user. |
+| OAuth 2 / OIDC IDP | Keycloak, Microsoft Entra ID or any OIDC provider. See [Identity provider](#identity-provider). |
 | Gotenberg | PDF rendering. Keep it internal, and start it with `--chromium-allow-list=^file:///tmp/.*` so rendered pages have no network access. |
 
 ### Health and metrics
@@ -380,19 +381,104 @@ still be overridden with the variable.
 | `REQLITH_DB_PASSWORD` | yes | dev password | main datasource (schema owner, Flyway) |
 | `REQLITH_MCP_DB_PASSWORD` | yes | dev password | read-only connection for the MCP server |
 | `REQLITH_IDP_CLIENT_SECRET` | yes | `reqlith-dev-secret` | OIDC client secret |
-| `REQLITH_IDP_ISSUER` | yes | `http://localhost:8180/realms/reqlith` | token issuer, also where browsers are redirected |
+| `REQLITH_IDP_ISSUER` | yes | `http://localhost:8180/realms/reqlith` | token issuer (`iss`), see [Identity provider](#identity-provider) |
 | `REQLITH_BASE_URL` | yes | `http://localhost:8080` | public URL for copyable links and the MCP configuration |
 | `REQLITH_PDF_URL` | yes | `http://localhost:3000` | PDF rendering service (Gotenberg) |
 | `REQLITH_DB_USER` / `REQLITH_MCP_DB_USER` | no | `reqlith_app` / `reqlith_mcp` | database users |
 | `REQLITH_MCP_DB_URL` | no | main URL | read-only connection, if it differs |
-| `REQLITH_IDP_CLIENT_ID` | no | `reqlith-app` | OIDC client |
-| `REQLITH_IDP_INTERNAL_URL` | no | the issuer | how the server reaches the IDP, when that differs (containers) |
-| `REQLITH_IDP_DIRECTORY` | no | `KEYCLOAK` (`NONE` otherwise) | invitation suggestions: `NONE` = users who signed in before, `KEYCLOAK` = also the realm's enabled users |
+| `REQLITH_IDP_TYPE` | no | `KEYCLOAK` | `KEYCLOAK`, `ENTRA` or `GENERIC`: how endpoints are derived from the issuer |
+| `REQLITH_IDP_CLIENT_ID` | no | `reqlith-app` | OIDC client (Entra: application/client id) |
+| `REQLITH_IDP_INTERNAL_URL` | no | the issuer | Keycloak: how the server reaches the IDP, when that differs (containers) |
+| `REQLITH_IDP_AUTHORIZATION_URI`, `_TOKEN_URI`, `_JWKS_URI`, `_USER_INFO_URI`, `_END_SESSION_URI` | `GENERIC` only (first three) | derived from the type | endpoint overrides |
+| `REQLITH_IDP_MCP_AUDIENCE` | no | not checked | required `aud` of IDP access tokens at `/mcp` (Entra: the API's application ID URI) |
+| `REQLITH_IDP_DIRECTORY` | no | `KEYCLOAK` (`NONE` otherwise) | invitation suggestions: `NONE`, `KEYCLOAK`, `ENTRA` or `ENTRA_ASSIGNED` |
 | `MANAGEMENT_PORT` | no | `8081` | actuator port |
 | `LOGGING_LEVEL_IO_REQLITH` | no | `DEBUG` (`INFO` otherwise) | application log level |
 
 The IDP endpoints are configured explicitly rather than discovered, so the app starts even when the IDP is down.
 ID token issuers are still validated against `REQLITH_IDP_ISSUER`.
+
+## Identity provider
+
+Reqlith signs users in with OpenID Connect (authorization code with a client secret), and the endpoints are
+configured, not discovered: the app starts even while the IDP is down. `REQLITH_IDP_TYPE` derives the endpoints
+from the issuer. Every endpoint can be overridden with `REQLITH_IDP_*_URI`.
+
+| | Keycloak (`KEYCLOAK`, default) | Microsoft Entra ID (`ENTRA`) | Other OIDC (`GENERIC`) |
+|---|---|---|---|
+| Issuer | `https://host/realms/<realm>` | `https://login.microsoftonline.com/<tenant-id>/v2.0` | as in its tokens |
+| Endpoints | `…/protocol/openid-connect/{auth,token,certs,userinfo,logout}` | `…/oauth2/v2.0/{authorize,token,logout}`, `…/discovery/v2.0/keys`; claims from the ID token | set authorization, token and JWKS URIs |
+| Admin role | realm role `reqlith-admin` in the `roles` claim | app role `reqlith-admin` (`roles` claim) | a `roles` claim containing `reqlith-admin` |
+| User directory | `KEYCLOAK` | `ENTRA` or `ENTRA_ASSIGNED` | `NONE` |
+
+User e-mail addresses (used to match invitations) come from the `email` claim. When that claim is missing, as it
+often is with Entra, they come from `preferred_username` or `upn` if those are addresses.
+
+**Invitation suggestions** always include users who have signed in before. With a directory, everyone allowed to use
+the app can be suggested, which also shows those names and addresses to every signed-in user.
+
+<details>
+<summary>Keycloak setup</summary>
+
+- **Client:** confidential OIDC client with redirect URI `https://<reqlith>/login/oauth2/code/idp`. Map realm
+  roles into a `roles` claim (see `src/main/dev/keycloak/reqlith-realm.json`).
+- **Directory (`REQLITH_IDP_DIRECTORY=KEYCLOAK`):** enable the client's service account and give it the
+  `realm-management` role `view-users`. Add the client scope `kc-admin-api` as an **optional** scope; Keycloak's
+  admin API (26.4+) requires it, and Reqlith requests it only for directory calls. Suggestions list the realm's
+  enabled users.
+- **MCP over OAuth:** a public client for MCP clients (the local realm has `reqlith-mcp`).
+
+</details>
+
+<details>
+<summary>Microsoft Entra ID setup</summary>
+
+1. **App registration** (single tenant). Add the web redirect URI `https://<reqlith>/login/oauth2/code/idp`
+   and the front-channel logout / post-logout redirect `https://<reqlith>/`. Create a client secret.
+2. **App role** `reqlith-admin` (allowed member types: users/groups). Assign it to workspace administrators under
+   *Enterprise applications → Reqlith → Users and groups*.
+3. **Token configuration:** add the optional claim `email` to the ID token. Without it, Reqlith uses
+   `preferred_username`.
+4. **Who may sign in:** in the enterprise application, set *Assignment required* to *Yes* and assign users or
+   groups. Otherwise every user in the tenant can sign in.
+5. **Directory for suggestions**, under *API permissions → Application permissions → Microsoft Graph*, then grant
+   admin consent:
+   - `REQLITH_IDP_DIRECTORY=ENTRA`: `User.Read.All`. Suggests enabled users of the tenant.
+   - `REQLITH_IDP_DIRECTORY=ENTRA_ASSIGNED`: additionally `Application.Read.All`. Suggests only users assigned
+     directly to the enterprise application (group assignments are not expanded; matching is by display name).
+6. **MCP with Entra tokens (optional):** under *Expose an API*, set an application ID URI (e.g.
+   `api://reqlith`) and a scope. In the manifest, set `requestedAccessTokenVersion` (or `accessTokenAcceptedVersion`)
+   to `2` so access tokens carry the v2 issuer. Set `REQLITH_IDP_MCP_AUDIENCE` to the audience of those tokens
+   (usually the application ID URI or client id). Personal access tokens work regardless.
+
+```bash
+REQLITH_IDP_TYPE=ENTRA
+REQLITH_IDP_ISSUER=https://login.microsoftonline.com/<tenant-id>/v2.0
+REQLITH_IDP_CLIENT_ID=<application (client) id>
+REQLITH_IDP_CLIENT_SECRET=<client secret>
+REQLITH_IDP_DIRECTORY=ENTRA_ASSIGNED        # or ENTRA, or NONE
+REQLITH_IDP_MCP_AUDIENCE=api://reqlith      # optional
+```
+
+</details>
+
+<details>
+<summary>Other OIDC providers</summary>
+
+```bash
+REQLITH_IDP_TYPE=GENERIC
+REQLITH_IDP_ISSUER=https://idp.example.com
+REQLITH_IDP_AUTHORIZATION_URI=https://idp.example.com/authorize
+REQLITH_IDP_TOKEN_URI=https://idp.example.com/token
+REQLITH_IDP_JWKS_URI=https://idp.example.com/jwks
+REQLITH_IDP_USER_INFO_URI=…        # optional; without it, claims come from the ID token
+REQLITH_IDP_END_SESSION_URI=…      # optional; without it, sign-out ends only the Reqlith session
+```
+
+The values are listed under `authorization_endpoint`, `token_endpoint`, `jwks_uri`, `userinfo_endpoint` and
+`end_session_endpoint` in the provider's `/.well-known/openid-configuration`.
+
+</details>
 
 ## Contributing
 

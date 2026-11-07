@@ -27,8 +27,8 @@ class ProvisioningOidcUserService(
         val oidcUser = delegate.loadUser(userRequest)
         val appUser = userService.provision(
             subject = requireNotNull(oidcUser.subject) { "ID token without subject" },
-            email = oidcUser.email,
-            name = oidcUser.fullName ?: listOfNotNull(oidcUser.givenName, oidcUser.familyName).joinToString(" "),
+            email = IdpClaims.email(oidcUser.claims),
+            name = IdpClaims.name(oidcUser.claims),
         )
         val authorities = buildList<GrantedAuthority> {
             addAll(oidcUser.authorities)

@@ -22,34 +22,6 @@ spring:
   mvc:
     problemdetails:
       enabled: true
-  security:
-    oauth2:
-      # Explicit endpoints instead of issuer discovery: the app starts without the IDP being up, and
-      # the browser-facing and server-facing IDP addresses may differ (containers).
-      client:
-        registration:
-          idp:
-            client-id: ${REQLITH_IDP_CLIENT_ID:reqlith-app}
-            client-secret: ${REQLITH_IDP_CLIENT_SECRET}
-            authorization-grant-type: authorization_code
-            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
-            scope: [openid, profile, email]
-            client-name: Reqlith IDP
-          # Server-to-server access to the IDP's user directory (invitation suggestions, Keycloak only).
-          directory:
-            provider: idp
-            client-id: ${spring.security.oauth2.client.registration.idp.client-id}
-            client-secret: ${spring.security.oauth2.client.registration.idp.client-secret}
-            authorization-grant-type: client_credentials
-            # Keycloak 26.4+: the admin API accepts only tokens with this (optional) client scope.
-            scope: [kc-admin-api]
-        provider:
-          idp:
-            authorization-uri: ${reqlith.idp.browser-url}/protocol/openid-connect/auth
-            token-uri: ${reqlith.idp.internal-url}/protocol/openid-connect/token
-            jwk-set-uri: ${reqlith.idp.internal-url}/protocol/openid-connect/certs
-            user-info-uri: ${reqlith.idp.internal-url}/protocol/openid-connect/userinfo
-            user-name-attribute: sub
 
 reqlith:
   # Public base URL, used for copyable links (JIRA/ADO) and the MCP client config.
@@ -67,14 +39,25 @@ reqlith:
   roles-claim: roles
   admin-role: reqlith-admin
   idp:
-    # Issuer as it appears in tokens ("iss"); also the URL browsers are redirected to.
+    # KEYCLOAK, ENTRA or GENERIC: fills in the endpoints from the issuer (see README "Identity provider").
+    type: ${REQLITH_IDP_TYPE:KEYCLOAK}
+    # Issuer as it appears in tokens ("iss"); Keycloak: https://host/realms/<realm>,
+    # Entra ID: https://login.microsoftonline.com/<tenant-id>/v2.0
     issuer: ${REQLITH_IDP_ISSUER}
+    # Keycloak in containers: browsers and the server may reach the IDP under different addresses.
     browser-url: ${REQLITH_IDP_BROWSER_URL:${reqlith.idp.issuer}}
-    # How the server reaches the IDP (token, keys, user info). Differs from the issuer inside containers.
     internal-url: ${REQLITH_IDP_INTERNAL_URL:${reqlith.idp.issuer}}
-    # OIDC end-session endpoint for logout.
-    end-session-path: /protocol/openid-connect/logout
-    # Invitation suggestions: NONE (users who signed in before) or KEYCLOAK (also the realm's enabled users).
+    client-id: ${REQLITH_IDP_CLIENT_ID:reqlith-app}
+    client-secret: ${REQLITH_IDP_CLIENT_SECRET}
+    # Optional endpoint overrides (required for GENERIC: authorization, token and JWKS).
+    authorization-uri: ${REQLITH_IDP_AUTHORIZATION_URI:}
+    token-uri: ${REQLITH_IDP_TOKEN_URI:}
+    jwks-uri: ${REQLITH_IDP_JWKS_URI:}
+    user-info-uri: ${REQLITH_IDP_USER_INFO_URI:}
+    end-session-uri: ${REQLITH_IDP_END_SESSION_URI:}
+    # Required audience of IDP access tokens at /mcp (Entra: the API's application ID URI); empty = not checked.
+    mcp-audience: ${REQLITH_IDP_MCP_AUDIENCE:}
+    # Invitation suggestions: NONE (users who signed in before), KEYCLOAK, ENTRA or ENTRA_ASSIGNED.
     directory: ${REQLITH_IDP_DIRECTORY:NONE}
 
 spring.ai.mcp.server:
@@ -138,12 +121,6 @@ spring:
   datasource:
     url: ${REQLITH_DB_URL:jdbc:sqlserver://localhost:1433;databaseName=reqlith;encrypt=true;trustServerCertificate=true}
     password: ${REQLITH_DB_PASSWORD:Reqlith_dev_app_1}
-  security:
-    oauth2:
-      client:
-        registration:
-          idp:
-            client-secret: ${REQLITH_IDP_CLIENT_SECRET:reqlith-dev-secret}
   thymeleaf:
     cache: false
   web:
@@ -159,6 +136,7 @@ reqlith:
     url: ${REQLITH_PDF_URL:http://localhost:3000}
   idp:
     issuer: ${REQLITH_IDP_ISSUER:http://localhost:8180/realms/reqlith}
+    client-secret: ${REQLITH_IDP_CLIENT_SECRET:reqlith-dev-secret}
     directory: ${REQLITH_IDP_DIRECTORY:KEYCLOAK}
 logging:
   level:

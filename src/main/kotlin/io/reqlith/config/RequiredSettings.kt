@@ -42,7 +42,7 @@ class RequiredSettings : EnvironmentPostProcessor, Ordered {
             "spring.datasource.url" to "REQLITH_DB_URL",
             "spring.datasource.password" to "REQLITH_DB_PASSWORD",
             "reqlith.mcp.datasource.password" to "REQLITH_MCP_DB_PASSWORD",
-            "spring.security.oauth2.client.registration.idp.client-secret" to "REQLITH_IDP_CLIENT_SECRET",
+            "reqlith.idp.client-secret" to "REQLITH_IDP_CLIENT_SECRET",
             "reqlith.idp.issuer" to "REQLITH_IDP_ISSUER",
             "reqlith.base-url" to "REQLITH_BASE_URL",
             "reqlith.pdf.url" to "REQLITH_PDF_URL",
