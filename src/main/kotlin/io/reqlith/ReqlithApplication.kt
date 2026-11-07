@@ -8,7 +8,6 @@ import org.springframework.boot.runApplication
 @ConfigurationPropertiesScan
 class ReqlithApplication
 
-
 fun main(args: Array<String>) {
     // kotlin-logging would otherwise print an "initializing..." line to stdout, outside the log format.
     System.setProperty("kotlin-logging.logStartupMessage", "false")

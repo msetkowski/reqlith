@@ -11,12 +11,12 @@ import io.reqlith.model.entity.Project
 import io.reqlith.model.entity.ProjectMember
 import io.reqlith.repository.InvitationRepository
 import io.reqlith.repository.ProjectMemberRepository
-import java.time.Clock
-import java.time.Instant
-import java.util.UUID
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Clock
+import java.time.Instant
+import java.util.UUID
 
 private val logger = KotlinLogging.logger {}
 
@@ -32,8 +32,7 @@ class MembershipService(
 
     fun invitations(project: Project): List<Invitation> = invitations.findByProjectId(project.id)
 
-    fun pendingInvitationsFor(user: CurrentUser): List<Invitation> =
-        user.emailAddress?.let { invitations.findByEmail(it.trim().lowercase()) }.orEmpty()
+    fun pendingInvitationsFor(user: CurrentUser): List<Invitation> = user.emailAddress?.let { invitations.findByEmail(it.trim().lowercase()) }.orEmpty()
 
     @Transactional
     fun invite(user: CurrentUser, project: Project, email: String, role: MemberRole): Invitation {

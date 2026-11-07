@@ -36,8 +36,10 @@ class ExportServiceTest {
     private val pdf = mockk<PdfRenderer> { every { render(any(), any()) } returns byteArrayOf(1, 2, 3) }
     private val cache = mockk<ExportCache>(relaxUnitFun = true)
     private val properties = ReqlithProperties(idp = ReqlithProperties.Idp("http://idp"))
-    private val service = ExportService(versions, reviews, documents, users, MarkdownRenderer(), templates, pdf, cache,
-        Formats(UnitFixtures.clock, properties))
+    private val service = ExportService(
+        versions, reviews, documents, users, MarkdownRenderer(), templates, pdf, cache,
+        Formats(UnitFixtures.clock, properties),
+    )
 
     private val project = UnitFixtures.project()
     private val document = UnitFixtures.document(project, UnitFixtures.element("BR-01", "Goal"))

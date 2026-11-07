@@ -152,7 +152,8 @@ class SmallServicesTest {
         private val user = UnitFixtures.user()
 
         private fun memberAs(role: MemberRole?) {
-            every { members.findById(MemberId(project.id, user.userId)) } returns Optional.ofNullable(role?.let { ProjectMember(MemberId(project.id, user.userId), it, NOW) })
+            every { members.findById(MemberId(project.id, user.userId)) } returns
+                Optional.ofNullable(role?.let { ProjectMember(MemberId(project.id, user.userId), it, NOW) })
         }
 
         @Test

@@ -41,7 +41,10 @@ class ElementServiceTest {
         assertEquals("Request refund", element.title)
         assertEquals("Body\nline", element.bodyMd)
         assertEquals(setOf("ux"), element.tags)
-        verify { access.requireEditor(project, owner); projectService.touch(project, owner) }
+        verify {
+            access.requireEditor(project, owner)
+            projectService.touch(project, owner)
+        }
     }
 
     @Test

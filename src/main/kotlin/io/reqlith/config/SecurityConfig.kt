@@ -53,15 +53,14 @@ class SecurityConfig(private val properties: ReqlithProperties, private val endp
 
     /** Discovery is not used (see IdpConfig), so the ID token issuer is checked against the configured issuer. */
     @Bean
-    fun idTokenDecoderFactory(): JwtDecoderFactory<ClientRegistration> =
-        OidcIdTokenDecoderFactory().apply {
-            setJwtValidatorFactory { registration ->
-                DelegatingOAuth2TokenValidator(
-                    OidcIdTokenValidator(registration),
-                    JwtIssuerValidator(properties.idp.issuer),
-                )
-            }
+    fun idTokenDecoderFactory(): JwtDecoderFactory<ClientRegistration> = OidcIdTokenDecoderFactory().apply {
+        setJwtValidatorFactory { registration ->
+            DelegatingOAuth2TokenValidator(
+                OidcIdTokenValidator(registration),
+                JwtIssuerValidator(properties.idp.issuer),
+            )
         }
+    }
 
     /** Ends the IDP session too (RP-initiated logout) when the IDP has an end-session endpoint, then returns home. */
     private fun idpLogout() = LogoutSuccessHandler { request, response, authentication ->

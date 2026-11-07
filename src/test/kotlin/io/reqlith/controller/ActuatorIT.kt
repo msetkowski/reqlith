@@ -3,6 +3,12 @@ package io.reqlith.controller
 import io.reqlith.support.Fixtures
 import io.reqlith.support.MsSqlContainerConfig
 import io.reqlith.support.TestUsers
+import org.junit.jupiter.api.Test
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.web.server.LocalManagementPort
+import org.springframework.boot.test.web.server.LocalServerPort
+import org.springframework.context.annotation.Import
+import org.springframework.test.context.ActiveProfiles
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -11,12 +17,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
-import org.junit.jupiter.api.Test
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.web.server.LocalManagementPort
-import org.springframework.boot.test.web.server.LocalServerPort
-import org.springframework.context.annotation.Import
-import org.springframework.test.context.ActiveProfiles
 
 /**
  * Actuator runs on its own management port: Kubernetes probes and Prometheus scraping work there without
@@ -25,10 +25,7 @@ import org.springframework.test.context.ActiveProfiles
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 @Import(MsSqlContainerConfig::class, TestUsers::class, Fixtures::class)
-class ActuatorIT(
-    @LocalServerPort private val port: Int,
-    @LocalManagementPort private val managementPort: Int,
-) {
+class ActuatorIT(@LocalServerPort private val port: Int, @LocalManagementPort private val managementPort: Int) {
     private val http = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NEVER).build()
 
     private fun get(port: Int, path: String): HttpResponse<String> =

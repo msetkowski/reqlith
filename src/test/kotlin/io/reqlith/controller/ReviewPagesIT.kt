@@ -41,14 +41,21 @@ class ReviewPagesIT(
         val project = fixtures.project(owner)
         val key = project.key
         fixtures.addMember(project, reviewer, MemberRole.REVIEWER)
-        elements.create(owner, project, ElementType.FR, ElementContent("Request refund", "See `FR-01`\n```mermaid\nflowchart LR\n A-->B\n```", null, emptySet(), emptySet()))
+        elements.create(
+            owner,
+            project,
+            ElementType.FR,
+            ElementContent("Request refund", "See `FR-01`\n```mermaid\nflowchart LR\n A-->B\n```", null, emptySet(), emptySet()),
+        )
 
         mvc.get("/p/$key/review") { with(login(owner)) }.andExpect {
             status { isOk() }
             content { string(containsString("Submit v1 for review")) }
         }
         mvc.post("/p/$key/review/submit") {
-            with(login(owner)); with(csrf()); param("reviewers", reviewer.userId.toString())
+            with(login(owner))
+            with(csrf())
+            param("reviewers", reviewer.userId.toString())
         }.andExpect { redirectedUrl("/p/$key/review") }
 
         mvc.get("/") { with(login(reviewer)) }.andExpect {
@@ -67,10 +74,16 @@ class ReviewPagesIT(
         mvc.get("/p/$key/e/FR-01/edit") { with(login(owner)) }.andExpect { status { isConflict() } }
 
         mvc.post("/p/$key/review/suggest") {
-            with(login(reviewer)); with(csrf()); param("elementKey", "FR-01"); param("proposedMd", "Better"); param("comment", "Clarify")
+            with(login(reviewer))
+            with(csrf())
+            param("elementKey", "FR-01")
+            param("proposedMd", "Better")
+            param("comment", "Clarify")
         }.andExpect { redirectedUrl("/p/$key/review#FR-01") }
         mvc.post("/p/$key/review/decide") {
-            with(login(reviewer)); with(csrf()); param("decision", "ACCEPT")
+            with(login(reviewer))
+            with(csrf())
+            param("decision", "ACCEPT")
         }.andExpect { redirectedUrl("/p/$key/review") }
 
         mvc.get("/p/$key") { with(login(owner)) }.andExpect {
@@ -101,7 +114,9 @@ class ReviewPagesIT(
         reviews.submit(owner, project, listOf(reviewer.userId))
 
         mvc.post("/p/${project.key}/review/decide") {
-            with(login(reviewer)); with(csrf()); param("decision", "REJECT")
+            with(login(reviewer))
+            with(csrf())
+            param("decision", "REJECT")
         }.andExpect { flash { attribute("flashError", "Explain why you reject this version") } }
         reviews.decide(reviewer, projects.get(project.key), Decision.CHANGES, "Needs scenarios")
         mvc.get("/") { with(login(owner)) }.andExpect { content { string(containsString("Changes requested")) } }

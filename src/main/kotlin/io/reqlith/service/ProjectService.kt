@@ -14,11 +14,11 @@ import io.reqlith.repository.KeyCounter
 import io.reqlith.repository.ProjectMemberRepository
 import io.reqlith.repository.ProjectRepository
 import io.reqlith.repository.WorkspaceRepository
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
 import java.time.Instant
 import java.util.UUID
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 
 private val logger = KotlinLogging.logger {}
 
@@ -38,12 +38,7 @@ class ProjectService(
 
     /** Creates a draft project; the creator becomes its first owner and everyone else is invited. */
     @Transactional
-    fun create(
-        user: CurrentUser,
-        workspaceId: UUID,
-        details: ProjectDetails,
-        invitations: List<Pair<String, MemberRole>> = emptyList(),
-    ): Project {
+    fun create(user: CurrentUser, workspaceId: UUID, details: ProjectDetails, invitations: List<Pair<String, MemberRole>> = emptyList()): Project {
         validate(details)
         val workspace = workspaces.findById(workspaceId).orElseThrow { ValidationException("workspaceId", "Choose a workspace") }
         val number = keyCounter.next("PROJECT_KEY:${workspace.id}", "PRJ")
@@ -76,8 +71,14 @@ class ProjectService(
         validate(details)
         project.title = details.title.trim()
         project.summary = details.summary?.trim()?.ifEmpty { null }
-        project.tags.apply { clear(); addAll(details.tags) }
-        project.domains.apply { clear(); addAll(details.domains) }
+        project.tags.apply {
+            clear()
+            addAll(details.tags)
+        }
+        project.domains.apply {
+            clear()
+            addAll(details.domains)
+        }
         project.touch(Instant.now(clock), user.userId)
         projects.save(project)
         logger.info { "Project details updated project=${project.key}" }
@@ -134,11 +135,11 @@ class ProjectService(
             || Metric | Baseline | Target |
             ||---|---|---|
             || | | |
-            |""".trimMargin()
+            |
+        """.trimMargin()
 
         /** Parses "a, b  c" style input into a clean set of tags. */
-        fun parseList(raw: String?): Set<String> =
-            raw.orEmpty().split(',', ';', '\n').map { it.trim().removePrefix("#").trim() }
-                .filter { it.isNotEmpty() }.map { it.take(64) }.toSortedSet()
+        fun parseList(raw: String?): Set<String> = raw.orEmpty().split(',', ';', '\n').map { it.trim().removePrefix("#").trim() }
+            .filter { it.isNotEmpty() }.map { it.take(64) }.toSortedSet()
     }
 }

@@ -11,10 +11,10 @@ import io.reqlith.model.entity.ElementType
 import io.reqlith.model.entity.Project
 import io.reqlith.repository.ElementRepository
 import io.reqlith.repository.KeyCounter
-import java.time.Clock
-import java.time.Instant
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Clock
+import java.time.Instant
 
 private val logger = KotlinLogging.logger {}
 
@@ -27,8 +27,7 @@ class ElementService(
     private val clock: Clock,
 ) {
     /** Elements in document order: by type, then by the order they were created. */
-    fun all(project: Project): List<Element> =
-        elements.findByProjectId(project.id).sortedWith(compareBy({ it.type.ordinal }, { it.sortOrder }))
+    fun all(project: Project): List<Element> = elements.findByProjectId(project.id).sortedWith(compareBy({ it.type.ordinal }, { it.sortOrder }))
 
     fun get(project: Project, key: String): Element =
         elements.findByProjectIdAndKey(project.id, key) ?: throw NotFoundException("$key not found in ${project.key}")
@@ -78,8 +77,14 @@ class ElementService(
 
     private fun apply(element: Element, content: ElementContent) {
         element.priority = content.priority
-        element.tags.apply { clear(); addAll(content.tags) }
-        element.links.apply { clear(); addAll(content.links) }
+        element.tags.apply {
+            clear()
+            addAll(content.tags)
+        }
+        element.links.apply {
+            clear()
+            addAll(content.links)
+        }
     }
 
     private fun validate(key: String, content: ElementContent) {

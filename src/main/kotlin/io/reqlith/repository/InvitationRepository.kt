@@ -1,8 +1,8 @@
 package io.reqlith.repository
 
 import io.reqlith.model.entity.Invitation
-import java.util.UUID
 import org.springframework.data.jpa.repository.JpaRepository
+import java.util.UUID
 
 interface InvitationRepository : JpaRepository<Invitation, UUID> {
     fun findByProjectId(projectId: UUID): List<Invitation>

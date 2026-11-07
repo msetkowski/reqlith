@@ -1,9 +1,9 @@
 package io.reqlith.repository
 
-import java.time.Clock
-import java.time.Instant
 import org.springframework.jdbc.core.simple.JdbcClient
 import org.springframework.stereotype.Component
+import java.time.Clock
+import java.time.Instant
 
 /** Exports of frozen versions never change, so they are generated once per content hash, format and options. */
 @Component

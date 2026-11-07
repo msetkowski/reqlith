@@ -4,7 +4,6 @@ import io.reqlith.exception.ValidationException
 import io.reqlith.model.dto.CurrentUser
 import io.reqlith.repository.McpAccessLog
 import io.reqlith.service.AccessTokenService
-import java.util.UUID
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
@@ -13,14 +12,11 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.servlet.mvc.support.RedirectAttributes
+import java.util.UUID
 
 /** Personal access tokens for agents using the MCP server, and their recent use. */
 @Controller
-class AccountController(
-    private val tokens: AccessTokenService,
-    private val accessLog: McpAccessLog,
-    private val formats: Formats,
-) {
+class AccountController(private val tokens: AccessTokenService, private val accessLog: McpAccessLog, private val formats: Formats) {
     @GetMapping("/account/tokens")
     fun tokens(@AuthenticationPrincipal user: CurrentUser, model: Model): String {
         model.addAttribute("tokens", tokens.forUser(user))

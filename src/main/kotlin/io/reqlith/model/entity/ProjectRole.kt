@@ -9,11 +9,7 @@ import java.io.Serializable
 import java.util.UUID
 
 @Embeddable
-data class ProjectRoleId(
-    @Column(name = "project_id") val projectId: UUID,
-    @Column(name = "role_id") val roleId: UUID,
-) : Serializable
-
+data class ProjectRoleId(@Column(name = "project_id") val projectId: UUID, @Column(name = "role_id") val roleId: UUID) : Serializable
 
 /** What a global role does in the context of one project. */
 @Entity

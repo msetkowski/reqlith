@@ -12,7 +12,9 @@ import org.springframework.core.env.ConfigurableEnvironment
  * the environment, or from the `local` profile for development. Runs right after the configuration files are
  * loaded, before any bean is created.
  */
-class RequiredSettings : EnvironmentPostProcessor, Ordered {
+class RequiredSettings :
+    EnvironmentPostProcessor,
+    Ordered {
 
     override fun getOrder(): Int = Ordered.LOWEST_PRECEDENCE
 
@@ -29,12 +31,11 @@ class RequiredSettings : EnvironmentPostProcessor, Ordered {
         )
     }
 
-    private fun isSet(environment: ConfigurableEnvironment, property: String): Boolean =
-        try {
-            !environment.getProperty(property).isNullOrBlank()
-        } catch (_: IllegalArgumentException) {
-            false // an unresolvable ${PLACEHOLDER}
-        }
+    private fun isSet(environment: ConfigurableEnvironment, property: String): Boolean = try {
+        !environment.getProperty(property).isNullOrBlank()
+    } catch (_: IllegalArgumentException) {
+        false // an unresolvable ${PLACEHOLDER}
+    }
 
     companion object {
         /** Property -> environment variable that sets it. */

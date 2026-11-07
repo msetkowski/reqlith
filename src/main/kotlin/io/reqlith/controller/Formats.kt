@@ -1,13 +1,13 @@
 package io.reqlith.controller
 
 import io.reqlith.config.ReqlithProperties
+import org.springframework.stereotype.Component
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Locale
-import org.springframework.stereotype.Component
 
 /** Date formatting for templates: `${@formats.dateTime(project.updatedAt)}`. */
 @Component("formats")

@@ -15,13 +15,13 @@ import io.reqlith.service.ProjectService
 import io.reqlith.service.ReviewService
 import io.reqlith.service.UserService
 import io.reqlith.service.WorkspaceService
-import java.time.Instant
-import java.util.UUID
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestParam
+import java.time.Instant
+import java.util.UUID
 
 @Controller
 class HomeController(
@@ -66,8 +66,10 @@ class HomeController(
                 (ws == null || row.project.workspace.id == ws) &&
                     (state.isNullOrEmpty() || row.project.status.name == state) &&
                     (role == null || row.myRole == role) &&
-                    (needle.isEmpty() || row.project.title.lowercase().contains(needle) || row.project.key.lowercase().contains(needle) ||
-                        row.project.tags.any { it.lowercase().contains(needle) })
+                    (
+                        needle.isEmpty() || row.project.title.lowercase().contains(needle) || row.project.key.lowercase().contains(needle) ||
+                            row.project.tags.any { it.lowercase().contains(needle) }
+                        )
             },
         )
         model.addAttribute("total", rows.size)

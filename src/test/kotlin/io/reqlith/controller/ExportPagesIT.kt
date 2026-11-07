@@ -12,8 +12,6 @@ import io.reqlith.service.ReviewService
 import io.reqlith.support.Fixtures
 import io.reqlith.support.IntegrationTest
 import io.reqlith.support.TestUsers
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.not
 import org.junit.jupiter.api.Test
@@ -25,6 +23,8 @@ import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequ
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 /** Compare, export and external links, on a project with an approved v1 and changes since. */
 @IntegrationTest
@@ -46,15 +46,33 @@ class ExportPagesIT(
         val project = fixtures.project(owner)
         fixtures.addMember(project, reviewer, MemberRole.REVIEWER)
         val fr = elements.create(
-            owner, project, ElementType.FR,
-            ElementContent("Request refund", "Refund within 14 days\n\n```mermaid\nflowchart LR\n  A[Order] --> B[Refund]\n```", Priority.MUST, emptySet(), emptySet()),
+            owner,
+            project,
+            ElementType.FR,
+            ElementContent(
+                "Request refund",
+                "Refund within 14 days\n\n```mermaid\nflowchart LR\n  A[Order] --> B[Refund]\n```",
+                Priority.MUST,
+                emptySet(),
+                emptySet(),
+            ),
         )
         elements.create(owner, project, ElementType.BR, ElementContent("Fewer contacts", "Goal", null, emptySet(), emptySet()))
         reviews.submit(owner, project, listOf(reviewer.userId))
         reviews.decide(reviewer, projects.get(project.key), Decision.ACCEPT, null)
-        elements.update(owner, projects.get(project.key), fr.key,
-            ElementContent("Request a refund", "Refund within 30 days\n\n```mermaid\nflowchart LR\n  A[Order] --> B[Refund]\n```", Priority.MUST, emptySet(), emptySet()),
-            elements.get(projects.get(project.key), fr.key).rowVersion)
+        elements.update(
+            owner,
+            projects.get(project.key),
+            fr.key,
+            ElementContent(
+                "Request a refund",
+                "Refund within 30 days\n\n```mermaid\nflowchart LR\n  A[Order] --> B[Refund]\n```",
+                Priority.MUST,
+                emptySet(),
+                emptySet(),
+            ),
+            elements.get(projects.get(project.key), fr.key).rowVersion,
+        )
         elements.delete(owner, projects.get(project.key), "BR-01")
         return Triple(project.key, owner, reviewer)
     }
@@ -121,21 +139,34 @@ class ExportPagesIT(
     fun `external links are validated and shown where they apply`() {
         val (key, owner, reviewer) = approvedProjectWithChanges()
         mvc.post("/p/$key/links") {
-            with(login(owner)); with(csrf())
-            param("system", "JIRA"); param("url", "javascript:alert(1)"); param("scope", "project")
+            with(login(owner))
+            with(csrf())
+            param("system", "JIRA")
+            param("url", "javascript:alert(1)")
+            param("scope", "project")
         }.andExpect { flash { attributeExists("flashError") } }
         mvc.post("/p/$key/links") {
-            with(login(owner)); with(csrf())
-            param("system", "ADO"); param("url", "https://dev.azure.com/org/proj/_workitems/edit/48120"); param("label", "Feature 48120"); param("scope", "FR-01")
+            with(login(owner))
+            with(csrf())
+            param("system", "ADO")
+            param("url", "https://dev.azure.com/org/proj/_workitems/edit/48120")
+            param("label", "Feature 48120")
+            param("scope", "FR-01")
             param("back", "/p/$key/e/FR-01")
         }.andExpect { redirectedUrl("/p/$key/e/FR-01") }
         mvc.post("/p/$key/links") {
-            with(login(owner)); with(csrf())
-            param("system", "JIRA"); param("url", "https://jira.example.com/browse/PAY-2291"); param("label", "PAY-2291 epic"); param("scope", "v1")
+            with(login(owner))
+            with(csrf())
+            param("system", "JIRA")
+            param("url", "https://jira.example.com/browse/PAY-2291")
+            param("label", "PAY-2291 epic")
+            param("scope", "v1")
         }.andExpect { redirectedUrl("/p/$key/export#links") }
         mvc.post("/p/$key/links") {
-            with(login(reviewer)); with(csrf())
-            param("system", "URL"); param("url", "https://example.com")
+            with(login(reviewer))
+            with(csrf())
+            param("system", "URL")
+            param("url", "https://example.com")
         }.andExpect { status { isForbidden() } }
 
         mvc.get("/p/$key/e/FR-01") { with(login(owner)) }.andExpect { content { string(containsString("Feature 48120")) } }

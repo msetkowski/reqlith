@@ -261,5 +261,4 @@ class ReviewServiceTest {
         service.resolve(owner, project, suggestion.id, apply = false)
         assertEquals(SuggestionStatus.DISMISSED, suggestion.status)
     }
-
 }

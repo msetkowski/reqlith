@@ -3,7 +3,6 @@ package io.reqlith.controller
 import io.reqlith.model.dto.ReqlithOidcUser
 import io.reqlith.service.UserService
 import io.reqlith.support.IntegrationTest
-import java.time.Instant
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
@@ -13,13 +12,11 @@ import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oidcLogin
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
+import java.time.Instant
 
 @IntegrationTest
 @AutoConfigureMockMvc
-class HomePageIT(
-    @Autowired private val mvc: MockMvc,
-    @Autowired private val userService: UserService,
-) {
+class HomePageIT(@Autowired private val mvc: MockMvc, @Autowired private val userService: UserService) {
     @Test
     fun `anonymous users are sent to the IDP`() {
         mvc.get("/").andExpect {

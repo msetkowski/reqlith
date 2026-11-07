@@ -30,7 +30,6 @@ fun interface ReferenceResolver {
     }
 }
 
-
 /**
  * The single markdown renderer used by the editor preview, read views, exports and MCP.
  *

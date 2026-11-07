@@ -18,7 +18,6 @@ import io.reqlith.service.ProjectService
 import io.reqlith.service.ReviewService
 import io.reqlith.service.UserService
 import io.reqlith.service.VersionService
-import java.util.UUID
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
@@ -27,6 +26,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.servlet.mvc.support.RedirectAttributes
+import java.util.UUID
 
 /**
  * The review screen. While a round is open it shows the frozen candidate (by default only what changed
@@ -43,12 +43,7 @@ class ReviewController(
     private val support: ProjectViewSupport,
 ) {
     @GetMapping("/p/{key}/review")
-    fun review(
-        @AuthenticationPrincipal user: CurrentUser,
-        @PathVariable key: String,
-        @RequestParam(required = false) full: Boolean?,
-        model: Model,
-    ): String {
+    fun review(@AuthenticationPrincipal user: CurrentUser, @PathVariable key: String, @RequestParam(required = false) full: Boolean?, model: Model): String {
         val project = projects.get(key)
         val workingCopy = documents.fromWorkingCopy(project)
         support.populate(model, project, user, workingCopy, active = "review")
@@ -76,7 +71,15 @@ class ReviewController(
         model.addAttribute("changeSummary", changes.summary)
         model.addAttribute("itemDiff", basedOn?.let { ProjectDiff(it, document) })
         model.addAttribute("changesOnly", changesOnly)
-        model.addAttribute("visibleKeys", if (changesOnly) changes.elements.filterValues { it != ChangeKind.UNCHANGED }.keys + changes.roles.filterValues { it != ChangeKind.UNCHANGED }.keys else null)
+        model.addAttribute(
+            "visibleKeys",
+            if (changesOnly) {
+                changes.elements.filterValues { it != ChangeKind.UNCHANGED }.keys +
+                    changes.roles.filterValues { it != ChangeKind.UNCHANGED }.keys
+            } else {
+                null
+            },
+        )
         model.addAttribute("html", RenderedDocument.of(document) { support.renderInPage(it, document) })
         model.addAttribute("incoming", document.incomingLinks())
         model.addAttribute("assignments", assignments)

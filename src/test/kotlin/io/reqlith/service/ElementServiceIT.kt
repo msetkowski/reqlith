@@ -14,11 +14,11 @@ import io.reqlith.repository.ProjectRepository
 import io.reqlith.support.Fixtures
 import io.reqlith.support.IntegrationTest
 import io.reqlith.support.TestUsers
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.access.AccessDeniedException
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 @IntegrationTest
 class ElementServiceIT(

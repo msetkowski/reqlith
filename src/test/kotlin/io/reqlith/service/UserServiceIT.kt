@@ -2,17 +2,14 @@ package io.reqlith.service
 
 import io.reqlith.repository.AppUserRepository
 import io.reqlith.support.IntegrationTest
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
 
 @IntegrationTest
-class UserServiceIT(
-    @Autowired private val userService: UserService,
-    @Autowired private val users: AppUserRepository,
-) {
+class UserServiceIT(@Autowired private val userService: UserService, @Autowired private val users: AppUserRepository) {
     @Test
     fun `provisioning creates the user once and refreshes claims on later logins`() {
         val subject = "sub-" + UUID.randomUUID()

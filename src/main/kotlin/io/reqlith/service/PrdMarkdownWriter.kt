@@ -17,7 +17,10 @@ object PrdMarkdownWriter {
         val p = doc.project
         appendLine("# ${p.title}")
         appendLine()
-        p.summary?.let { appendLine("> $it"); appendLine() }
+        p.summary?.let {
+            appendLine("> $it")
+            appendLine()
+        }
         val facts = listOfNotNull(
             "**Project:** `${p.key}`",
             "**Version:** **${input.versionLabel}** · ${input.status} · ${input.date}",
@@ -65,7 +68,10 @@ object PrdMarkdownWriter {
         doc.roles.forEach { role ->
             appendLine("### ${role.key} · ${role.name}")
             appendLine()
-            role.globalDescription?.let { appendLine(shiftHeadings(it, 3).trim()); appendLine() }
+            role.globalDescription?.let {
+                appendLine(shiftHeadings(it, 3).trim())
+                appendLine()
+            }
             role.contextInProject?.let {
                 appendLine("**In this project:**")
                 appendLine()
@@ -107,8 +113,16 @@ object PrdMarkdownWriter {
             val trimmed = line.trimStart()
             val marker = FENCE.find(trimmed)?.value
             when {
-                fence != null -> { if (marker != null && trimmed.startsWith(fence!!)) fence = null; line }
-                marker != null -> { fence = marker; line }
+                fence != null -> {
+                    if (marker != null && trimmed.startsWith(fence!!)) fence = null
+                    line
+                }
+
+                marker != null -> {
+                    fence = marker
+                    line
+                }
+
                 else -> HEADING.find(line)?.let { m ->
                     "#".repeat((m.groupValues[1].length + by).coerceAtMost(6)) + line.substring(m.groupValues[1].length)
                 } ?: line
@@ -133,7 +147,10 @@ object PrdMarkdownWriter {
             e.tags.takeIf { it.isNotEmpty() }?.let { tags -> "**Tags:** ${tags.joinToString(", ") { "#$it" }}" },
         )
         if (meta.isNotEmpty()) appendLine(meta.joinToString(" · ")).also { appendLine() }
-        e.body?.let { appendLine(shiftHeadings(it, level - 1).trim()); appendLine() }
+        e.body?.let {
+            appendLine(shiftHeadings(it, level - 1).trim())
+            appendLine()
+        }
         if (e.links.isNotEmpty()) {
             appendLine("**Traceability:** " + e.links.joinToString("; ") { "${it.kind.label} `${it.toKey}`" })
             appendLine()

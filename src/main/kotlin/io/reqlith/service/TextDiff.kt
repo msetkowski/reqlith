@@ -40,7 +40,11 @@ object TextDiff {
         }
         val result = mutableListOf<DiffLine?>()
         lines.forEachIndexed { i, line ->
-            if (keep[i]) result += line else if (result.isEmpty() || result.last() != null) result += null
+            if (keep[i]) {
+                result += line
+            } else if (result.isEmpty() || result.last() != null) {
+                result += null
+            }
         }
         return if (result.lastOrNull() == null) result.dropLast(1) else result
     }

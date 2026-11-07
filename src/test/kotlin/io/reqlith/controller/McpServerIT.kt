@@ -19,6 +19,15 @@ import io.reqlith.service.ReviewService
 import io.reqlith.support.Fixtures
 import io.reqlith.support.MsSqlContainerConfig
 import io.reqlith.support.TestUsers
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.web.server.LocalServerPort
+import org.springframework.context.annotation.Import
+import org.springframework.dao.DataAccessException
+import org.springframework.jdbc.core.simple.JdbcClient
+import org.springframework.test.context.ActiveProfiles
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -29,15 +38,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.web.server.LocalServerPort
-import org.springframework.context.annotation.Import
-import org.springframework.dao.DataAccessException
-import org.springframework.jdbc.core.simple.JdbcClient
-import org.springframework.test.context.ActiveProfiles
 
 /** The MCP server over real HTTP, used by the MCP Java SDK client like an agent would. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -69,7 +69,10 @@ class McpServerIT(
             .clientInfo(McpSchema.Implementation("backlog-agent", "1.0"))
             .requestTimeout(Duration.ofSeconds(30))
             .build()
-            .also { it.initialize(); clients += it }
+            .also {
+                it.initialize()
+                clients += it
+            }
     }
 
     private fun McpSyncClient.call(tool: String, vararg args: Pair<String, Any>): McpSchema.CallToolResult =
@@ -84,13 +87,21 @@ class McpServerIT(
         val project = fixtures.project(owner)
         fixtures.addMember(project, reviewer, MemberRole.REVIEWER)
         elements.create(owner, project, ElementType.BR, ElementContent("Fewer contacts", "Goal", null, setOf("kpi"), emptySet()))
-        val fr = elements.create(owner, project, ElementType.FR,
-            ElementContent("Request refund", "Refund within 14 days", null, setOf("ux"), setOf(TraceLink(LinkKind.DERIVED_FROM, "BR-01"))))
+        val fr = elements.create(
+            owner,
+            project,
+            ElementType.FR,
+            ElementContent("Request refund", "Refund within 14 days", null, setOf("ux"), setOf(TraceLink(LinkKind.DERIVED_FROM, "BR-01"))),
+        )
         reviews.submit(owner, project, listOf(reviewer.userId))
         reviews.decide(reviewer, projects.get(project.key), Decision.ACCEPT, null)
-        elements.update(owner, projects.get(project.key), fr.key,
+        elements.update(
+            owner,
+            projects.get(project.key),
+            fr.key,
             ElementContent("Request refund", "Refund within 30 days", null, setOf("ux"), setOf(TraceLink(LinkKind.DERIVED_FROM, "BR-01"))),
-            elements.get(projects.get(project.key), fr.key).rowVersion)
+            elements.get(projects.get(project.key), fr.key).rowVersion,
+        )
         return project.key to tokens.create(owner, "Backlog agent").value
     }
 
@@ -100,8 +111,10 @@ class McpServerIT(
         val mcp = client(token)
 
         assertEquals(
-            setOf("list_projects", "get_prd", "search_requirements", "get_requirement", "get_traceability", "list_versions",
-                "diff_versions", "get_review_status", "get_external_links", "list_roles"),
+            setOf(
+                "list_projects", "get_prd", "search_requirements", "get_requirement", "get_traceability", "list_versions",
+                "diff_versions", "get_review_status", "get_external_links", "list_roles",
+            ),
             mcp.listTools().tools().map { it.name() }.toSet(),
         )
         assertTrue(mcp.listTools().tools().all { it.annotations()?.readOnlyHint() == true })
@@ -156,7 +169,10 @@ class McpServerIT(
         assertEquals(401, post("Bearer ${revoked.value}").statusCode())
         assertEquals(401, post("Bearer $token-tampered").statusCode())
 
-        val metadata = http.send(HttpRequest.newBuilder(URI("http://localhost:$port/.well-known/oauth-protected-resource")).build(), HttpResponse.BodyHandlers.ofString())
+        val metadata = http.send(
+            HttpRequest.newBuilder(URI("http://localhost:$port/.well-known/oauth-protected-resource")).build(),
+            HttpResponse.BodyHandlers.ofString(),
+        )
         assertEquals(200, metadata.statusCode())
         assertContains(metadata.body(), "authorization_servers")
     }

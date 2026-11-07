@@ -2,15 +2,21 @@ package io.reqlith.model.dto
 
 import io.reqlith.model.entity.ElementType
 import io.reqlith.model.entity.LinkKind
+import org.junit.jupiter.api.Test
 import java.util.UUID
 import kotlin.test.assertEquals
-import org.junit.jupiter.api.Test
 
 class ProjectDocumentTest {
 
     private fun element(key: String, vararg links: Pair<LinkKind, String>) = DocElement(
-        key = key, type = ElementType.ofKey(key)!!, title = key, body = null, priority = null, tags = emptyList(),
-        links = links.map { DocLink(it.first, it.second) }, order = 0,
+        key = key,
+        type = ElementType.ofKey(key)!!,
+        title = key,
+        body = null,
+        priority = null,
+        tags = emptyList(),
+        links = links.map { DocLink(it.first, it.second) },
+        order = 0,
     )
 
     private fun document(vararg elements: DocElement) = ProjectDocument(

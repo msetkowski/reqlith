@@ -71,15 +71,13 @@ class ProjectViewSupport(
     fun absolute(path: String): String = formats.absolute(path)
 
     /** Renders markdown with element and role keys linked into the project's read view. */
-    fun render(markdownText: String?, project: Project, document: ProjectDocument): String =
-        markdown.render(markdownText, resolver(project, document))
+    fun render(markdownText: String?, project: Project, document: ProjectDocument): String = markdown.render(markdownText, resolver(project, document))
 
     /** Renders markdown of a frozen version: references point to anchors on the same page. */
-    fun renderInPage(markdownText: String?, document: ProjectDocument): String =
-        markdown.render(markdownText) { key ->
-            document.element(key)?.let { Reference("#$key", "$key · ${it.title}") }
-                ?: document.role(key)?.let { Reference("#$key", "$key · ${it.name}") }
-        }
+    fun renderInPage(markdownText: String?, document: ProjectDocument): String = markdown.render(markdownText) { key ->
+        document.element(key)?.let { Reference("#$key", "$key · ${it.title}") }
+            ?: document.role(key)?.let { Reference("#$key", "$key · ${it.name}") }
+    }
 
     fun resolver(project: Project, document: ProjectDocument) = ReferenceResolver { key ->
         document.element(key)?.let { Reference("/p/${project.key}/e/$key", "$key · ${it.title}") }

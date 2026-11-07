@@ -15,9 +15,7 @@ private val logger = KotlinLogging.logger {}
 
 /** Loads the OIDC user and provisions the matching [AppUser]. */
 @Component
-class ProvisioningOidcUserService(
-    private val userService: UserService,
-) : OAuth2UserService<OidcUserRequest, OidcUser> {
+class ProvisioningOidcUserService(private val userService: UserService) : OAuth2UserService<OidcUserRequest, OidcUser> {
 
     private val delegate = OidcUserService()
 
@@ -35,5 +33,4 @@ class ProvisioningOidcUserService(
         logger.info { "User signed in user=${appUser.id}" }
         return ReqlithOidcUser(oidcUser, authorities, appUser.id, appUser.displayName, appUser.initials)
     }
-
 }

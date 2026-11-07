@@ -22,15 +22,21 @@ data class IdpEndpoints(
                     val internal = idp.internalUrl.trimEnd('/') + "/protocol/openid-connect"
                     IdpEndpoints("$browser/auth", "$internal/token", "$internal/certs", "$internal/userinfo", "$browser/logout", "kc-admin-api")
                 }
+
                 IdpType.ENTRA -> {
                     // https://login.microsoftonline.com/<tenant>/v2.0 -> https://login.microsoftonline.com/<tenant>
                     val tenant = idp.issuer.trimEnd('/').removeSuffix("/v2.0")
                     require(tenant.startsWith("https://")) { "REQLITH_IDP_ISSUER must be https://login.microsoftonline.com/<tenant-id>/v2.0 for Entra" }
                     IdpEndpoints(
-                        "$tenant/oauth2/v2.0/authorize", "$tenant/oauth2/v2.0/token", "$tenant/discovery/v2.0/keys",
-                        userInfo = null, endSession = "$tenant/oauth2/v2.0/logout", directoryScope = "https://graph.microsoft.com/.default",
+                        "$tenant/oauth2/v2.0/authorize",
+                        "$tenant/oauth2/v2.0/token",
+                        "$tenant/discovery/v2.0/keys",
+                        userInfo = null,
+                        endSession = "$tenant/oauth2/v2.0/logout",
+                        directoryScope = "https://graph.microsoft.com/.default",
                     )
                 }
+
                 IdpType.GENERIC -> {
                     val missing = listOf(
                         "REQLITH_IDP_AUTHORIZATION_URI" to idp.authorizationUri,

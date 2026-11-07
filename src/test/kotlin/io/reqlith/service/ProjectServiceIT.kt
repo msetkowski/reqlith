@@ -7,12 +7,12 @@ import io.reqlith.model.entity.MemberRole
 import io.reqlith.support.Fixtures
 import io.reqlith.support.IntegrationTest
 import io.reqlith.support.TestUsers
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.access.AccessDeniedException
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 @IntegrationTest
 class ProjectServiceIT(

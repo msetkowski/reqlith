@@ -2,7 +2,6 @@ package io.reqlith.service
 
 import io.reqlith.model.dto.ProjectDocument
 import io.reqlith.model.dto.Snapshot
-import java.security.MessageDigest
 import org.springframework.stereotype.Component
 import tools.jackson.databind.JsonNode
 import tools.jackson.databind.MapperFeature
@@ -11,6 +10,7 @@ import tools.jackson.databind.json.JsonMapper
 import tools.jackson.databind.node.ObjectNode
 import tools.jackson.module.kotlin.jacksonMapperBuilder
 import tools.jackson.module.kotlin.treeToValue
+import java.security.MessageDigest
 
 /**
  * Turns a [ProjectDocument] into the immutable JSON stored in a version, and back.
@@ -67,7 +67,9 @@ class SnapshotCodec {
         node.isObject -> mapper.nodeFactory.objectNode().also { sorted ->
             node.propertyNames().sorted().forEach { sorted.set(it, sortKeys(node.get(it))) }
         }
+
         node.isArray -> mapper.nodeFactory.arrayNode().also { array -> node.forEach { array.add(sortKeys(it)) } }
+
         else -> node
     }
 

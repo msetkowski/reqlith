@@ -1,11 +1,11 @@
 package io.reqlith.service
 
 import io.reqlith.model.dto.LineChange
+import org.junit.jupiter.api.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
-import org.junit.jupiter.api.Test
 
 class TextDiffTest {
     @Test

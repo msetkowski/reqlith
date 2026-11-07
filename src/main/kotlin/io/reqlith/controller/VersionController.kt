@@ -45,8 +45,11 @@ class VersionController(
         model.addAttribute("version", version)
         model.addAttribute("versionUrl", support.absolute("/p/${project.key}/v/${version.slug}"))
         model.addAttribute("submittedBy", users.byIds(listOf(version.submittedBy))[version.submittedBy])
-        model.addAttribute("newerDraft", version.versionNo != null && version.versionNo == project.latestApprovedVersion &&
-            versions.hasChangesSinceApproval(project))
+        model.addAttribute(
+            "newerDraft",
+            version.versionNo != null && version.versionNo == project.latestApprovedVersion &&
+                versions.hasChangesSinceApproval(project),
+        )
         model.addAttribute("isLatest", version.versionNo != null && version.versionNo == project.latestApprovedVersion)
         model.addAttribute("document", document)
         model.addAttribute("html", RenderedDocument.of(document) { support.renderInPage(it, document) })

@@ -27,11 +27,7 @@ import kotlin.test.assertTrue
 @AutoConfigureMockMvc
 @ExtendWith(OutputCaptureExtension::class)
 @Import(LoggingIT.FailingController::class)
-class LoggingIT(
-    @Autowired private val mvc: MockMvc,
-    @Autowired private val users: TestUsers,
-    @Autowired private val workspaces: WorkspaceRepository,
-) {
+class LoggingIT(@Autowired private val mvc: MockMvc, @Autowired private val users: TestUsers, @Autowired private val workspaces: WorkspaceRepository) {
     @TestConfiguration
     @Controller
     class FailingController {
@@ -45,7 +41,8 @@ class LoggingIT(
         val general = workspaces.findAll().first { it.key == "GEN" }
 
         val result = mvc.post("/projects") {
-            with(oidcLogin().oidcUser(owner)); with(csrf())
+            with(oidcLogin().oidcUser(owner))
+            with(csrf())
             header("X-Request-Id", "req-4711")
             param("workspaceId", general.id.toString())
             param("title", "Logged project")

@@ -84,16 +84,15 @@ class McpSecurity(private val properties: ReqlithProperties) {
 
     /** Access tokens from the IDP: signature from its keys, issuer must match. */
     @Bean
-    fun jwtDecoder(endpoints: IdpEndpoints): JwtDecoder =
-        NimbusJwtDecoder.withJwkSetUri(endpoints.jwks).build().apply {
-            val validators = buildList<OAuth2TokenValidator<Jwt>> {
-                add(JwtValidators.createDefaultWithIssuer(properties.idp.issuer))
-                properties.idp.mcpAudience?.takeIf { it.isNotBlank() }?.let { audience ->
-                    add(JwtClaimValidator<List<String>>(JwtClaimNames.AUD) { aud -> aud != null && audience in aud })
-                }
+    fun jwtDecoder(endpoints: IdpEndpoints): JwtDecoder = NimbusJwtDecoder.withJwkSetUri(endpoints.jwks).build().apply {
+        val validators = buildList<OAuth2TokenValidator<Jwt>> {
+            add(JwtValidators.createDefaultWithIssuer(properties.idp.issuer))
+            properties.idp.mcpAudience?.takeIf { it.isNotBlank() }?.let { audience ->
+                add(JwtClaimValidator<List<String>>(JwtClaimNames.AUD) { aud -> aud != null && audience in aud })
             }
-            setJwtValidator(DelegatingOAuth2TokenValidator(validators))
         }
+        setJwtValidator(DelegatingOAuth2TokenValidator(validators))
+    }
 
     /** 401 with a pointer to the protected resource metadata, as MCP clients expect (RFC 9728). */
     private fun entryPoint() = AuthenticationEntryPoint { _, response, _ ->

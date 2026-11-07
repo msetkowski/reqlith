@@ -7,7 +7,6 @@ import io.reqlith.service.MarkdownRenderer
 import io.reqlith.service.ProjectDocumentService
 import io.reqlith.service.ProjectService
 import io.reqlith.service.RoleService
-import java.util.UUID
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
@@ -15,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestParam
+import java.util.UUID
 
 @Controller
 class RoleController(
@@ -128,7 +128,13 @@ class RoleController(
         val projectRoles = roles.forProject(project)
         val used = projectRoles.map { it.role.id }.toSet()
         model.addAttribute("projectRoles", projectRoles)
-        model.addAttribute("rendered", projectRoles.associate { it.role.id to (markdown.render(it.role.descriptionMd) to support.render(it.contextMd, project, document)) })
+        model.addAttribute(
+            "rendered",
+            projectRoles.associate {
+                it.role.id to
+                    (markdown.render(it.role.descriptionMd) to support.render(it.contextMd, project, document))
+            },
+        )
         model.addAttribute("availableRoles", roles.all().filter { it.id !in used })
     }
 }

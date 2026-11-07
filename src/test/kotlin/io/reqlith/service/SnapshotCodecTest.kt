@@ -9,12 +9,12 @@ import io.reqlith.model.dto.ProjectDocument
 import io.reqlith.model.entity.ElementType
 import io.reqlith.model.entity.LinkKind
 import io.reqlith.model.entity.Priority
+import org.junit.jupiter.api.Test
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
-import org.junit.jupiter.api.Test
 
 class SnapshotCodecTest {
     private val codec = SnapshotCodec()
@@ -63,8 +63,10 @@ class SnapshotCodecTest {
     fun `changes are detected by key`() {
         val before = document()
         val after = document(body = "changed").let { doc ->
-            doc.copy(elements = doc.elements.filter { it.key != "BR-01" } +
-                DocElement("SC-01", ElementType.SC, "Scenario", null, null, emptyList(), emptyList(), 1))
+            doc.copy(
+                elements = doc.elements.filter { it.key != "BR-01" } +
+                    DocElement("SC-01", ElementType.SC, "Scenario", null, null, emptyList(), emptyList(), 1),
+            )
         }
         val changes = DocumentChanges(before, after)
         assertEquals(ChangeKind.CHANGED, changes.of("FR-01"))

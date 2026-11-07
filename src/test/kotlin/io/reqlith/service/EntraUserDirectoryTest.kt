@@ -32,8 +32,12 @@ class EntraUserDirectoryTest {
         val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
         server.createContext("/v1.0/") { exchange: HttpExchange ->
             val uri = exchange.requestURI
-            seen += Seen(uri.path, URLDecoder.decode(uri.rawQuery.orEmpty(), Charsets.UTF_8),
-                exchange.requestHeaders.getFirst("ConsistencyLevel"), exchange.requestHeaders.getFirst("Authorization"))
+            seen += Seen(
+                uri.path,
+                URLDecoder.decode(uri.rawQuery.orEmpty(), Charsets.UTF_8),
+                exchange.requestHeaders.getFirst("ConsistencyLevel"),
+                exchange.requestHeaders.getFirst("Authorization"),
+            )
             val key = responses.keys.first { uri.path.contains(it) }
             val body = responses.getValue(key).toByteArray()
             exchange.responseHeaders.add("Content-Type", "application/json")
@@ -50,11 +54,13 @@ class EntraUserDirectoryTest {
 
     @Test
     fun `searches enabled tenant users with an advanced query`() = graph(
-        mapOf("/users" to """{"value":[
+        mapOf(
+            "/users" to """{"value":[
             {"displayName":"Rita Reyes","mail":"rita@acme.test","userPrincipalName":"rita@acme.onmicrosoft.com","accountEnabled":true},
             {"displayName":"Raj Rao","mail":null,"userPrincipalName":"raj@acme.onmicrosoft.com","accountEnabled":true},
             {"displayName":"Room 4","mail":null,"userPrincipalName":"room4#EXT#","accountEnabled":true}
-        ]}"""),
+        ]}""",
+        ),
     ) { url, seen ->
         val people = EntraUserDirectory(clients, "app-id", assignedOnly = false, graphUrl = url).search("r\"a", 10)
 

@@ -20,15 +20,14 @@ class WorkspaceController(private val workspaces: WorkspaceService) {
     }
 
     @PostMapping("/workspaces")
-    fun create(@AuthenticationPrincipal user: CurrentUser, @RequestParam key: String, @RequestParam name: String, model: Model): String =
-        try {
-            workspaces.create(user, key, name)
-            "redirect:/workspaces"
-        } catch (e: ValidationException) {
-            model.addAttribute("workspaces", workspaces.all())
-            model.addAttribute("error", e)
-            model.addAttribute("newKey", key)
-            model.addAttribute("newName", name)
-            "workspace/list"
-        }
+    fun create(@AuthenticationPrincipal user: CurrentUser, @RequestParam key: String, @RequestParam name: String, model: Model): String = try {
+        workspaces.create(user, key, name)
+        "redirect:/workspaces"
+    } catch (e: ValidationException) {
+        model.addAttribute("workspaces", workspaces.all())
+        model.addAttribute("error", e)
+        model.addAttribute("newKey", key)
+        model.addAttribute("newName", name)
+        "workspace/list"
+    }
 }

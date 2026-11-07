@@ -23,9 +23,8 @@ data class ProjectDocument(
     fun role(key: String): DocRole? = roles.firstOrNull { it.key == key }
 
     /** Incoming links per target key, e.g. SC-02 verifies FR-12 -> FR-12: [(VERIFIED_BY from SC-02)]. */
-    fun incomingLinks(): Map<String, List<Pair<DocLink, String>>> =
-        elements.flatMap { from -> from.links.map { it.toKey to (it to from.key) } }
-            .groupBy({ it.first }, { it.second })
+    fun incomingLinks(): Map<String, List<Pair<DocLink, String>>> = elements.flatMap { from -> from.links.map { it.toKey to (it to from.key) } }
+        .groupBy({ it.first }, { it.second })
 
     /** Links whose target key does not exist in this document. */
     fun brokenLinks(): List<Pair<String, DocLink>> {
@@ -53,16 +52,7 @@ data class ProjectDocument(
     }
 }
 
-
-data class DocProject(
-    val key: String,
-    val title: String,
-    val summary: String?,
-    val workspace: String,
-    val tags: List<String>,
-    val domains: List<String>,
-)
-
+data class DocProject(val key: String, val title: String, val summary: String?, val workspace: String, val tags: List<String>, val domains: List<String>)
 
 data class DocElement(
     val key: String,
@@ -75,15 +65,7 @@ data class DocElement(
     val order: Int,
 )
 
-
 data class DocLink(val kind: LinkKind, val toKey: String)
 
-
 /** A role with its global description copied in, so later edits of the global role never rewrite history. */
-data class DocRole(
-    val roleId: UUID,
-    val key: String,
-    val name: String,
-    val globalDescription: String?,
-    val contextInProject: String?,
-)
+data class DocRole(val roleId: UUID, val key: String, val name: String, val globalDescription: String?, val contextInProject: String?)

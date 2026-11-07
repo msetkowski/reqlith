@@ -51,11 +51,15 @@ class ProjectDiff(val before: ProjectDocument?, val after: ProjectDocument) {
             titleHtml = if (old != null && new != null && old.title != new.title) TextDiff.inline(old.title, new.title) else escape(current.title),
             titleChanged = old != null && new != null && old.title != new.title,
             lines = TextDiff.withContext(TextDiff.lines(old?.body, new?.body)),
-            properties = if (old == null || new == null) emptyList() else buildList {
-                if (old.priority != new.priority) add("Priority: ${old.priority?.label ?: "—"} → ${new.priority?.label ?: "—"}")
-                if (old.tags != new.tags) add("Tags: ${old.tags.joinToString().ifEmpty { "—" }} → ${new.tags.joinToString().ifEmpty { "—" }}")
-                (new.links - old.links.toSet()).forEach { add("Link added: ${it.kind.label} ${it.toKey}") }
-                (old.links - new.links.toSet()).forEach { add("Link removed: ${it.kind.label} ${it.toKey}") }
+            properties = if (old == null || new == null) {
+                emptyList()
+            } else {
+                buildList {
+                    if (old.priority != new.priority) add("Priority: ${old.priority?.label ?: "—"} → ${new.priority?.label ?: "—"}")
+                    if (old.tags != new.tags) add("Tags: ${old.tags.joinToString().ifEmpty { "—" }} → ${new.tags.joinToString().ifEmpty { "—" }}")
+                    (new.links - old.links.toSet()).forEach { add("Link added: ${it.kind.label} ${it.toKey}") }
+                    (old.links - new.links.toSet()).forEach { add("Link removed: ${it.kind.label} ${it.toKey}") }
+                }
             },
             oldBody = old?.body,
             newBody = new?.body,

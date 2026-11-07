@@ -15,21 +15,15 @@ private val logger = KotlinLogging.logger {}
 /** Read access to the history of a project. */
 @Service
 @Transactional(readOnly = true)
-class VersionService(
-    private val versions: ProjectVersionRepository,
-    private val codec: SnapshotCodec,
-    private val documents: ProjectDocumentService,
-) {
+class VersionService(private val versions: ProjectVersionRepository, private val codec: SnapshotCodec, private val documents: ProjectDocumentService) {
     /** Every candidate and approved version, newest first. */
     fun history(project: Project): List<ProjectVersion> = versions.findByProjectIdOrderBySubmittedAtDesc(project.id)
 
     fun approved(project: Project): List<ProjectVersion> = history(project).filter { it.status == VersionStatus.APPROVED }
 
-    fun latestApproved(project: Project): ProjectVersion? =
-        project.latestApprovedVersion?.let { versions.findByProjectIdAndVersionNo(project.id, it) }
+    fun latestApproved(project: Project): ProjectVersion? = project.latestApprovedVersion?.let { versions.findByProjectIdAndVersionNo(project.id, it) }
 
-    fun openCandidate(project: Project): ProjectVersion? =
-        project.currentCandidateId?.let { versions.findById(it).orElse(null) }
+    fun openCandidate(project: Project): ProjectVersion? = project.currentCandidateId?.let { versions.findById(it).orElse(null) }
 
     /** Looks a version up by its URL segment: "3" (approved) or "3-rc2" (candidate). */
     fun bySlug(project: Project, slug: String): ProjectVersion {
@@ -47,8 +41,7 @@ class VersionService(
     fun document(version: ProjectVersion): ProjectDocument =
         codec.read(versions.findSnapshot(version.id) ?: throw NotFoundException("Version ${version.label} has no snapshot"))
 
-    fun approvedDocument(project: Project, versionNo: Int): ProjectDocument? =
-        versions.findByProjectIdAndVersionNo(project.id, versionNo)?.let(::document)
+    fun approvedDocument(project: Project, versionNo: Int): ProjectDocument? = versions.findByProjectIdAndVersionNo(project.id, versionNo)?.let(::document)
 
     /** True when the working copy differs from the latest approved version (or nothing is approved yet). */
     fun hasChangesSinceApproval(project: Project): Boolean {

@@ -2,12 +2,12 @@ package io.reqlith.support
 
 import io.reqlith.model.dto.ReqlithOidcUser
 import io.reqlith.service.UserService
-import java.time.Instant
-import java.util.UUID
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.oauth2.core.oidc.OidcIdToken
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser
 import org.springframework.stereotype.Component
+import java.time.Instant
+import java.util.UUID
 
 /** Creates provisioned users and the matching session principal for tests. */
 @Component

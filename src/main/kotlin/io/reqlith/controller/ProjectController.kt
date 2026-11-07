@@ -14,8 +14,8 @@ import io.reqlith.model.entity.Project
 import io.reqlith.service.DocumentChanges
 import io.reqlith.service.ElementService
 import io.reqlith.service.ExternalLinkService
-import io.reqlith.service.ProjectDocumentService
 import io.reqlith.service.ProjectAccess
+import io.reqlith.service.ProjectDocumentService
 import io.reqlith.service.ProjectService
 import io.reqlith.service.ReviewService
 import io.reqlith.service.UserService
@@ -49,21 +49,19 @@ class ProjectController(
     }
 
     @PostMapping("/projects")
-    fun create(@AuthenticationPrincipal user: CurrentUser, form: NewProjectForm, model: Model): String {
-        return try {
-            val invitations = form.invitations().map { it.first to it.second }
-            val project = projects.create(
-                user,
-                form.workspaceId ?: throw ValidationException("workspaceId", "Choose a workspace"),
-                form.details(),
-                invitations,
-            )
-            "redirect:/p/${project.key}/draft"
-        } catch (e: ValidationException) {
-            model.addAttribute("form", form)
-            model.addAttribute("error", e)
-            newProjectView(model)
-        }
+    fun create(@AuthenticationPrincipal user: CurrentUser, form: NewProjectForm, model: Model): String = try {
+        val invitations = form.invitations().map { it.first to it.second }
+        val project = projects.create(
+            user,
+            form.workspaceId ?: throw ValidationException("workspaceId", "Choose a workspace"),
+            form.details(),
+            invitations,
+        )
+        "redirect:/p/${project.key}/draft"
+    } catch (e: ValidationException) {
+        model.addAttribute("form", form)
+        model.addAttribute("error", e)
+        newProjectView(model)
     }
 
     private fun newProjectView(model: Model): String {

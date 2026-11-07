@@ -11,10 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam
 
 /** `<option>` elements for the invitation e-mail fields (HTMX fills a `<datalist>` while typing). */
 @Controller
-class UserSuggestionController(
-    private val suggestions: UserSuggestionService,
-    private val projects: ProjectService,
-) {
+class UserSuggestionController(private val suggestions: UserSuggestionService, private val projects: ProjectService) {
     @GetMapping("/users/suggest")
     fun suggest(
         @AuthenticationPrincipal user: CurrentUser,

@@ -1,10 +1,10 @@
 package io.reqlith.repository
 
 import io.reqlith.model.entity.AppUser
-import java.util.UUID
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
+import java.util.UUID
 
 interface AppUserRepository : JpaRepository<AppUser, UUID> {
     fun findBySubject(subject: String): AppUser?

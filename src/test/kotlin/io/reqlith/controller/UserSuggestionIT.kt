@@ -17,11 +17,7 @@ import java.util.UUID
 /** Invitation suggestions from users who signed in before (no IDP directory in tests). */
 @IntegrationTest
 @AutoConfigureMockMvc
-class UserSuggestionIT(
-    @Autowired private val mvc: MockMvc,
-    @Autowired private val users: TestUsers,
-    @Autowired private val fixtures: Fixtures,
-) {
+class UserSuggestionIT(@Autowired private val mvc: MockMvc, @Autowired private val users: TestUsers, @Autowired private val fixtures: Fixtures) {
     @Test
     fun `typing a name suggests known users who are not yet in the project`() {
         val marker = UUID.randomUUID().toString().take(6)

@@ -34,12 +34,23 @@ class IdpEndpointsTest {
 
     @Test
     fun `generic providers need explicit endpoints, and overrides win for every type`() {
-        val error = assertFailsWith<IllegalStateException> { IdpEndpoints.of(Idp(type = IdpType.GENERIC, issuer = "https://idp.example.com", tokenUri = "https://idp.example.com/t")) }
+        val error =
+            assertFailsWith<IllegalStateException> {
+                IdpEndpoints.of(Idp(type = IdpType.GENERIC, issuer = "https://idp.example.com", tokenUri = "https://idp.example.com/t"))
+            }
         assertContains(error.message!!, "REQLITH_IDP_AUTHORIZATION_URI")
         assertContains(error.message!!, "REQLITH_IDP_JWKS_URI")
 
-        val generic = IdpEndpoints.of(Idp(type = IdpType.GENERIC, issuer = "https://idp.example.com", authorizationUri = "https://idp.example.com/a",
-            tokenUri = "https://idp.example.com/t", jwksUri = "https://idp.example.com/k", userInfoUri = " "))
+        val generic = IdpEndpoints.of(
+            Idp(
+                type = IdpType.GENERIC,
+                issuer = "https://idp.example.com",
+                authorizationUri = "https://idp.example.com/a",
+                tokenUri = "https://idp.example.com/t",
+                jwksUri = "https://idp.example.com/k",
+                userInfoUri = " ",
+            ),
+        )
         assertEquals("https://idp.example.com/a", generic.authorization)
         assertNull(generic.userInfo, "blank overrides count as not set")
         assertNull(generic.endSession)

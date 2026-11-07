@@ -15,6 +15,5 @@ class NewProjectForm(
 ) {
     fun details() = ProjectDetails(title, summary, ProjectService.parseList(tags), ProjectService.parseList(domains))
 
-    fun invitations(): List<Pair<String, MemberRole>> =
-        inviteEmails.zip(inviteRoles).filter { it.first.isNotBlank() }
+    fun invitations(): List<Pair<String, MemberRole>> = inviteEmails.zip(inviteRoles).filter { it.first.isNotBlank() }
 }

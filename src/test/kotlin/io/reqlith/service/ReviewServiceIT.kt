@@ -15,16 +15,16 @@ import io.reqlith.repository.ProjectVersionRepository
 import io.reqlith.support.Fixtures
 import io.reqlith.support.IntegrationTest
 import io.reqlith.support.TestUsers
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.dao.DataAccessException
+import org.springframework.security.access.AccessDeniedException
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.dao.DataAccessException
-import org.springframework.security.access.AccessDeniedException
 
 @IntegrationTest
 class ReviewServiceIT(

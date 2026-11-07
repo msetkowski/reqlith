@@ -12,11 +12,7 @@ import java.time.Instant
 import java.util.UUID
 
 @Embeddable
-data class AssignmentId(
-    @Column(name = "version_id") val versionId: UUID,
-    @Column(name = "reviewer_id") val reviewerId: UUID,
-) : Serializable
-
+data class AssignmentId(@Column(name = "version_id") val versionId: UUID, @Column(name = "reviewer_id") val reviewerId: UUID) : Serializable
 
 /** A reviewer assigned to one review round (candidate version) and their decision. */
 @Entity

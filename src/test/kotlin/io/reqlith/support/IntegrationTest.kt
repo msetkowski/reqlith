@@ -1,6 +1,5 @@
 package io.reqlith.support
 
-import java.time.Duration
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
@@ -12,6 +11,7 @@ import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.mssqlserver.MSSQLServerContainer
 import org.testcontainers.utility.DockerImageName
+import java.time.Duration
 
 /** Full application context against a real SQL Server (Testcontainers), shared by all integration tests. */
 @Target(AnnotationTarget.CLASS)

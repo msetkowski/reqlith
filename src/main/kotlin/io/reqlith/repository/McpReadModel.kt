@@ -21,12 +21,12 @@ import io.reqlith.model.entity.LinkKind
 import io.reqlith.model.entity.Priority
 import io.reqlith.service.ProjectDocumentService
 import io.reqlith.service.SnapshotCodec
+import org.springframework.jdbc.core.simple.JdbcClient
+import org.springframework.stereotype.Component
 import java.sql.ResultSet
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.util.UUID
-import org.springframework.jdbc.core.simple.JdbcClient
-import org.springframework.stereotype.Component
 
 /**
  * Everything the MCP tools read, through the read-only connection only. Version content comes from the
@@ -59,19 +59,18 @@ class McpReadModel(database: McpReadOnlyDatabase, private val codec: SnapshotCod
     fun project(key: String): ProjectRow =
         projects().firstOrNull { it.key.equals(key.trim(), ignoreCase = true) } ?: throw NotFoundException("Project $key not found")
 
-    fun versions(project: ProjectRow): List<VersionRow> =
-        jdbc.sql(
-            """select v.id, v.version_no, v.target_version, v.candidate_no, v.status, v.snapshot, v.content_hash,
+    fun versions(project: ProjectRow): List<VersionRow> = jdbc.sql(
+        """select v.id, v.version_no, v.target_version, v.candidate_no, v.status, v.snapshot, v.content_hash,
                       v.based_on_version, u.display_name as submitted_by, v.submitted_at, v.closed_at
                from project_version v join app_user u on u.id = v.submitted_by
                where v.project_id = ? order by v.submitted_at desc""",
-        ).param(project.id).query { rs, _ ->
-            VersionRow(
-                rs.uuid("id"), rs.intOrNull("version_no"), rs.getInt("target_version"), rs.getInt("candidate_no"), rs.getString("status"),
-                rs.getString("snapshot"), rs.getString("content_hash"), rs.intOrNull("based_on_version"), rs.getString("submitted_by"),
-                rs.instant("submitted_at")!!, rs.instant("closed_at"),
-            )
-        }.list()
+    ).param(project.id).query { rs, _ ->
+        VersionRow(
+            rs.uuid("id"), rs.intOrNull("version_no"), rs.getInt("target_version"), rs.getInt("candidate_no"), rs.getString("status"),
+            rs.getString("snapshot"), rs.getString("content_hash"), rs.intOrNull("based_on_version"), rs.getString("submitted_by"),
+            rs.instant("submitted_at")!!, rs.instant("closed_at"),
+        )
+    }.list()
 
     /**
      * [version]: null or "latest" = latest approved, "draft" = working copy, "2" = v2, "3-rc1" = candidate.
@@ -87,6 +86,7 @@ class McpReadModel(database: McpReadOnlyDatabase, private val codec: SnapshotCod
                     "version",
                     "${project.key} has no approved version yet. Pass version=\"draft\" to read the unreviewed working copy.",
                 )
+
             else -> versions.firstOrNull { it.label == "v$wanted" }
                 ?: throw NotFoundException("Version v$wanted of ${project.key} not found. Available: ${versions.joinToString { it.label }}")
         }
@@ -104,20 +104,31 @@ class McpReadModel(database: McpReadOnlyDatabase, private val codec: SnapshotCod
            from suggestion s join app_user u on u.id = s.author_id where s.version_id in (:ids) order by s.created_at""",
         versionIds,
     ) { rs ->
-        SuggestionRow(rs.uuid("version_id"), rs.getString("element_key"), rs.getString("proposed_md"), rs.getString("comment_md"),
-            rs.getString("display_name"), rs.getString("status"), rs.instant("created_at")!!)
+        SuggestionRow(
+            rs.uuid("version_id"),
+            rs.getString("element_key"),
+            rs.getString("proposed_md"),
+            rs.getString("comment_md"),
+            rs.getString("display_name"),
+            rs.getString("status"),
+            rs.instant("created_at")!!,
+        )
     }
 
     fun comments(versionIds: Collection<UUID>): List<CommentRow> = byVersion(
         """select c.version_id, c.element_key, u.display_name, c.body_md, c.created_at
            from review_comment c join app_user u on u.id = c.author_id where c.version_id in (:ids) order by c.created_at""",
         versionIds,
-    ) { rs -> CommentRow(rs.uuid("version_id"), rs.getString("element_key"), rs.getString("display_name"), rs.getString("body_md"), rs.instant("created_at")!!) }
+    ) { rs ->
+        CommentRow(rs.uuid("version_id"), rs.getString("element_key"), rs.getString("display_name"), rs.getString("body_md"), rs.instant("created_at")!!)
+    }
 
     fun links(project: ProjectRow): List<LinkRow> =
         jdbc.sql("select link_system, url, label, version_no, element_key from external_link where project_id = ? order by created_at")
             .param(project.id)
-            .query { rs, _ -> LinkRow(rs.getString("link_system"), rs.getString("url"), rs.getString("label"), rs.intOrNull("version_no"), rs.getString("element_key")) }
+            .query { rs, _ ->
+                LinkRow(rs.getString("link_system"), rs.getString("url"), rs.getString("label"), rs.intOrNull("version_no"), rs.getString("element_key"))
+            }
             .list()
 
     fun roles(): List<RoleRow> {
@@ -133,7 +144,9 @@ class McpReadModel(database: McpReadOnlyDatabase, private val codec: SnapshotCod
     private fun workingCopy(project: ProjectRow): ProjectDocument {
         val basicInfo = jdbc.sql("select basic_info_md from project where id = ?").param(project.id).query(String::class.java).optional().orElse("")
         val tags = pairs("select t.element_id, t.tag from element_tag t join element e on e.id = t.element_id where e.project_id = ?", project.id)
-        val links = jdbc.sql("select l.from_element_id, l.link_kind, l.to_key from trace_link l join element e on e.id = l.from_element_id where e.project_id = ?")
+        val links = jdbc.sql(
+            "select l.from_element_id, l.link_kind, l.to_key from trace_link l join element e on e.id = l.from_element_id where e.project_id = ?",
+        )
             .param(project.id).query { rs, _ -> rs.uuid("from_element_id") to DocLink(LinkKind.valueOf(rs.getString("link_kind")), rs.getString("to_key")) }
             .list().groupBy({ it.first }, { it.second })
         val elements = jdbc.sql("select id, element_type, element_key, title, body_md, priority, sort_order from element where project_id = ?")

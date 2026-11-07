@@ -14,8 +14,6 @@ import io.reqlith.service.RoleService
 import io.reqlith.support.Fixtures
 import io.reqlith.support.IntegrationTest
 import io.reqlith.support.TestUsers
-import java.util.UUID
-import kotlin.test.assertEquals
 import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.not
 import org.junit.jupiter.api.Test
@@ -26,6 +24,8 @@ import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequ
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
+import java.util.UUID
+import kotlin.test.assertEquals
 
 /** Renders every M2 page for real (templates included) and exercises the main form posts. */
 @IntegrationTest
@@ -48,10 +48,15 @@ class ProjectPagesIT(
         val project = fixtures.project(owner)
         val sr = elements.create(owner, project, ElementType.SR, ElementContent("Status visible", "Body", null, emptySet(), emptySet()))
         val fr = elements.create(
-            owner, project, ElementType.FR,
+            owner,
+            project,
+            ElementType.FR,
             ElementContent(
-                "Request a refund", "## Flow\n```mermaid\nflowchart LR\n  A --> B\n```\nSee `${sr.key}`",
-                Priority.MUST, setOf("ux"), setOf(TraceLink(LinkKind.DERIVED_FROM, sr.key), TraceLink(LinkKind.VERIFIED_BY, "SC-09")),
+                "Request a refund",
+                "## Flow\n```mermaid\nflowchart LR\n  A --> B\n```\nSee `${sr.key}`",
+                Priority.MUST,
+                setOf("ux"),
+                setOf(TraceLink(LinkKind.DERIVED_FROM, sr.key), TraceLink(LinkKind.VERIFIED_BY, "SC-09")),
             ),
         )
         roles.createAndAdd(owner, projects.get(project.key), "Customer " + UUID.randomUUID().toString().take(6), "Buys", "Refunds")
@@ -85,7 +90,8 @@ class ProjectPagesIT(
         val general = workspaces.findAll().first { it.key == "GEN" }
 
         val result = mvc.post("/projects") {
-            with(login(owner)); with(csrf())
+            with(login(owner))
+            with(csrf())
             param("workspaceId", general.id.toString())
             param("title", "Loyalty points ledger")
             param("tags", "loyalty, #Q1-2027")
@@ -96,7 +102,8 @@ class ProjectPagesIT(
         assertEquals(setOf("loyalty", "Q1-2027"), projects.get(key).tags.toSet())
 
         mvc.post("/p/$key/elements") {
-            with(login(owner)); with(csrf())
+            with(login(owner))
+            with(csrf())
             param("type", "BR")
             param("title", "Fewer support contacts")
             param("bodyMd", "Reduce contacts by **30%**")
@@ -106,7 +113,8 @@ class ProjectPagesIT(
         }.andExpect { redirectedUrl("/p/$key/e/BR-01") }
 
         mvc.post("/p/$key/preview") {
-            with(login(owner)); with(csrf())
+            with(login(owner))
+            with(csrf())
             param("bodyMd", "See `BR-01`\n\n<script>x</script>")
         }.andExpect {
             content { string(containsString("""href="/p/$key/e/BR-01"""")) }
@@ -114,7 +122,8 @@ class ProjectPagesIT(
         }
 
         mvc.post("/p/$key/elements") {
-            with(login(owner)); with(csrf())
+            with(login(owner))
+            with(csrf())
             param("type", "BR")
             param("title", "")
         }.andExpect {
@@ -133,13 +142,19 @@ class ProjectPagesIT(
 
         elements.create(owner, project, ElementType.FR, ElementContent("Existing", null, null, emptySet(), emptySet()))
         listOf(reader, reviewer).forEach { user ->
-            listOf("/p/${project.key}/e/FR-01/edit", "/p/${project.key}/elements/new?type=BR", "/p/${project.key}/details",
-                "/p/${project.key}/basic-info/edit").forEach { page ->
+            listOf(
+                "/p/${project.key}/e/FR-01/edit",
+                "/p/${project.key}/elements/new?type=BR",
+                "/p/${project.key}/details",
+                "/p/${project.key}/basic-info/edit",
+            ).forEach { page ->
                 mvc.get(page) { with(login(user)) }.andExpect { status { isForbidden() } }
             }
             mvc.post("/p/${project.key}/elements") {
-                with(login(user)); with(csrf())
-                param("type", "BR"); param("title", "Sneaky")
+                with(login(user))
+                with(csrf())
+                param("type", "BR")
+                param("title", "Sneaky")
             }.andExpect { status { isForbidden() } }
         }
     }

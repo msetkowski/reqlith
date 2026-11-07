@@ -1,6 +1,5 @@
 package io.reqlith.model.dto
 
-
 /** How one element (or role) differs between two documents. */
 data class ItemDiff(
     val key: String,

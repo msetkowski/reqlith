@@ -480,11 +480,13 @@ The values are listed under `authorization_endpoint`, `token_endpoint`, `jwks_ur
 ## Contributing
 
 1. Run `src/main/dev/scripts/test.sh` (or `podman-test.sh` for the full stack) before you open a pull request.
-2. Keep to the package layout (controllers stay thin, logic lives in services, data access in
+2. Code is formatted by [ktlint](https://pinterest.github.io/ktlint/) on every build (rules in `.editorconfig`, IntelliJ
+   IDEA style, 160 columns). `verify` fails on what it cannot fix, such as overlong lines.
+3. Keep to the package layout (controllers stay thin, logic lives in services, data access in
    repositories) and to the logging conventions above.
-3. Schema changes go into a new Flyway migration in `src/main/resources/db/migration`. Never edit an applied
+4. Schema changes go into a new Flyway migration in `src/main/resources/db/migration`. Never edit an applied
    one.
-4. To upgrade the bundled front-end libraries, change the versions in `src/main/dev/scripts/update-vendor.sh`
+5. To upgrade the bundled front-end libraries, change the versions in `src/main/dev/scripts/update-vendor.sh`
    and run it.
 
 ## License

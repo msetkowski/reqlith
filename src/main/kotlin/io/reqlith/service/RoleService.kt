@@ -13,12 +13,12 @@ import io.reqlith.model.entity.Role
 import io.reqlith.repository.KeyCounter
 import io.reqlith.repository.ProjectRoleRepository
 import io.reqlith.repository.RoleRepository
-import java.time.Clock
-import java.time.Instant
-import java.util.UUID
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Clock
+import java.time.Instant
+import java.util.UUID
 
 private val logger = KotlinLogging.logger {}
 

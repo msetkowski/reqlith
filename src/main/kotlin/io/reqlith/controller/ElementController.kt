@@ -13,8 +13,8 @@ import io.reqlith.model.entity.Project
 import io.reqlith.service.ElementService
 import io.reqlith.service.ExternalLinkService
 import io.reqlith.service.MembershipService
-import io.reqlith.service.ProjectDocumentService
 import io.reqlith.service.ProjectAccess
+import io.reqlith.service.ProjectDocumentService
 import io.reqlith.service.ProjectService
 import io.reqlith.service.ReviewService
 import io.reqlith.service.UserService
@@ -116,11 +116,7 @@ class ElementController(
     /** Live preview for the markdown editor (HTMX). Uses the same renderer as every read view. */
     @PostMapping("/p/{key}/preview")
     @ResponseBody
-    fun preview(
-        @PathVariable key: String,
-        @RequestParam(required = false) markdown: String?,
-        @RequestParam(required = false) bodyMd: String?,
-    ): String {
+    fun preview(@PathVariable key: String, @RequestParam(required = false) markdown: String?, @RequestParam(required = false) bodyMd: String?): String {
         val project = projects.get(key)
         val html = support.render(markdown ?: bodyMd, project, documents.fromWorkingCopy(project))
         return html.ifEmpty { """<p class="muted">Nothing to preview yet.</p>""" }

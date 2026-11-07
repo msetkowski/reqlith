@@ -46,8 +46,18 @@ class QueryEfficiencyIT(
         fun projectWith(count: Int): String {
             val project = fixtures.project(owner)
             repeat(count) { i ->
-                elements.create(owner, projects.get(project.key), ElementType.FR, ElementContent("Requirement $i", "Body $i", null,
-                    setOf("tag-$i", "ux"), if (i > 0) setOf(TraceLink(LinkKind.DEPENDS_ON, "FR-%02d".format(i))) else emptySet()))
+                elements.create(
+                    owner,
+                    projects.get(project.key),
+                    ElementType.FR,
+                    ElementContent(
+                        "Requirement $i",
+                        "Body $i",
+                        null,
+                        setOf("tag-$i", "ux"),
+                        if (i > 0) setOf(TraceLink(LinkKind.DEPENDS_ON, "FR-%02d".format(i))) else emptySet(),
+                    ),
+                )
             }
             return project.key
         }

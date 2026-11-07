@@ -2,20 +2,17 @@ package io.reqlith.repository
 
 import io.reqlith.service.UserService
 import io.reqlith.support.IntegrationTest
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.jdbc.core.simple.JdbcClient
 import java.util.UUID
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.jdbc.core.simple.JdbcClient
 
 /** The database itself refuses to change approved versions or any snapshot, whatever the application does. */
 @IntegrationTest
-class VersionImmutabilityIT(
-    @Autowired private val jdbc: JdbcClient,
-    @Autowired private val userService: UserService,
-) {
+class VersionImmutabilityIT(@Autowired private val jdbc: JdbcClient, @Autowired private val userService: UserService) {
     @Test
     fun `approved version cannot be updated or deleted`() {
         val versionId = insertVersion(status = "APPROVED", versionNo = 1)

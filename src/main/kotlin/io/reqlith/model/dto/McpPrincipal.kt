@@ -1,8 +1,8 @@
 package io.reqlith.model.dto
 
-import java.util.UUID
 import org.springframework.security.authentication.AbstractAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
+import java.util.UUID
 
 /** Who an MCP call runs for: the signed-in user behind a JWT or a personal access token. */
 class McpPrincipal(
@@ -13,7 +13,6 @@ class McpPrincipal(
     /** Set when authenticated with a personal access token. */
     val tokenId: UUID?,
 ) : CurrentUser
-
 
 class McpAuthentication(private val principal: McpPrincipal, private val credential: String) :
     AbstractAuthenticationToken(listOf(SimpleGrantedAuthority("ROLE_AGENT"))) {

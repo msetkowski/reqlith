@@ -3,22 +3,18 @@ package io.reqlith.service
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.reqlith.model.entity.AppUser
 import io.reqlith.repository.AppUserRepository
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
 import java.time.Instant
 import java.util.UUID
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 
 private val logger = KotlinLogging.logger {}
 
 @Service
-class UserService(
-    private val users: AppUserRepository,
-    private val clock: Clock,
-) {
+class UserService(private val users: AppUserRepository, private val clock: Clock) {
     /** Users by id, for showing names next to ids stored in projects, elements and reviews. */
-    fun byIds(ids: Collection<UUID>): Map<UUID, AppUser> =
-        if (ids.isEmpty()) emptyMap() else users.findAllById(ids.toSet()).associateBy { it.id }
+    fun byIds(ids: Collection<UUID>): Map<UUID, AppUser> = if (ids.isEmpty()) emptyMap() else users.findAllById(ids.toSet()).associateBy { it.id }
 
     /** Creates or refreshes the local user from IDP claims. Called on every login. */
     @Transactional

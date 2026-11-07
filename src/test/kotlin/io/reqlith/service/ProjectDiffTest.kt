@@ -23,16 +23,21 @@ class ProjectDiffTest {
     fun `changed, new and removed items in document order, unchanged ones left out`() {
         val after = before.copy(
             elements = listOf(
-                UnitFixtures.element("FR-01", "Refund within 30 days").copy(title = "Request a refund", priority = Priority.MUST,
-                    links = listOf(DocLink(LinkKind.DERIVED_FROM, "BR-01"))),
+                UnitFixtures.element("FR-01", "Refund within 30 days").copy(
+                    title = "Request a refund",
+                    priority = Priority.MUST,
+                    links = listOf(DocLink(LinkKind.DERIVED_FROM, "BR-01")),
+                ),
                 UnitFixtures.element("SC-01"),
             ),
             roles = listOf(DocRole(roleId, "RO-01", "Customer", "Buys things", "Refunds")),
         )
         val diff = ProjectDiff(before, after)
 
-        assertEquals(listOf("FR-01" to ChangeKind.CHANGED, "BR-01" to ChangeKind.REMOVED, "RO-01" to ChangeKind.CHANGED, "SC-01" to ChangeKind.NEW),
-            diff.items.map { it.key to it.kind }.sortedBy { listOf("FR-01", "BR-01", "RO-01", "SC-01").indexOf(it.first) })
+        assertEquals(
+            listOf("FR-01" to ChangeKind.CHANGED, "BR-01" to ChangeKind.REMOVED, "RO-01" to ChangeKind.CHANGED, "SC-01" to ChangeKind.NEW),
+            diff.items.map { it.key to it.kind }.sortedBy { listOf("FR-01", "BR-01", "RO-01", "SC-01").indexOf(it.first) },
+        )
         val fr = diff.item("FR-01")!!
         assertTrue(fr.titleChanged)
         assertContains(fr.properties, "Priority: — → Must")

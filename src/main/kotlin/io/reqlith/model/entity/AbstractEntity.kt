@@ -10,8 +10,7 @@ abstract class AbstractEntity(
     @field:Id
     val id: UUID = SequentialUuid.next(),
 ) {
-    override fun equals(other: Any?): Boolean =
-        this === other || (other is AbstractEntity && other.javaClass == javaClass && other.id == id)
+    override fun equals(other: Any?): Boolean = this === other || (other is AbstractEntity && other.javaClass == javaClass && other.id == id)
 
     override fun hashCode(): Int = id.hashCode()
 }

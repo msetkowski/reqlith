@@ -8,21 +8,17 @@ import io.reqlith.model.entity.ExternalLink
 import io.reqlith.model.entity.LinkSystem
 import io.reqlith.model.entity.Project
 import io.reqlith.repository.ExternalLinkRepository
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 import java.time.Clock
 import java.time.Instant
 import java.util.UUID
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 
 private val logger = KotlinLogging.logger {}
 
 @Service
-class ExternalLinkService(
-    private val links: ExternalLinkRepository,
-    private val access: ProjectAccess,
-    private val clock: Clock,
-) {
+class ExternalLinkService(private val links: ExternalLinkRepository, private val access: ProjectAccess, private val clock: Clock) {
     fun all(project: Project): List<ExternalLink> = links.findByProjectIdOrderByCreatedAt(project.id)
 
     fun forElement(project: Project, key: String): List<ExternalLink> = all(project).filter { it.elementKey == key }
@@ -41,7 +37,18 @@ class ExternalLinkService(
         }
         val text = label?.trim()?.takeIf { it.isNotEmpty() } ?: target.substringAfterLast('/').ifEmpty { target }
         return links.save(
-            ExternalLink(project.id, versionNo, elementKey?.trim()?.uppercase()?.ifEmpty { null }, system, target, text.take(300), Instant.now(clock), user.userId),
+            ExternalLink(
+                project.id,
+                versionNo,
+                elementKey?.trim()?.uppercase()?.ifEmpty {
+                    null
+                },
+                system,
+                target,
+                text.take(300),
+                Instant.now(clock),
+                user.userId,
+            ),
         ).also { logger.info { "External link added project=${project.key} system=$system scope=${it.scope}" } }
     }
 

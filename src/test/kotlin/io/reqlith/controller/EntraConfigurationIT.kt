@@ -24,10 +24,7 @@ import kotlin.test.assertTrue
         "reqlith.idp.directory=ENTRA",
     ],
 )
-class EntraConfigurationIT(
-    @Autowired private val mvc: MockMvc,
-    @Autowired private val users: TestUsers,
-) {
+class EntraConfigurationIT(@Autowired private val mvc: MockMvc, @Autowired private val users: TestUsers) {
     private val tenant = "https://login.microsoftonline.com/11111111-2222-3333-4444-555555555555"
 
     @Test
@@ -39,7 +36,10 @@ class EntraConfigurationIT(
 
     @Test
     fun `sign-out ends the Entra session`() {
-        val location = mvc.post("/logout") { with(oidcLogin().oidcUser(users.create())); with(csrf()) }.andReturn().response.redirectedUrl!!
+        val location = mvc.post("/logout") {
+            with(oidcLogin().oidcUser(users.create()))
+            with(csrf())
+        }.andReturn().response.redirectedUrl!!
         assertTrue(location.startsWith("$tenant/oauth2/v2.0/logout?post_logout_redirect_uri="), location)
     }
 }

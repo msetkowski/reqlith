@@ -12,12 +12,12 @@ import io.reqlith.model.dto.ReviewNote
 import io.reqlith.model.entity.ElementType
 import io.reqlith.model.entity.LinkKind
 import io.reqlith.model.entity.Priority
+import org.junit.jupiter.api.Test
 import java.util.UUID
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import org.junit.jupiter.api.Test
 
 class PrdMarkdownWriterTest {
 
@@ -27,8 +27,14 @@ class PrdMarkdownWriterTest {
         elements = listOf(
             DocElement("BR-01", ElementType.BR, "Fewer contacts", "## Goal\n-30%", Priority.MUST, emptyList(), emptyList(), 1),
             DocElement(
-                "FR-01", ElementType.FR, "Request refund", "## Flow\n```mermaid\n# not a heading\nflowchart LR\n```", null, listOf("ux"),
-                listOf(DocLink(LinkKind.DERIVED_FROM, "BR-01")), 1,
+                "FR-01",
+                ElementType.FR,
+                "Request refund",
+                "## Flow\n```mermaid\n# not a heading\nflowchart LR\n```",
+                null,
+                listOf("ux"),
+                listOf(DocLink(LinkKind.DERIVED_FROM, "BR-01")),
+                1,
             ),
             DocElement("RK-01", ElementType.RK, "Abuse", "Limits", null, emptyList(), listOf(DocLink(LinkKind.MITIGATES, "FR-01")), 1),
         ),
@@ -36,7 +42,11 @@ class PrdMarkdownWriterTest {
     )
 
     private fun input(label: String = "v1") = PrdInput(
-        document, label, "Approved", "7 Nov 2026", "ab".repeat(32),
+        document,
+        label,
+        "Approved",
+        "7 Nov 2026",
+        "ab".repeat(32),
         approvals = listOf(ApprovalRow("v1", "Approved", "7 Nov by Olive", "Rita: Accepted")),
         notes = listOf(ReviewNote("v1-rc1", "FR-01", "Rita", "Clarify")),
     )
@@ -44,9 +54,11 @@ class PrdMarkdownWriterTest {
     @Test
     fun `chapters follow the BABOK order with assumptions, risks and dependencies under basic information`() {
         val md = PrdMarkdownWriter.write(input(), ExportOptions())
-        val order = listOf("# Self-service refunds", "## Version and approval record", "## 1. Basic information", "### Problem statement",
+        val order = listOf(
+            "# Self-service refunds", "## Version and approval record", "## 1. Basic information", "### Problem statement",
             "### Risks", "#### RK-01 · Abuse", "## 2. Business requirements", "### BR-01 · Fewer contacts", "## 4. Solution requirements · Functional",
-            "## 6. Roles", "### RO-01 · Customer", "## 7. Scenarios", "## Appendix A. Traceability matrix")
+            "## 6. Roles", "### RO-01 · Customer", "## 7. Scenarios", "## Appendix A. Traceability matrix",
+        )
         val positions = order.map { md.indexOf(it).also { pos -> assertTrue(pos >= 0, "missing '$it' in\n$md") } }
         assertEquals(positions.sorted(), positions)
         assertFalse(md.contains("Appendix B"), "review comments are opt-in")
@@ -64,7 +76,10 @@ class PrdMarkdownWriterTest {
 
     @Test
     fun `drafts are marked and optional parts can be switched off`() {
-        val md = PrdMarkdownWriter.write(input(PrdMarkdownWriter.DRAFT), ExportOptions(traceabilityMatrix = false, approvalRecord = false, reviewComments = true))
+        val md = PrdMarkdownWriter.write(
+            input(PrdMarkdownWriter.DRAFT),
+            ExportOptions(traceabilityMatrix = false, approvalRecord = false, reviewComments = true),
+        )
         assertContains(md, "**DRAFT**")
         assertFalse(md.contains("Traceability matrix"))
         assertFalse(md.contains("approval record"))

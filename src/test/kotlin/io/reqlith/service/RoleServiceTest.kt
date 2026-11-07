@@ -98,6 +98,9 @@ class RoleServiceTest {
         service.updateContext(editor, project, role.id, "  ")
         assertEquals(null, link.contextMd)
         service.removeFromProject(editor, project, role.id)
-        io.mockk.verify { projectRoles.deleteById(link.id); projectService.touch(project, editor) }
+        io.mockk.verify {
+            projectRoles.deleteById(link.id)
+            projectService.touch(project, editor)
+        }
     }
 }

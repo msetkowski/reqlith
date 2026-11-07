@@ -8,9 +8,9 @@ import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
 import jakarta.persistence.FetchType
 import jakarta.persistence.Table
+import org.hibernate.annotations.DynamicUpdate
 import java.time.Instant
 import java.util.UUID
-import org.hibernate.annotations.DynamicUpdate
 
 /**
  * A frozen copy of the whole project: a review candidate (vN-rcK) and, once approved, version vN.

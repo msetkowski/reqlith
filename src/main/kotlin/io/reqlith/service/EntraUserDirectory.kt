@@ -38,21 +38,20 @@ class EntraUserDirectory(
     }
 
     /** Advanced query: $search needs the ConsistencyLevel header. */
-    private fun searchUsers(token: String, term: String, limit: Int): List<GraphUser> =
-        graph.get()
-            .uri { uri ->
-                uri.path("/users")
-                    .queryParam("\$search", "{search}")
-                    .queryParam("\$filter", "accountEnabled eq true")
-                    .queryParam("\$select", "displayName,mail,userPrincipalName,accountEnabled")
-                    .queryParam("\$top", limit)
-                    .build("\"displayName:$term\" OR \"mail:$term\" OR \"userPrincipalName:$term\"")
-            }
-            .header("Authorization", "Bearer $token")
-            .header("ConsistencyLevel", "eventual")
-            .retrieve()
-            .body<GraphPage<GraphUser>>()
-            ?.value.orEmpty()
+    private fun searchUsers(token: String, term: String, limit: Int): List<GraphUser> = graph.get()
+        .uri { uri ->
+            uri.path("/users")
+                .queryParam("\$search", "{search}")
+                .queryParam("\$filter", "accountEnabled eq true")
+                .queryParam("\$select", "displayName,mail,userPrincipalName,accountEnabled")
+                .queryParam("\$top", limit)
+                .build("\"displayName:$term\" OR \"mail:$term\" OR \"userPrincipalName:$term\"")
+        }
+        .header("Authorization", "Bearer $token")
+        .header("ConsistencyLevel", "eventual")
+        .retrieve()
+        .body<GraphPage<GraphUser>>()
+        ?.value.orEmpty()
 
     private fun assignedUsers(token: String, term: String, limit: Int): List<GraphUser> {
         val assigned = graph.get()
@@ -89,12 +88,7 @@ class EntraUserDirectory(
 
     data class GraphPage<T>(val value: List<T> = emptyList())
 
-    data class GraphUser(
-        val displayName: String? = null,
-        val mail: String? = null,
-        val userPrincipalName: String? = null,
-        val accountEnabled: Boolean? = null,
-    )
+    data class GraphUser(val displayName: String? = null, val mail: String? = null, val userPrincipalName: String? = null, val accountEnabled: Boolean? = null)
 
     data class Assignment(val principalId: String = "", val principalType: String? = null, val principalDisplayName: String? = null)
 }

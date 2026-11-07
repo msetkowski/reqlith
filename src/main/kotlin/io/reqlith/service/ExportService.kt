@@ -12,10 +12,10 @@ import io.reqlith.model.entity.ProjectVersion
 import io.reqlith.model.entity.Suggestion
 import io.reqlith.model.entity.VersionStatus
 import io.reqlith.repository.ExportCache
-import java.util.Base64
 import org.springframework.stereotype.Service
 import org.thymeleaf.TemplateEngine
 import org.thymeleaf.context.Context
+import java.util.Base64
 
 private val logger = KotlinLogging.logger {}
 
@@ -64,8 +64,7 @@ class ExportService(
     }
 
     /** "PRD-PAY-001-v2", "PRD-PAY-001-v3-rc1" or "PRD-PAY-001-draft". */
-    fun fileName(project: Project, version: ProjectVersion?): String =
-        "PRD-" + project.key.removePrefix("PRJ-") + "-" + (version?.label ?: "draft")
+    fun fileName(project: Project, version: ProjectVersion?): String = "PRD-" + project.key.removePrefix("PRJ-") + "-" + (version?.label ?: "draft")
 
     private fun input(project: Project, version: ProjectVersion?): PrdInput {
         val history = versions.history(project).filter { version == null || !it.submittedAt.isAfter(version.submittedAt) }
@@ -92,8 +91,12 @@ class ExportService(
                 )
             },
             notes = suggestions.map { (v, s) ->
-                ReviewNote(v.label, target(s.elementKey), name(s.authorId),
-                    listOfNotNull(s.commentMd, s.proposedMd?.let { "Suggested wording: $it" }).joinToString(" — ") + " [${s.status.name.lowercase()}]")
+                ReviewNote(
+                    v.label,
+                    target(s.elementKey),
+                    name(s.authorId),
+                    listOfNotNull(s.commentMd, s.proposedMd?.let { "Suggested wording: $it" }).joinToString(" — ") + " [${s.status.name.lowercase()}]",
+                )
             } + comments.map { (v, c) -> ReviewNote(v.label, c.elementKey?.let(::target) ?: "General", name(c.authorId), c.bodyMd) },
         )
     }
@@ -121,7 +124,9 @@ class ExportService(
             Triple("IBM Plex Mono", 400, "ibm-plex-mono-latin-400-normal"),
         ).joinToString("\n") { (family, weight, file) ->
             val bytes = requireNotNull(javaClass.getResourceAsStream("/static/vendor/fonts/$file.woff2")).use { it.readAllBytes() }
-            "@font-face { font-family: \"$family\"; font-weight: $weight; src: url(data:font/woff2;base64,${Base64.getEncoder().encodeToString(bytes)}) format(\"woff2\"); }"
+            "@font-face { font-family: \"$family\"; font-weight: $weight; src: url(data:font/woff2;base64,${Base64.getEncoder().encodeToString(
+                bytes,
+            )}) format(\"woff2\"); }"
         }
     }
 }

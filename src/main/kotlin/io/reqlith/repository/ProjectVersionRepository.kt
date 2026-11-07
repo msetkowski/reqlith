@@ -2,9 +2,9 @@ package io.reqlith.repository
 
 import io.reqlith.model.entity.ProjectVersion
 import io.reqlith.model.entity.VersionStatus
-import java.util.UUID
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
+import java.util.UUID
 
 interface ProjectVersionRepository : JpaRepository<ProjectVersion, UUID> {
     fun findByProjectIdOrderBySubmittedAtDesc(projectId: UUID): List<ProjectVersion>

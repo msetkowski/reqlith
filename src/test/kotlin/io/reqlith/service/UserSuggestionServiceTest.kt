@@ -30,7 +30,8 @@ class UserSuggestionServiceTest {
 
     @Test
     fun `known users and the directory are merged, sorted and deduplicated by e-mail`() {
-        val directory = UserDirectory { _, _ -> listOf(DirectoryUser("Raj Rao", "reviewer2@reqlith.local"), DirectoryUser("Rita R.", "REVIEWER1@reqlith.local")) }
+        val directory =
+            UserDirectory { _, _ -> listOf(DirectoryUser("Raj Rao", "reviewer2@reqlith.local"), DirectoryUser("Rita R.", "REVIEWER1@reqlith.local")) }
         val result = UserSuggestionService(users, provider(directory), memberships).suggest(me, " re ", null)
         assertEquals(listOf("Raj Rao", "Rita Reyes"), result.map { it.name }, "the inviter is left out")
     }
@@ -41,9 +42,15 @@ class UserSuggestionServiceTest {
         every { memberships.members(project) } returns listOf(ProjectMember(MemberId(project.id, member.id), MemberRole.REVIEWER, NOW))
         every { users.findAllById(listOf(member.id)) } returns listOf(member)
         every { memberships.invitations(project) } returns listOf(Invitation(project.id, "reviewer2@reqlith.local", MemberRole.REVIEWER, me.userId, NOW))
-        val directory = UserDirectory { _, _ -> listOf(DirectoryUser("Raj Rao", "reviewer2@reqlith.local"), DirectoryUser("Carla Conti", "contrib1@reqlith.local")) }
+        val directory =
+            UserDirectory { _, _ -> listOf(DirectoryUser("Raj Rao", "reviewer2@reqlith.local"), DirectoryUser("Carla Conti", "contrib1@reqlith.local")) }
 
-        assertEquals(listOf("contrib1@reqlith.local"), UserSuggestionService(users, provider(directory), memberships).suggest(me, "re", project).map { it.email })
+        assertEquals(
+            listOf("contrib1@reqlith.local"),
+            UserSuggestionService(users, provider(directory), memberships).suggest(me, "re", project).map {
+                it.email
+            },
+        )
     }
 
     @Test

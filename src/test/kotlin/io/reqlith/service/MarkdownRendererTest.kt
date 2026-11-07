@@ -1,10 +1,10 @@
 package io.reqlith.service
 
 import io.reqlith.model.dto.Reference
+import org.junit.jupiter.api.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import org.junit.jupiter.api.Test
 
 class MarkdownRendererTest {
     private val renderer = MarkdownRenderer()

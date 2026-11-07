@@ -20,12 +20,12 @@ import io.reqlith.repository.ProjectVersionRepository
 import io.reqlith.repository.ReviewAssignmentRepository
 import io.reqlith.repository.ReviewCommentRepository
 import io.reqlith.repository.SuggestionRepository
-import java.time.Clock
-import java.time.Instant
-import java.util.UUID
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Clock
+import java.time.Instant
+import java.util.UUID
 
 private val logger = KotlinLogging.logger {}
 
@@ -91,8 +91,14 @@ class ReviewService(
         project.status = ProjectStatus.IN_REVIEW
         project.currentCandidateId = version.id
         projects.save(project)
-        logger.info { "Review submitted project=${project.key} candidate=${version.label} reviewers=${reviewers.size} basedOn=${version.basedOnVersion?.let { "v$it" } ?: "-"}" }
-        logger.debug { "Candidate snapshot project=${project.key} candidate=${version.label} hash=${snapshot.hash} schema=${snapshot.schemaVersion} bytes=${snapshot.json.length}" }
+        logger.info {
+            "Review submitted project=${project.key} candidate=${version.label} reviewers=${reviewers.size} basedOn=${version.basedOnVersion?.let {
+                "v$it"
+            } ?: "-"}"
+        }
+        logger.debug {
+            "Candidate snapshot project=${project.key} candidate=${version.label} hash=${snapshot.hash} schema=${snapshot.schemaVersion} bytes=${snapshot.json.length}"
+        }
         return version
     }
 
@@ -123,7 +129,9 @@ class ReviewService(
         val all = assignments.findByIdVersionId(version.id)
         when {
             decision == Decision.REJECT -> closeRound(project, version, VersionStatus.REJECTED, now)
+
             decision == Decision.CHANGES -> closeRound(project, version, VersionStatus.CHANGES_REQUESTED, now)
+
             all.all { it.decision == Decision.ACCEPT } -> {
                 closeRound(project, version, VersionStatus.APPROVED, now)
                 project.latestApprovedVersion = version.versionNo
@@ -186,7 +194,9 @@ class ReviewService(
             } else {
                 val element = elements.get(project, suggestion.elementKey)
                 elements.update(
-                    user, project, element.key,
+                    user,
+                    project,
+                    element.key,
                     ElementContent(element.title, proposed, element.priority, element.tags.toSet(), element.links.toSet()),
                     element.rowVersion,
                 )

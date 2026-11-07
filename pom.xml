@@ -26,6 +26,7 @@
         <jacoco.version>0.8.16</jacoco.version>
         <kotlin-logging.version>8.0.6</kotlin-logging.version>
         <mockk.version>1.14.12</mockk.version>
+        <ktlint-maven-plugin.version>3.7.1</ktlint-maven-plugin.version>
         <!-- Set by the JaCoCo agents; empty when JaCoCo is skipped (-Djacoco.skip=true). -->
         <surefireJacocoAgent/>
         <failsafeJacocoAgent/>
@@ -292,6 +293,32 @@
                             <enableDirtyTracking>false</enableDirtyTracking>
                             <enableAssociationManagement>false</enableAssociationManagement>
                         </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!--
+              ktlint (rules in .editorconfig): every build formats main and test sources before compiling them;
+              `verify` fails on what formatting cannot fix.
+            -->
+            <plugin>
+                <groupId>com.github.gantsign.maven</groupId>
+                <artifactId>ktlint-maven-plugin</artifactId>
+                <version>${ktlint-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>format</id>
+                        <phase>process-sources</phase>
+                        <goals>
+                            <goal>format</goal>
+                        </goals>
+                    </execution>
+                    <!-- What formatting cannot fix (e.g. lines over 160 characters) fails the build. -->
+                    <execution>
+                        <id>check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>

@@ -1,11 +1,11 @@
 package io.reqlith.repository
 
 import io.reqlith.model.entity.Project
-import java.time.Instant
-import java.util.UUID
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
+import java.time.Instant
+import java.util.UUID
 
 interface ProjectRepository : JpaRepository<Project, UUID> {
     fun findByKey(key: String): Project?

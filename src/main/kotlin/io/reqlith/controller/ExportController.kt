@@ -13,7 +13,6 @@ import io.reqlith.service.ExternalLinkService
 import io.reqlith.service.ProjectDocumentService
 import io.reqlith.service.ProjectService
 import io.reqlith.service.VersionService
-import java.util.UUID
 import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -26,6 +25,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.servlet.mvc.support.RedirectAttributes
+import java.util.UUID
 
 /** "Export, links & agent access": PRD downloads, copyable links and external references. */
 @Controller
@@ -55,9 +55,12 @@ class ExportController(
         model.addAttribute("mcpUrl", support.absolute("/mcp"))
         model.addAttribute("recentAccess", accessLog.recent(projectKey = project.key))
         model.addAttribute("pinnedUrl", latest?.let { support.absolute("/p/$key/v/${it.slug}") })
-        model.addAttribute("elementUrlExample", document.elements.firstOrNull()?.let { e ->
-            latest?.let { support.absolute("/p/$key/v/${it.slug}#${e.key}") } ?: support.absolute("/p/$key/e/${e.key}")
-        })
+        model.addAttribute(
+            "elementUrlExample",
+            document.elements.firstOrNull()?.let { e ->
+                latest?.let { support.absolute("/p/$key/v/${it.slug}#${e.key}") } ?: support.absolute("/p/$key/e/${e.key}")
+            },
+        )
         return "export/export"
     }
 
@@ -112,7 +115,12 @@ class ExportController(
     }
 
     @PostMapping("/p/{key}/links/{id}/remove")
-    fun removeLink(@AuthenticationPrincipal user: CurrentUser, @PathVariable key: String, @PathVariable id: UUID, @RequestParam(required = false) back: String?): String {
+    fun removeLink(
+        @AuthenticationPrincipal user: CurrentUser,
+        @PathVariable key: String,
+        @PathVariable id: UUID,
+        @RequestParam(required = false) back: String?,
+    ): String {
         links.remove(user, projects.get(key), id)
         return "redirect:" + safeBack(key, back, "/p/$key/export#links")
     }
@@ -129,11 +137,10 @@ class ExportController(
         else -> throw ValidationException("format", "Unknown format $format")
     }
 
-    private fun file(file: ExportFile): ResponseEntity<ByteArray> =
-        ResponseEntity.ok()
-            .contentType(MediaType.parseMediaType(file.contentType))
-            .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(file.name).build().toString())
-            .body(file.bytes)
+    private fun file(file: ExportFile): ResponseEntity<ByteArray> = ResponseEntity.ok()
+        .contentType(MediaType.parseMediaType(file.contentType))
+        .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(file.name).build().toString())
+        .body(file.bytes)
 
     private fun safeBack(key: String, back: String?, default: String) = back?.takeIf { it.startsWith("/p/$key/") } ?: default
 }

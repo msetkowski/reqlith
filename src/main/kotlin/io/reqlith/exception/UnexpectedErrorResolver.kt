@@ -3,12 +3,12 @@ package io.reqlith.exception
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import java.util.UUID
 import org.springframework.core.Ordered
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.servlet.HandlerExceptionResolver
 import org.springframework.web.servlet.ModelAndView
+import java.util.UUID
 
 private val logger = KotlinLogging.logger {}
 
@@ -18,7 +18,9 @@ private val logger = KotlinLogging.logger {}
  * is a defect: logged at ERROR with an error id that the error page shows, so users can report it.
  */
 @Component
-class UnexpectedErrorResolver : HandlerExceptionResolver, Ordered {
+class UnexpectedErrorResolver :
+    HandlerExceptionResolver,
+    Ordered {
     override fun getOrder(): Int = Ordered.LOWEST_PRECEDENCE
 
     override fun resolveException(request: HttpServletRequest, response: HttpServletResponse, handler: Any?, ex: Exception): ModelAndView? {

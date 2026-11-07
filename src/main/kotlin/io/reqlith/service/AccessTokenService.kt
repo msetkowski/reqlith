@@ -7,22 +7,19 @@ import io.reqlith.model.dto.CurrentUser
 import io.reqlith.model.dto.NewToken
 import io.reqlith.model.entity.AccessToken
 import io.reqlith.repository.AccessTokenRepository
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.time.Clock
 import java.time.Instant
 import java.util.Base64
 import java.util.UUID
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 
 private val logger = KotlinLogging.logger {}
 
 @Service
-class AccessTokenService(
-    private val tokens: AccessTokenRepository,
-    private val clock: Clock,
-) {
+class AccessTokenService(private val tokens: AccessTokenRepository, private val clock: Clock) {
     private val random = SecureRandom()
 
     /** Active tokens only; revoked ones stay in the database because the access log refers to them. */
@@ -61,8 +58,7 @@ class AccessTokenService(
         return token
     }
 
-    private fun sha256(value: String): String =
-        MessageDigest.getInstance("SHA-256").digest(value.toByteArray()).joinToString("") { "%02x".format(it) }
+    private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256").digest(value.toByteArray()).joinToString("") { "%02x".format(it) }
 
     companion object {
         const val PREFIX = "rql_"

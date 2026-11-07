@@ -12,11 +12,7 @@ import java.time.Instant
 import java.util.UUID
 
 @Embeddable
-data class MemberId(
-    @Column(name = "project_id") val projectId: UUID,
-    @Column(name = "user_id") val userId: UUID,
-) : Serializable
-
+data class MemberId(@Column(name = "project_id") val projectId: UUID, @Column(name = "user_id") val userId: UUID) : Serializable
 
 @Entity
 @Table(name = "project_member")

@@ -14,10 +14,7 @@ import org.springframework.web.client.body
  * `realm-management` role `view-users` and the client scope `kc-admin-api`. Enabled with
  * `reqlith.idp.directory=KEYCLOAK` (see IdpConfig).
  */
-class KeycloakUserDirectory(
-    properties: ReqlithProperties,
-    private val clients: OAuth2AuthorizedClientManager,
-) : UserDirectory {
+class KeycloakUserDirectory(properties: ReqlithProperties, private val clients: OAuth2AuthorizedClientManager) : UserDirectory {
     /** http://host/realms/acme -> http://host/admin/realms/acme */
     private val adminUrl = properties.idp.internalUrl.trimEnd('/').replace("/realms/", "/admin/realms/")
     private val http = RestClient.create()
