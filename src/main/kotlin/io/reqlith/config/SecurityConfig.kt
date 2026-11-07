@@ -30,7 +30,11 @@ class SecurityConfig(private val properties: ReqlithProperties) {
                 authorize("/js/**", permitAll)
                 authorize("/vendor/**", permitAll)
                 authorize("/favicon.svg", permitAll)
+                // Kubernetes probes (/actuator/health/liveness, /readiness) and Prometheus scraping.
+                authorize("/actuator/health", permitAll)
                 authorize("/actuator/health/**", permitAll)
+                authorize("/actuator/info", permitAll)
+                authorize("/actuator/prometheus", permitAll)
                 authorize("/.well-known/oauth-protected-resource/**", permitAll)
                 authorize("/error", permitAll)
                 authorize(anyRequest, authenticated)

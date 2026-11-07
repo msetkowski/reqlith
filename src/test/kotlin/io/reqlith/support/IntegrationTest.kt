@@ -19,29 +19,34 @@ import java.time.Duration
 annotation class IntegrationTest
 
 /**
- * One SQL Server per test JVM. It is stopped when the Spring context closes, and Ryuk removes it if the JVM
- * dies. The label lets `src/main/dev/scripts/test.sh` sweep up anything that still survives.
+ * One SQL Server for the whole test JVM, shared by every Spring test context (the MCP tests run on a real
+ * port and therefore get their own context). It is never stopped by a context: Ryuk removes it when the
+ * JVM exits, also after a crash, and `src/main/dev/scripts/test.sh` sweeps up anything left (label below).
  */
 @TestConfiguration(proxyBeanMethods = false)
 class MsSqlContainerConfig {
-    @Bean
+    @Bean(destroyMethod = "")
     @ServiceConnection
-    fun msSqlServer(): MSSQLServerContainer =
-        MSSQLServerContainer("mcr.microsoft.com/mssql/server:2022-latest")
-            .acceptLicense()
-            .withLabel(TEST_CONTAINER_LABEL, "true")
-            .withStartupTimeout(Duration.ofMinutes(3))
-            // Login for the read-only MCP connection; Flyway (V4) maps it to a db_datareader user.
-            .withInitScript("db/mcp-login.sql")
+    fun msSqlServer(): MSSQLServerContainer = shared
 
     @Bean
-    fun mcpDatabaseProperties(container: MSSQLServerContainer) = DynamicPropertyRegistrar { registry ->
-        registry.add("reqlith.mcp.datasource.url", container::getJdbcUrl)
+    fun mcpDatabaseProperties() = DynamicPropertyRegistrar { registry ->
+        registry.add("reqlith.mcp.datasource.url", shared::getJdbcUrl)
         registry.add("reqlith.mcp.datasource.username") { "reqlith_mcp" }
         registry.add("reqlith.mcp.datasource.password") { "Reqlith_test_mcp_1" }
     }
 
     companion object {
         const val TEST_CONTAINER_LABEL = "io.reqlith.test"
+
+        private val shared: MSSQLServerContainer by lazy {
+            MSSQLServerContainer("mcr.microsoft.com/mssql/server:2022-latest")
+                .acceptLicense()
+                .withLabel(TEST_CONTAINER_LABEL, "true")
+                .withStartupTimeout(Duration.ofMinutes(3))
+                // Login for the read-only MCP connection; Flyway (V4) maps it to a db_datareader user.
+                .withInitScript("db/mcp-login.sql")
+                .apply { start() }
+        }
     }
 }

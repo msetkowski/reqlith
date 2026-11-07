@@ -51,6 +51,41 @@ Integration tests (`*IT`) start SQL Server through Testcontainers. The script:
 
 Running `mvnd verify` directly also works when Docker is available, or when the variables above are exported.
 
+Test split and coverage:
+
+| Plugin | Runs | Phase |
+|---|---|---|
+| Surefire | unit tests `*Test` (no Spring context, no containers) | `test` |
+| Failsafe | integration tests `*IT` (Spring context, SQL Server via Testcontainers, Chromium, MCP over HTTP) | `integration-test` / `verify` |
+
+JaCoCo measures both runs separately and merges them. HTML/XML/CSV reports go to `target/site/jacoco-unit`, `target/site/jacoco-it` and `target/site/jacoco` (merged). Skip measurement with `-Djacoco.skip=true`.
+
+## Observability
+
+These endpoints are open without authentication, for Kubernetes and Prometheus:
+
+| Endpoint | Purpose |
+|---|---|
+| `/actuator/health/liveness` | Liveness probe. It does not depend on the database: restarting would not fix a database outage. |
+| `/actuator/health/readiness` | Readiness probe, including the database connection. |
+| `/actuator/health`, `/actuator/info` | Overall status (no component details for anonymous callers). |
+| `/actuator/prometheus` | Prometheus scrape endpoint (JVM, HTTP server with histograms, Hikari pools, …), tagged `application="reqlith"`. |
+
+No other actuator endpoint is exposed.
+
+```yaml
+# Kubernetes container spec
+livenessProbe:
+  httpGet: { path: /actuator/health/liveness, port: 8080 }
+  initialDelaySeconds: 30
+readinessProbe:
+  httpGet: { path: /actuator/health/readiness, port: 8080 }
+# Pod annotations for annotation-based Prometheus scraping
+prometheus.io/scrape: "true"
+prometheus.io/path: /actuator/prometheus
+prometheus.io/port: "8080"
+```
+
 ## MCP server for agents
 
 `/mcp` is a read-only [Model Context Protocol](https://modelcontextprotocol.io) server (streamable HTTP) for agents that assess requirements, suggest improvements or build a backlog (e.g. in ADO) with their own tools.
@@ -86,7 +121,7 @@ PDF export renders the PRD Markdown with the same renderer as the UI and prints 
 | `src/main/dev/keycloak`, `src/main/dev/mssql` | Keycloak realm with test users, database init script |
 | `src/main/dev/scripts` | `podman-dev.sh` (environment without compose), `test.sh`, `update-vendor.sh` |
 
-Build the image with `docker build -f src/main/docker/Dockerfile .` (or `podman build`).
+Build the image with `docker build -f src/main/docker/Dockerfile .` (or `podman build`). The Spring Boot jar is extracted into layers (`dependencies`, `spring-boot-loader`, `snapshot-dependencies`, `application`). Chromium is installed right after the dependencies layer, so a code change only rebuilds the small application layer (about 2 MB).
 
 ## Configuration
 

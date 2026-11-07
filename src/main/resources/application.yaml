@@ -81,7 +81,25 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        # Unauthenticated (see SecurityConfig): health incl. Kubernetes probes, info, Prometheus scrape endpoint.
+        include: health,info,prometheus
+  endpoint:
+    health:
+      # /actuator/health/liveness and /actuator/health/readiness, also outside Kubernetes.
+      probes:
+        enabled: true
+      # Anonymous callers only see UP/DOWN, never component details.
+      show-details: never
+      group:
+        # Liveness must not depend on the database (a restart would not fix it); readiness does.
+        readiness:
+          include: readinessState,db
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
 
 ---
 spring:
