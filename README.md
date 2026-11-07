@@ -1,81 +1,314 @@
+<div align="center">
+
 # Reqlith
 
-Requirement engineering tool. It collects BABOK-style requirements into a project, reviews the whole project and freezes each approved state as an immutable, numbered version that a development AI agent can consume (PRD export, read-only MCP server).
+**Write requirements people can review, and agents can build from.**
 
-Stack: Spring Boot 4.1 · Kotlin · Spring MVC + Thymeleaf + HTMX · MS SQL Server + Flyway · OAuth 2 / OIDC (Keycloak for local dev).
-All JavaScript and fonts are vendored in `src/main/resources/static/vendor` (see `src/main/dev/scripts/update-vendor.sh`), so no CDN is needed.
+Reqlith collects BABOK-style requirements into a project, reviews the project as a whole and freezes every
+approved state as an immutable, numbered version. Product managers, analysts, engineers and QA work on one
+specification; development agents read exactly the version that was approved, through a read-only MCP server.
 
-## Prerequisites
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+![Java 25](https://img.shields.io/badge/Java-25-orange.svg)
+![Kotlin](https://img.shields.io/badge/Kotlin-2.3-7F52FF.svg)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1-6DB33F.svg)
+![MCP](https://img.shields.io/badge/MCP-read--only-black.svg)
 
-- JDK 25
-- [mvnd](https://github.com/apache/maven-mvnd) (`sdk install mvnd`). The Maven wrapper (`./mvnw`) works too.
-- Docker with compose, **or** Podman
+![Project overview](docs/images/overview.png)
 
-## Local environment
+</div>
 
-Start SQL Server and Keycloak:
+## Contents
 
-```bash
-docker compose -f src/main/dev/compose.yaml up -d    # or: src/main/dev/scripts/podman-dev.sh up
+- [Features](#features)
+- [Screenshots](#screenshots)
+- [Architecture](#architecture)
+- [Quick start](#quick-start)
+- [How versions and reviews work](#how-versions-and-reviews-work)
+- [MCP server for agents](#mcp-server-for-agents)
+- [Development](#development)
+- [Deployment and operations](#deployment-and-operations)
+- [Configuration](#configuration)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Features
+
+- **Structured specification:** problem statement, scope and success metrics, plus business, stakeholder,
+  functional and non-functional requirements, assumptions, risks, dependencies, scenarios and roles. Every element
+  gets a permanent key (`BR-01`, `FR-12`, …) that is never reused.
+- **Markdown with Mermaid:** a two-pane editor with live preview. Diagrams are drawn in the browser and in
+  PDFs. Writing `` `SR-03` `` links to that element.
+- **Traceability:** typed links (derived from, verified by, depends on, mitigates) in both directions, plus
+  readiness checks such as functional requirements without a scenario or broken references.
+- **Roles across projects:** select an existing role or create one, then describe what it does in this
+  project.
+- **Whole-project review:** reviewers accept, request changes or reject a frozen candidate, and can suggest
+  wording on any element. Authors apply or dismiss suggestions afterwards.
+- **Immutable versions:** approval turns the candidate into `v1`, `v2`, … A database trigger keeps approved
+  versions from ever changing. Any two versions, or a version and the working copy, can be compared word by word.
+- **Single-document PRD export:** Markdown or PDF, with traceability matrix and approval record. PDFs are
+  printed by headless Chromium in a separate rendering service.
+- **Links both ways:** paste `/p/{key}/v/{n}` into JIRA or ADO (it never changes), and attach JIRA, ADO or
+  other links to the project, a version or a single element.
+- **Read-only MCP server:** ten tools for agents, approved content by default, personal access tokens or
+  OAuth, and an access log of every call.
+- **Enterprise basics:** OAuth 2 / OIDC sign-in, MS SQL Server with Flyway, Kubernetes probes, Prometheus
+  metrics and correlated logs. All JavaScript and fonts are bundled, with no CDN.
+
+## Screenshots
+
+| Review with "what changed" | Compare versions |
+|---|---|
+| ![Review](docs/images/review.png) | ![Compare](docs/images/compare.png) |
+
+| Requirement with diagram, traceability and external links |
+|---|
+| ![Requirement](docs/images/element.png) |
+
+## Architecture
+
+```mermaid
+flowchart LR
+    U[Browser<br/>PM · BA · engineers · QA] -- "HTTPS :8080<br/>OIDC session" --> APP
+    A[AI agent<br/>MCP client] -- "/mcp :8080<br/>token or OAuth" --> APP
+    K8S[Kubernetes · Prometheus] -- ":8081 actuator" --> APP
+
+    subgraph APP[Reqlith · Spring Boot · Kotlin]
+        UI[Thymeleaf + HTMX UI]
+        MCP[MCP tools<br/>read-only]
+        SVC[Services<br/>review · versions · export]
+    end
+
+    APP -- "reqlith_app<br/>read/write" --> DB[(MS SQL Server)]
+    MCP -- "reqlith_mcp<br/>SELECT only" --> DB
+    APP -- "OIDC / JWKS" --> IDP[OAuth 2 IDP<br/>Keycloak locally]
+    APP -- "HTML → PDF" --> R[Gotenberg<br/>headless Chromium]
 ```
 
-| Service  | Address                 | Credentials                                   |
-|----------|-------------------------|-----------------------------------------------|
-| MSSQL    | `localhost:1433`        | db `reqlith`, `reqlith_app` / `Reqlith_dev_app_1` |
-| Keycloak | http://localhost:8180   | admin console `admin` / `admin`, realm `reqlith` |
-| PDF renderer | http://localhost:3000 | Gotenberg (headless Chromium), used by PDF export |
+- **Server-side rendering:** Spring MVC with Thymeleaf and HTMX, plus two small JavaScript islands (editor
+  toolbar and Mermaid). The same Markdown renderer serves the preview, the read views, the PDF and MCP.
+- **Two kinds of data:** a mutable working copy, and immutable version snapshots stored as canonical JSON with
+  a SHA-256 hash.
+- **Stack:** Spring Boot 4.1, Kotlin 2.3 on Java 25, Spring Security, Spring AI MCP server, MS SQL Server,
+  Flyway, Gotenberg and Keycloak (for local development).
 
-Test users (password `password` for all): `owner1` (also `reqlith-admin`), `owner2`, `contrib1`, `reviewer1`, `reviewer2`, `viewer1`.
+## Quick start
 
-Run the app on the host:
-
-```bash
-mvnd spring-boot:run -Dspring-boot.run.profiles=local
-# open http://localhost:8080
-```
-
-To run everything in containers instead, use `docker compose -f src/main/dev/compose.yaml --profile full up -d --build` or `src/main/dev/scripts/podman-dev.sh up --with-app`.
-Stop the environment with `src/main/dev/scripts/podman-dev.sh down`. Add `--volumes` to also drop the database.
-
-## Tests
+**You need:** JDK 25, [mvnd](https://github.com/apache/maven-mvnd) or the bundled `./mvnw`, and Docker (with
+compose) or Podman.
 
 ```bash
-src/main/dev/scripts/test.sh            # = mvnd verify, plus container setup and cleanup
-src/main/dev/scripts/test.sh test       # any Maven arguments
+# 1. SQL Server, Keycloak (with test users) and the PDF renderer
+docker compose -f src/main/dev/compose.yaml up -d      # or: src/main/dev/scripts/podman-dev.sh up
+
+# 2. The application
+mvnd spring-boot:run -Dspring-boot.run.profiles=local    # or: ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-Integration tests (`*IT`) start SQL Server through Testcontainers. The script:
+Open <http://localhost:8080> and sign in as `owner1` / `password`.
 
-- With Podman, starts the user API socket if needed and sets `DOCKER_HOST`. It also configures Testcontainers' Ryuk reaper for rootless Podman (`TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE`, `TESTCONTAINERS_RYUK_CONTAINER_PRIVILEGED`), so containers are removed even when the test JVM crashes or is killed.
-- On exit, including Ctrl+C, removes any container still labelled `io.reqlith.test`.
-- Failsafe kills a test JVM that hangs for more than 20 minutes.
+| Test user | Use it for |
+|---|---|
+| `owner1` | owner, also `reqlith-admin` (manages workspaces) |
+| `owner2`, `contrib1` | second owner, contributor |
+| `reviewer1`, `reviewer2` | reviewers |
+| `viewer1` | read-only user |
 
-Running `mvnd verify` directly also works when Docker is available, or when the variables above are exported.
+All passwords are `password`. Local services:
 
-Test split and coverage:
+| Service | Address | Credentials |
+|---|---|---|
+| Application | <http://localhost:8080> (actuator on `:8081`) | test users above |
+| Keycloak | <http://localhost:8180> | admin console `admin` / `admin`, realm `reqlith` |
+| MS SQL Server | `localhost:1433` | db `reqlith`, `reqlith_app` / `Reqlith_dev_app_1` |
+| PDF renderer | <http://localhost:3000> | Gotenberg |
+
+<details>
+<summary>Run everything in containers / stop the environment</summary>
+
+```bash
+./mvnw -DskipTests package                                         # the image is built from target/
+docker compose -f src/main/dev/compose.yaml --profile full up -d --build
+# or with Podman (builds the image itself):
+src/main/dev/scripts/podman-dev.sh up --with-app
+
+src/main/dev/scripts/podman-dev.sh down              # add --volumes to drop the database too
+```
+
+</details>
+
+## How versions and reviews work
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft
+    Draft --> InReview: owner submits<br/>(frozen candidate vN-rcK)
+    InReview --> Approved: every reviewer accepts
+    InReview --> Draft: changes requested / rejected / withdrawn
+    Approved --> Draft: any edit starts vN+1
+```
+
+- **Submitting** freezes the working copy as a candidate (`v2-rc1`). Reviewers only ever see that frozen copy,
+  and the working copy is read-only until the round closes.
+- **Approval** happens when every assigned reviewer accepts. The candidate becomes `v2`, and version numbers
+  have no gaps. One "request changes" or "reject" closes the round.
+- **Approved versions never change.** The application refuses it, and so does a database trigger. Role
+  descriptions are copied into the snapshot, so editing a shared role later does not rewrite history.
+- **Stable links:** `/p/{key}` is always the latest approved version, and `/p/{key}/v/{n}` never changes. Use
+  the second one in JIRA or ADO.
+
+## MCP server for agents
+
+`/mcp` is a read-only [Model Context Protocol](https://modelcontextprotocol.io) server (streamable HTTP) for
+agents that assess requirements, suggest improvements or build a backlog with their own tools.
+
+| Tool | Returns |
+|---|---|
+| `list_projects` | projects, owners, state, tags, domains |
+| `get_prd` | the whole specification as one Markdown PRD |
+| `search_requirements` | elements by type, tag or text |
+| `get_requirement` | one element with traceability and external links |
+| `get_traceability` | BR → SR → FR/NFR → scenario graph, with its gaps |
+| `list_versions`, `diff_versions` | version history and unified diffs |
+| `get_review_status` | reviewers, decisions, open suggestions |
+| `get_external_links`, `list_roles` | JIRA / ADO references, shared roles |
+
+- **Approved by default:** tools return the latest approved version unless `version` is `"2"`, `"3-rc1"` or
+  `"draft"`, so agents never build on unreviewed work by accident.
+- **Authentication:** a personal access token (`rql_…`, created under *Account → Access tokens for agents* and
+  stored hashed), or an OAuth 2.1 token from the IDP. Unauthenticated calls get `401` with a pointer to
+  `/.well-known/oauth-protected-resource` (RFC 9728). The local realm has a public client `reqlith-mcp`
+  (authorization code with PKCE, and device flow).
+- **Read-only by construction:** tools read through their own connection pool, logged in as a database user with
+  `db_datareader` only.
+- **Access log:** every call is recorded with client, user, token and tool, and shown on the project page and
+  on the token page.
+
+```json
+{
+  "mcpServers": {
+    "reqlith": {
+      "type": "http",
+      "url": "http://localhost:8080/mcp",
+      "headers": { "Authorization": "Bearer rql_…" }
+    }
+  }
+}
+```
+
+## Development
+
+### Tests and coverage
+
+```bash
+src/main/dev/scripts/test.sh                 # mvnd verify, with container setup and cleanup
+src/main/dev/scripts/test.sh clean verify    # any Maven arguments
+```
 
 | Plugin | Runs | Phase |
 |---|---|---|
 | Surefire | unit tests `*Test` (no Spring context, no containers) | `test` |
 | Failsafe | integration tests `*IT` (Spring context, SQL Server and the PDF renderer via Testcontainers, MCP over HTTP) | `integration-test` / `verify` |
 
-JaCoCo measures both runs separately and merges them. HTML/XML/CSV reports go to `target/site/jacoco-unit`, `target/site/jacoco-it` and `target/site/jacoco` (merged). Skip measurement with `-Djacoco.skip=true`.
+JaCoCo measures both runs and merges them. Reports go to `target/site/jacoco-unit`, `target/site/jacoco-it`
+and `target/site/jacoco` (merged). Skip measurement with `-Djacoco.skip=true`.
 
-## Observability
+<details>
+<summary>What <code>test.sh</code> does for Testcontainers (Podman friendly)</summary>
 
-Actuator runs on a separate **management port, 8081** (`MANAGEMENT_PORT`). Keep that port cluster-internal: do not route it through the ingress. The application port (8080) does not serve `/actuator` at all. On the management port these endpoints are open without authentication, for Kubernetes and Prometheus:
+- With Podman, it starts the user API socket if needed and sets `DOCKER_HOST`. It also configures the Ryuk
+  reaper for rootless Podman (`TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE`,
+  `TESTCONTAINERS_RYUK_CONTAINER_PRIVILEGED`), so containers are removed even when the test JVM crashes.
+- On exit, including Ctrl+C, it removes any container still labelled `io.reqlith.test`.
+- Failsafe kills a test JVM that hangs for more than 20 minutes.
+- All tests in a run share one SQL Server and one renderer container.
+
+Running `mvnd verify` directly also works when Docker is available, or when those variables are exported.
+
+</details>
+
+### Project layout
+
+```
+src/main/kotlin/io/reqlith
+├── config        Spring configuration: security (web UI and /mcp), properties, MCP read-only database, logging
+├── controller    MVC controllers, MCP tools, view helpers
+├── service       business logic: projects, elements, roles, reviews, versions, snapshots, diff, export, markdown
+├── repository    Spring Data repositories and JDBC access (key counter, export cache, MCP read model, access log)
+├── model
+│   ├── entity    JPA entities and their enums
+│   └── dto       snapshot documents, forms, view models, MCP results, principals
+└── exception     business exceptions and error handling
+src/main/resources   templates, static assets (vendored JS and fonts), Flyway migrations, configuration
+src/main/docker      Dockerfile (Alpine + JRE 25)
+src/main/dev         compose.yaml, Keycloak realm, database init, scripts (podman-dev, test, build-image, update-vendor)
+```
+
+Tests mirror the package layout. Shared test setup lives in `support`.
+
+### Logging conventions
+
+The project uses [kotlin-logging](https://github.com/oshai/kotlin-logging): one logger per file, with messages
+as lambdas.
+
+```kotlin
+private val logger = KotlinLogging.logger {}
+
+logger.info { "Version approved project=${project.key} version=${version.label}" }
+logger.error(e) { "PDF export failed: ${e.message}" }
+```
+
+| Level | Use for |
+|---|---|
+| `INFO` | business actions and security events: sign-in, changes, invitations, review lifecycle, approvals, exports, MCP calls, access tokens, access denied |
+| `DEBUG` | engineer hints: allocated keys, snapshot hashes, stale forms, PDF cache and renderer timings, MCP authentication |
+| `ERROR` | failures: unexpected exceptions (with an error id shown to the user), renderer failures, failing MCP tools |
+
+- **Correlation:** every line carries `[requestId userId]`. The request id is taken from `X-Request-Id` (or
+  generated) and returned in the response.
+- **Personal data:** logs contain ids only, no e-mail addresses, tokens or document content.
+
+## Deployment and operations
+
+### Container image
+
+The image has no builder stage. Maven builds everything into `target/`, and the Dockerfile copies the result
+onto Alpine with the JRE installed from Alpine's packages. The image build fails if that JRE is not Java 25.
+
+```bash
+src/main/dev/scripts/build-image.sh     # mvnd -DskipTests package && docker/podman build -f src/main/docker/Dockerfile .
+```
+
+| Layer | Source | Changes |
+|---|---|---|
+| Alpine + JRE 25 | `apk add openjdk25-jre-headless` | rarely |
+| `/opt/reqlith/lib` | runtime dependencies (`target/docker/lib`) | when dependencies change |
+| `/opt/reqlith/classes` | compiled code, templates, assets, migrations (`target/classes`) | every change, about 5 MB |
+
+The image is about 350 MB. Building requires JDK 25 or newer, which the Maven enforcer plugin checks.
+
+### Services to run
+
+| Service | Notes |
+|---|---|
+| Reqlith | ports 8080 (application) and 8081 (actuator, cluster-internal) |
+| MS SQL Server | schema owned by `reqlith_app`. Create a `reqlith_mcp` login with read rights for MCP (see `src/main/dev/mssql/init.sql`). |
+| OAuth 2 / OIDC IDP | any provider. Realm roles are read from the `roles` claim, and `reqlith-admin` manages workspaces. |
+| Gotenberg | PDF rendering. Keep it internal, and start it with `--chromium-allow-list=^file:///tmp/.*` so rendered pages have no network access. |
+
+### Health and metrics
+
+Actuator runs on a separate **management port, 8081**. Its endpoints are open there for probes and scraping,
+and the application port does not serve `/actuator` at all.
 
 | Endpoint | Purpose |
 |---|---|
-| `/actuator/health/liveness` | Liveness probe. It does not depend on the database: restarting would not fix a database outage. |
-| `/actuator/health/readiness` | Readiness probe, including the database connection. |
-| `/actuator/health`, `/actuator/info` | Overall status (no component details for anonymous callers). |
-| `/actuator/prometheus` | Prometheus scrape endpoint (JVM, HTTP server with histograms, Hikari pools, …), tagged `application="reqlith"`. |
-
-No other actuator endpoint is exposed.
+| `/actuator/health/liveness` | liveness probe (does not depend on the database) |
+| `/actuator/health/readiness` | readiness probe (includes the database) |
+| `/actuator/prometheus` | Prometheus metrics (JVM, HTTP with histograms, connection pools), tagged `application="reqlith"` |
 
 ```yaml
-# Kubernetes container spec
 livenessProbe:
   httpGet: { path: /actuator/health/liveness, port: 8081 }
   initialDelaySeconds: 30
@@ -87,106 +320,36 @@ prometheus.io/path: /actuator/prometheus
 prometheus.io/port: "8081"
 ```
 
-## Logging
-
-| Level | What | Examples |
-|---|---|---|
-| `INFO` | Business actions and security-relevant events | user signed in, project/element/role changes, invitations, review submitted, decision, `Version approved project=… version=v2`, suggestion applied, PRD exported, MCP tool call, access token created/revoked, access denied |
-| `DEBUG` | Hints for engineers | key numbers allocated, snapshot hashes, stale forms rejected, PDF cache hits and renderer timings, how MCP requests were authenticated, expected 4xx outcomes |
-| `ERROR` | Failures that need attention | unexpected exceptions (with an error id that the error page shows, so users can report it), PDF renderer failures, failing MCP tools |
-
-- **API:** [kotlin-logging](https://github.com/oshai/kotlin-logging) on top of SLF4J/Logback. Declare one logger per file and pass messages as lambdas, so they are only built when the level is enabled:
-
-  ```kotlin
-  private val logger = KotlinLogging.logger {}
-
-  logger.info { "Version approved project=${project.key} version=${version.label}" }
-  logger.error(e) { "PDF export failed: ${e.message}" }
-  ```
-- **Correlation:** every line carries `[requestId userId]`. The request id comes from an incoming `X-Request-Id` header (or is generated) and is returned in the response.
-- **Personal data:** logs contain ids, never e-mail addresses, tokens or document content.
-- **Levels:** production runs `io.reqlith` at `INFO`; the `local` profile sets `DEBUG`. Change it at runtime with `LOGGING_LEVEL_IO_REQLITH=DEBUG`.
-
-## MCP server for agents
-
-`/mcp` is a read-only [Model Context Protocol](https://modelcontextprotocol.io) server (streamable HTTP) for agents that assess requirements, suggest improvements or build a backlog (e.g. in ADO) with their own tools.
-
-- **Tools:** `list_projects`, `get_prd`, `search_requirements`, `get_requirement`, `get_traceability`, `list_versions`, `diff_versions`, `get_review_status`, `get_external_links`, `list_roles`. They return the **latest approved version** unless `version` is given (`"2"`, `"3-rc1"` or `"draft"`), so agents never build on unreviewed work by accident.
-- **Authentication:** either a personal access token (`rql_…`, created under *Account → Access tokens for agents*, stored hashed) or an OAuth 2.1 access token from the IDP. Unauthenticated requests get `401` with `WWW-Authenticate: Bearer resource_metadata=…` pointing to `/.well-known/oauth-protected-resource`. The local realm has a public client `reqlith-mcp` (authorization code + PKCE, device flow).
-- **Read-only by construction:** tools read through a separate connection pool logged in as `reqlith_mcp`, which only has `db_datareader` (configure it with `REQLITH_MCP_DB_URL`, `REQLITH_MCP_DB_USER` and `REQLITH_MCP_DB_PASSWORD`).
-- **Access log:** every call is logged with client, user, token and tool, and shown on the project's *Export, links & MCP* page and on the token page.
-
-Client configuration (Claude Code, Claude Desktop, …):
-
-```json
-{ "mcpServers": { "reqlith": { "type": "http", "url": "http://localhost:8080/mcp",
-                                "headers": { "Authorization": "Bearer rql_…" } } } }
-```
-
-## PDF export
-
-PDF export renders the PRD Markdown with the same renderer as the UI and sends the HTML to a separate rendering service, [Gotenberg](https://gotenberg.dev). Gotenberg prints it with headless Chromium, so Mermaid diagrams are drawn as in the browser, while the application image needs no browser.
-
-- **No network for rendered pages:** fonts are embedded, and `mermaid.min.js` is uploaded with the page. The renderer runs with `--chromium-allow-list=^file:///tmp/.*`, so a page can only read its own uploaded files.
-- **Configuration:** `REQLITH_PDF_URL` (default `http://localhost:3000`). In Kubernetes, run the renderer as its own Deployment and Service, without an ingress.
-- **Caching:** PDFs of closed versions are cached in `export_cache`, keyed by content hash, version, status and export options. Only the first export needs the renderer.
-
-## Repository layout
-
-| Path | Contents |
-|---|---|
-| `src/main/kotlin/io/reqlith` | Application code, by layer (see below) |
-| `src/main/resources` | Templates, static assets, Flyway migrations, configuration |
-| `src/main/docker/Dockerfile` | Application image: Alpine + JRE 25, built from Maven output (build context: repository root, see `.dockerignore`) |
-| `src/main/dev/compose.yaml` | Local environment for Docker compose |
-| `src/main/dev/keycloak`, `src/main/dev/mssql` | Keycloak realm with test users, database init script |
-| `src/main/dev/scripts` | `podman-dev.sh` (environment without compose), `test.sh`, `build-image.sh`, `update-vendor.sh` |
-
-Packages under `io.reqlith`:
-
-```
-├── config        Spring configuration: security (web UI and /mcp), properties, MCP read-only database
-├── controller    MVC controllers, MCP tools, view helpers (formats, project page support)
-├── service       business logic: projects, elements, roles, reviews, versions, snapshots, diff, export, markdown
-├── repository    Spring Data repositories and JDBC access (key counter, export cache, MCP read model and access log)
-├── model
-│   ├── entity    JPA entities and their enums
-│   └── dto       documents (snapshots), forms, view models, MCP results, principals
-└── exception     business exceptions and the error page handler
-```
-
-Tests mirror this layout (`*Test` unit tests, `*IT` integration tests). Shared test setup lives in `support`.
-
-The image has no builder stage. Maven builds everything into `target/`, and the Dockerfile only copies the results onto Alpine with the JRE installed from Alpine's packages (`openjdk25-jre-headless`; the build fails if it is not Java 25):
-
-```bash
-src/main/dev/scripts/build-image.sh           # = mvnd -DskipTests package && docker/podman build -f src/main/docker/Dockerfile .
-```
-
-| Layer | Source | Changes |
-|---|---|---|
-| Alpine + JRE 25 | `apk add openjdk25-jre-headless` | rarely |
-| `/opt/reqlith/lib` | `target/docker/lib`: runtime dependencies (`dependency:copy-dependencies`, without devtools) | when dependencies change |
-| `/opt/reqlith/classes` | `target/classes`: compiled Kotlin, templates, static assets, migrations | with every code change (about 5 MB) |
-
-The app starts with `java -cp classes:lib/* io.reqlith.ReqlithApplicationKt`. The image is about 350 MB, compared with 1.3 GB when Chromium was part of it. Building requires JDK 25 or newer, which the Maven enforcer plugin checks.
+PDFs of closed versions are cached in the database, so only the first export of a version needs the
+renderer.
 
 ## Configuration
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `REQLITH_DB_URL` / `REQLITH_DB_USER` / `REQLITH_DB_PASSWORD` | local MSSQL | Main datasource (schema owner, Flyway) |
-| `REQLITH_IDP_ISSUER` | `http://localhost:8180/realms/reqlith` | Token issuer, also the URL browsers are redirected to |
-| `REQLITH_IDP_INTERNAL_URL` | issuer | How the server reaches the IDP, when that differs (containers) |
+| `REQLITH_DB_URL` / `REQLITH_DB_USER` / `REQLITH_DB_PASSWORD` | local SQL Server | main datasource (schema owner, Flyway) |
+| `REQLITH_MCP_DB_URL` / `REQLITH_MCP_DB_USER` / `REQLITH_MCP_DB_PASSWORD` | main URL / `reqlith_mcp` / dev password | read-only connection for the MCP server |
+| `REQLITH_IDP_ISSUER` | `http://localhost:8180/realms/reqlith` | token issuer, also where browsers are redirected |
+| `REQLITH_IDP_INTERNAL_URL` | the issuer | how the server reaches the IDP, when that differs (containers) |
 | `REQLITH_IDP_CLIENT_ID` / `REQLITH_IDP_CLIENT_SECRET` | `reqlith-app` / dev secret | OIDC client |
-| `REQLITH_BASE_URL` | `http://localhost:8080` | Public URL for copyable links and the MCP config |
+| `REQLITH_BASE_URL` | `http://localhost:8080` | public URL for copyable links and the MCP configuration |
 | `REQLITH_PDF_URL` | `http://localhost:3000` | PDF rendering service (Gotenberg) |
-| `REQLITH_MCP_DB_URL` / `REQLITH_MCP_DB_USER` / `REQLITH_MCP_DB_PASSWORD` | main URL / `reqlith_mcp` / dev password | Read-only connection used by the MCP server |
-| `MANAGEMENT_PORT` | `8081` | Actuator port (probes, Prometheus) |
+| `MANAGEMENT_PORT` | `8081` | actuator port |
+| `LOGGING_LEVEL_IO_REQLITH` | `INFO` (`DEBUG` with the `local` profile) | application log level |
 
-The IDP endpoints are configured explicitly rather than discovered, so the app starts even when the IDP is down. The ID token issuer is still validated against `REQLITH_IDP_ISSUER`. IDP realm roles are read from the `roles` claim, and `reqlith-admin` grants workspace management.
+The IDP endpoints are configured explicitly rather than discovered, so the app starts even when the IDP is down.
+ID token issuers are still validated against `REQLITH_IDP_ISSUER`.
 
-## Design notes
+## Contributing
 
-- **Working copy and snapshots.** Authors edit a mutable working copy. Submitting for review freezes the whole project as a canonical JSON snapshot (`project_version`). Approved versions get gapless numbers `v1, v2, …`, and candidates are labelled `vN-rcK`. A database trigger (`V2__version_immutability.sql`) refuses any change to an approved version and any change to any snapshot.
-- Element keys (`BR-3`, `FR-12`, …) are never reused, and links from JIRA/ADO should use `/p/{key}/v/{n}`, which never changes.
+1. Start the local environment and run `src/main/dev/scripts/test.sh` before you open a pull request.
+2. Keep to the package layout (controllers stay thin, logic lives in services, data access in
+   repositories) and to the logging conventions above.
+3. Schema changes go into a new Flyway migration in `src/main/resources/db/migration`. Never edit an applied
+   one.
+4. To upgrade the bundled front-end libraries, change the versions in `src/main/dev/scripts/update-vendor.sh`
+   and run it.
+
+## License
+
+[Apache License 2.0](LICENSE)
