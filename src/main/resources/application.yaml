@@ -1,0 +1,81 @@
+spring:
+  application:
+    name: reqlith
+  datasource:
+    url: ${REQLITH_DB_URL:jdbc:sqlserver://localhost:1433;databaseName=reqlith;encrypt=true;trustServerCertificate=true}
+    username: ${REQLITH_DB_USER:reqlith_app}
+    password: ${REQLITH_DB_PASSWORD:Reqlith_dev_app_1}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        type.prefer_nationalized_character_data: true
+        jdbc.time_zone: UTC
+  flyway:
+    locations: classpath:db/migration
+  thymeleaf:
+    cache: true
+  mvc:
+    problemdetails:
+      enabled: true
+  security:
+    oauth2:
+      # Explicit endpoints instead of issuer discovery: the app starts without the IDP being up, and
+      # the browser-facing and server-facing IDP addresses may differ (containers).
+      client:
+        registration:
+          idp:
+            client-id: ${REQLITH_IDP_CLIENT_ID:reqlith-app}
+            client-secret: ${REQLITH_IDP_CLIENT_SECRET:reqlith-dev-secret}
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope: [openid, profile, email]
+            client-name: Reqlith IDP
+        provider:
+          idp:
+            authorization-uri: ${reqlith.idp.browser-url}/protocol/openid-connect/auth
+            token-uri: ${reqlith.idp.internal-url}/protocol/openid-connect/token
+            jwk-set-uri: ${reqlith.idp.internal-url}/protocol/openid-connect/certs
+            user-info-uri: ${reqlith.idp.internal-url}/protocol/openid-connect/userinfo
+            user-name-attribute: sub
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${reqlith.idp.internal-url}/protocol/openid-connect/certs
+
+reqlith:
+  # Public base URL, used for copyable links (JIRA/ADO) and the MCP client config.
+  base-url: ${REQLITH_BASE_URL:http://localhost:8080}
+  # Claim in the ID token that carries IDP roles; 'reqlith-admin' grants workspace management.
+  roles-claim: roles
+  admin-role: reqlith-admin
+  idp:
+    # Issuer as it appears in tokens ("iss"); also the URL browsers are redirected to.
+    issuer: ${REQLITH_IDP_ISSUER:http://localhost:8180/realms/reqlith}
+    browser-url: ${REQLITH_IDP_BROWSER_URL:${reqlith.idp.issuer}}
+    # How the server reaches the IDP (token, keys, user info). Differs from the issuer inside containers.
+    internal-url: ${REQLITH_IDP_INTERNAL_URL:${reqlith.idp.issuer}}
+    # OIDC end-session endpoint for logout.
+    end-session-path: /protocol/openid-connect/logout
+
+server:
+  forward-headers-strategy: framework
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  thymeleaf:
+    cache: false
+  web:
+    resources:
+      cache:
+        period: 0

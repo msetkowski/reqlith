@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Projects</title>
+</head>
+<body>
+<main class="page" layout:fragment="content">
+    <section class="page-head">
+        <div class="title">
+            <h1>Projects</h1>
+            <p class="muted">Specifications you own, contribute to or review.</p>
+        </div>
+        <div class="row">
+            <a class="btn primary" th:href="@{/projects/new}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M12 5v14M5 12h14"></path>
+                </svg>New project</a>
+        </div>
+    </section>
+
+    <section aria-labelledby="attn" class="stack">
+        <h2 id="attn">Needs your attention</h2>
+        <div class="card empty">Nothing needs your attention right now.</div>
+    </section>
+
+    <section aria-labelledby="all" class="card">
+        <div class="card-head">
+            <h2 id="all">All projects</h2>
+        </div>
+        <div class="empty">No projects yet. Create the first one.</div>
+    </section>
+</main>
+</body>
+</html>

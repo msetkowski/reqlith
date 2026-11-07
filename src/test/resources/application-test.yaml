@@ -1,0 +1,3 @@
+reqlith:
+  idp:
+    issuer: http://idp.test/realms/reqlith
