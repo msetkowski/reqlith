@@ -1,0 +1,60 @@
+# Verifies every change: compile, ktlint, unit tests and integration tests (SQL Server and the PDF renderer
+# from Testcontainers on the runner's Docker). Nothing is published: no jar, no image, no release.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  # A new push to a pull request replaces the running check; runs on main always finish.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    name: Build and test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Build, check and test
+        run: ./mvnw -B -ntp verify
+
+      # The build formats sources with ktlint before compiling, so unformatted code would pass silently.
+      - name: Sources are formatted
+        run: |
+          if ! git diff --exit-code --stat; then
+            echo "::error::ktlint reformatted the files above. Run ./mvnw process-test-sources locally and commit the result."
+            exit 1
+          fi
+
+      - name: Test reports
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: test-reports
+          path: |
+            target/surefire-reports/
+            target/failsafe-reports/
+          retention-days: 7
+
+      - name: Coverage report
+        if: success()
+        uses: actions/upload-artifact@v5
+        with:
+          name: coverage
+          path: target/site/jacoco/
+          retention-days: 7
