@@ -1,0 +1,24 @@
+# Tests: SQL Server and the PDF renderer come from Testcontainers (MsSqlContainerConfig overrides these values);
+# the identity provider is never contacted.
+spring:
+  jpa:
+    properties:
+      # Query counts are asserted in QueryEfficiencyIT.
+      hibernate.generate_statistics: true
+  datasource:
+    url: jdbc:sqlserver://provided-by-testcontainers
+    password: provided-by-testcontainers
+reqlith:
+  base-url: http://localhost:8080
+  mcp:
+    datasource:
+      password: provided-by-testcontainers
+  pdf:
+    url: http://provided-by-testcontainers
+  idp:
+    issuer: http://idp.test/realms/reqlith
+    client-secret: test-secret
+management:
+  server:
+    # Random management port for tests that start a real server (see ActuatorIT).
+    port: 0

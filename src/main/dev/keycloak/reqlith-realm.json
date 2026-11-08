@@ -1,0 +1,194 @@
+{
+  "realm": "reqlith",
+  "enabled": true,
+  "displayName": "Reqlith (local)",
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "clients": [
+    {
+      "clientId": "reqlith-app",
+      "name": "Reqlith web application",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "reqlith-dev-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "redirectUris": [
+        "http://localhost:8080/*"
+      ],
+      "webOrigins": [
+        "http://localhost:8080"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:8080/*",
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "profile",
+        "email",
+        "roles",
+        "web-origins",
+        "basic"
+      ],
+      "optionalClientScopes": [
+        "kc-admin-api"
+      ]
+    },
+    {
+      "clientId": "reqlith-mcp",
+      "name": "Reqlith MCP clients (agents)",
+      "description": "Public OAuth 2.1 client for MCP clients: authorization code with PKCE on a loopback redirect, or device flow.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://127.0.0.1/*",
+        "http://localhost/*"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "oauth2.device.authorization.grant.enabled": "true"
+      },
+      "defaultClientScopes": [
+        "profile",
+        "email",
+        "basic"
+      ]
+    }
+  ],
+  "users": [
+    {
+      "id": "50d6a495-9c56-4965-88c7-2141eebe12a2",
+      "username": "owner1",
+      "email": "owner1@reqlith.local",
+      "firstName": "Olive",
+      "lastName": "Owens",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "default-roles-reqlith"
+      ]
+    },
+    {
+      "id": "c5c7a97c-6a10-44a8-8775-937a529d68b7",
+      "username": "owner2",
+      "email": "owner2@reqlith.local",
+      "firstName": "Oscar",
+      "lastName": "Ortiz",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "default-roles-reqlith"
+      ]
+    },
+    {
+      "id": "a461d807-0eed-49ad-a522-adcfdb38e78c",
+      "username": "contrib1",
+      "email": "contrib1@reqlith.local",
+      "firstName": "Carla",
+      "lastName": "Conti",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "default-roles-reqlith"
+      ]
+    },
+    {
+      "id": "4cc14bab-9db0-4205-813b-493127097847",
+      "username": "reviewer1",
+      "email": "reviewer1@reqlith.local",
+      "firstName": "Rita",
+      "lastName": "Reyes",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "default-roles-reqlith"
+      ]
+    },
+    {
+      "id": "f169468c-8b0f-4ae5-96a2-a037870a14d8",
+      "username": "reviewer2",
+      "email": "reviewer2@reqlith.local",
+      "firstName": "Raj",
+      "lastName": "Rao",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "default-roles-reqlith"
+      ]
+    },
+    {
+      "id": "30ac119d-c71a-4971-93fe-cf7d6025292f",
+      "username": "viewer1",
+      "email": "viewer1@reqlith.local",
+      "firstName": "Vera",
+      "lastName": "Voss",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "default-roles-reqlith"
+      ]
+    },
+    {
+      "username": "service-account-reqlith-app",
+      "enabled": true,
+      "serviceAccountClientId": "reqlith-app",
+      "clientRoles": {
+        "realm-management": [
+          "view-users"
+        ]
+      }
+    }
+  ]
+}

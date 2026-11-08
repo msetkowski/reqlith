@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title th:text="${version != null} ? |${project.title} ${version.label}| : ${project.title}">Project</title>
+    <script th:src="@{/vendor/mermaid.min.js}" defer></script>
+</head>
+<body>
+<nav layout:fragment="crumbs" class="crumbs" aria-label="Breadcrumb">
+    <th:block th:replace="~{fragments/project :: crumbs(${version != null} ? ${version.label} : 'Document')}"></th:block>
+</nav>
+<div class="workbench" layout:fragment="content">
+    <aside th:replace="~{fragments/project :: sidenav}"></aside>
+    <main class="content" style="max-width: 980px">
+        <th:block th:if="${version == null}">
+            <section th:replace="~{fragments/project :: head}"></section>
+            <div class="banner info">Working copy (draft). It becomes a fixed version once it is reviewed and approved.</div>
+        </th:block>
+
+        <th:block th:unless="${version == null}">
+            <section class="project-head">
+                <div class="title">
+                    <div class="row">
+                        <span class="key" th:text="${project.key}">KEY</span>
+                        <span class="badge strong"
+                              th:classappend="${version.status.name() == 'APPROVED'} ? 'approved' : (${version.status.name() == 'IN_REVIEW'} ? 'review' : 'danger')"
+                              th:text="|${version.label} · ${version.status.label}|">v1 · Approved</span>
+                        <span class="badge" th:if="${isLatest}">Latest approved</span>
+                    </div>
+                    <h1 th:text="${document.project.title}">Title</h1>
+                    <p class="summary" th:if="${document.project.summary}" th:text="${document.project.summary}">Summary</p>
+                </div>
+                <div class="row">
+                    <button type="button" class="btn sm" th:data-copy="${versionUrl}"
+                            th:text="${version.versionNo != null} ? |Copy link to ${version.label}| : 'Copy link'">Copy link</button>
+                    <a class="btn sm" th:href="@{/p/{k}/draft(k=${project.key})}">Working copy</a>
+                </div>
+            </section>
+            <div class="banner ok" th:if="${version.status.name() == 'APPROVED'}">
+                <span th:text="|${version.label} was approved on ${@formats.dateTime(version.closedAt)} and never changes.|">Approved</span>
+                <span class="mono xs" th:text="|sha256 ${#strings.substring(version.contentHash, 0, 12)}…|">hash</span>
+            </div>
+            <div class="banner warn" th:unless="${version.status.name() == 'APPROVED'}"
+                 th:text="|Review candidate submitted ${@formats.dateTime(version.submittedAt)} by ${submittedBy?.displayName}. Status: ${version.status.label}.|">
+                Candidate
+            </div>
+            <div class="banner info" th:if="${newerDraft}">
+                The working copy has changes since this version.
+                <a th:href="@{/p/{k}/draft(k=${project.key})}">Open the draft</a>
+            </div>
+        </th:block>
+
+        <th:block th:replace="~{fragments/document :: body}"></th:block>
+    </main>
+</div>
+</body>
+</html>

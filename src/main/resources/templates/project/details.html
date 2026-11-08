@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Edit details</title>
+</head>
+<body>
+<nav layout:fragment="crumbs" class="crumbs" aria-label="Breadcrumb">
+    <th:block th:replace="~{fragments/project :: crumbs('Details')}"></th:block>
+</nav>
+<div class="workbench" layout:fragment="content">
+    <aside th:replace="~{fragments/project :: sidenav}"></aside>
+    <main class="content" style="max-width: 860px">
+        <h1 class="h-sm">Project details</h1>
+        <div th:replace="~{fragments/project :: locked-banner}"></div>
+        <div class="banner danger" th:if="${error}" th:text="${error.message}" role="alert">Error</div>
+        <form class="card card-body" method="post" th:action="@{/p/{k}/details(k=${project.key})}" th:object="${form}">
+            <input type="hidden" th:field="*{rowVersion}">
+            <div class="field">
+                <span class="label">Project key</span>
+                <span class="mono" th:text="${project.key}">KEY</span>
+                <span class="hint">Keys never change, so links in JIRA or ADO keep working.</span>
+            </div>
+            <div class="field">
+                <label for="title">Project name <span class="req">*</span></label>
+                <input class="input" id="title" th:field="*{title}" required maxlength="200">
+            </div>
+            <div class="field">
+                <label for="summary">One-line summary</label>
+                <input class="input" id="summary" th:field="*{summary}" maxlength="1000">
+            </div>
+            <div class="form-grid">
+                <div class="field">
+                    <label for="domains">Domains</label>
+                    <input class="input" id="domains" th:field="*{domains}">
+                </div>
+                <div class="field">
+                    <label for="tags">Tags</label>
+                    <input class="input" id="tags" th:field="*{tags}">
+                </div>
+            </div>
+            <div class="row">
+                <button class="btn primary" type="submit" th:disabled="${!canEdit}">Save</button>
+                <a class="btn ghost" th:href="@{/p/{k}/draft(k=${project.key})}">Cancel</a>
+            </div>
+        </form>
+    </main>
+</div>
+</body>
+</html>

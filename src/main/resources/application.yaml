@@ -1,0 +1,143 @@
+spring:
+  application:
+    name: reqlith
+  datasource:
+    # No defaults for environment-specific values and secrets: they come from the environment, or from the
+    # `local` profile for development. A missing value stops the start with a list (see RequiredSettings).
+    url: ${REQLITH_DB_URL}
+    username: ${REQLITH_DB_USER:reqlith_app}
+    password: ${REQLITH_DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        type.prefer_nationalized_character_data: true
+        # Element collections (tags, links) and project tags load in batches instead of one query per row.
+        default_batch_fetch_size: 64
+        jdbc.time_zone: UTC
+  flyway:
+    locations: classpath:db/migration
+  thymeleaf:
+    cache: true
+  mvc:
+    problemdetails:
+      enabled: true
+
+reqlith:
+  # Public base URL, used for copyable links (JIRA/ADO) and the MCP client config.
+  base-url: ${REQLITH_BASE_URL}
+  mcp:
+    # The MCP server reads through its own login that only has SELECT rights.
+    datasource:
+      url: ${REQLITH_MCP_DB_URL:${spring.datasource.url}}
+      username: ${REQLITH_MCP_DB_USER:reqlith_mcp}
+      password: ${REQLITH_MCP_DB_PASSWORD}
+  pdf:
+    # Separate rendering service (Gotenberg) that prints the PRD with headless Chromium.
+    url: ${REQLITH_PDF_URL}
+  idp:
+    # KEYCLOAK, ENTRA or GENERIC: fills in the endpoints from the issuer (see README "Identity provider").
+    type: ${REQLITH_IDP_TYPE:KEYCLOAK}
+    # Issuer as it appears in tokens ("iss"); Keycloak: https://host/realms/<realm>,
+    # Entra ID: https://login.microsoftonline.com/<tenant-id>/v2.0
+    issuer: ${REQLITH_IDP_ISSUER}
+    # Keycloak in containers: browsers and the server may reach the IDP under different addresses.
+    browser-url: ${REQLITH_IDP_BROWSER_URL:${reqlith.idp.issuer}}
+    internal-url: ${REQLITH_IDP_INTERNAL_URL:${reqlith.idp.issuer}}
+    client-id: ${REQLITH_IDP_CLIENT_ID:reqlith-app}
+    client-secret: ${REQLITH_IDP_CLIENT_SECRET}
+    # Optional endpoint overrides (required for GENERIC: authorization, token and JWKS).
+    authorization-uri: ${REQLITH_IDP_AUTHORIZATION_URI:}
+    token-uri: ${REQLITH_IDP_TOKEN_URI:}
+    jwks-uri: ${REQLITH_IDP_JWKS_URI:}
+    user-info-uri: ${REQLITH_IDP_USER_INFO_URI:}
+    end-session-uri: ${REQLITH_IDP_END_SESSION_URI:}
+    # Required audience of IDP access tokens at /mcp (Entra: the API's application ID URI); empty = not checked.
+    mcp-audience: ${REQLITH_IDP_MCP_AUDIENCE:}
+    # Invitation suggestions: NONE (users who signed in before), KEYCLOAK, ENTRA or ENTRA_ASSIGNED.
+    directory: ${REQLITH_IDP_DIRECTORY:NONE}
+
+spring.ai.mcp.server:
+  name: reqlith
+  version: 1.0.0
+  type: SYNC
+  protocol: STREAMABLE
+  instructions: >-
+    Read-only access to Reqlith requirement specifications (BABOK: business, stakeholder and solution
+    requirements, scenarios, roles, risks). Tools default to the latest approved version of a project;
+    pass version="draft" only when you explicitly need unreviewed work in progress.
+  streamable-http:
+    mcp-endpoint: /mcp
+
+logging:
+  level:
+    # INFO: business actions; DEBUG: hints for engineers (set io.reqlith to DEBUG); ERROR: failures.
+    io.reqlith: INFO
+  pattern:
+    # Request id and user id (MDC, see RequestLoggingFilter) on every line.
+    correlation: "[%X{requestId:--} %X{user:--}] "
+
+server:
+  forward-headers-strategy: framework
+
+management:
+  # Actuator on its own port: reachable by Kubernetes and Prometheus inside the cluster, not exposed with the app.
+  server:
+    port: ${MANAGEMENT_PORT:8081}
+  endpoints:
+    web:
+      exposure:
+        # Unauthenticated (see SecurityConfig), on the management port only: health incl. Kubernetes probes,
+        # info and the Prometheus scrape endpoint.
+        include: health,info,prometheus
+  endpoint:
+    health:
+      # /actuator/health/liveness and /actuator/health/readiness, also outside Kubernetes.
+      probes:
+        enabled: true
+      # Anonymous callers only see UP/DOWN, never component details.
+      show-details: never
+      group:
+        # Liveness must not depend on the database (a restart would not fix it); readiness does.
+        readiness:
+          include: readinessState,db
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+
+---
+# Local development (host or the dev containers in src/main/dev): defaults for the local environment.
+# Every value can still be overridden with the environment variable named in the placeholder.
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    url: ${REQLITH_DB_URL:jdbc:sqlserver://localhost:1433;databaseName=reqlith;encrypt=true;trustServerCertificate=true}
+    password: ${REQLITH_DB_PASSWORD:Reqlith_dev_app_1}
+  thymeleaf:
+    cache: false
+  web:
+    resources:
+      cache:
+        period: 0
+reqlith:
+  base-url: ${REQLITH_BASE_URL:http://localhost:8080}
+  mcp:
+    datasource:
+      password: ${REQLITH_MCP_DB_PASSWORD:Reqlith_dev_mcp_1}
+  pdf:
+    url: ${REQLITH_PDF_URL:http://localhost:3000}
+  idp:
+    issuer: ${REQLITH_IDP_ISSUER:http://localhost:8180/realms/reqlith}
+    client-secret: ${REQLITH_IDP_CLIENT_SECRET:reqlith-dev-secret}
+    directory: ${REQLITH_IDP_DIRECTORY:KEYCLOAK}
+logging:
+  level:
+    # Local development: engineer hints on.
+    io.reqlith: DEBUG

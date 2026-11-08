@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Review</title>
+    <script th:src="@{/vendor/mermaid.min.js}" defer></script>
+</head>
+<body>
+<nav layout:fragment="crumbs" class="crumbs" aria-label="Breadcrumb">
+    <th:block th:replace="~{fragments/project :: crumbs('Review')}"></th:block>
+</nav>
+<div class="workbench" layout:fragment="content">
+    <aside th:replace="~{fragments/project :: sidenav}"></aside>
+    <main class="content" style="max-width: 1040px">
+        <div class="stack tight">
+            <h1 class="h-sm">Review</h1>
+            <p class="muted">Reviews cover the whole project. Submitting freezes the working copy as a candidate;
+                when every reviewer accepts, it becomes the next immutable version.</p>
+        </div>
+        <div class="banner danger" th:if="${flashError}" th:text="${flashError}" role="alert">Error</div>
+
+        <section class="card" th:if="${!openSuggestions.isEmpty()}" id="feedback">
+            <div class="card-head"><h2>Feedback to resolve</h2>
+                <span class="badge danger" th:text="|${openSuggestions.size()} open|">2 open</span></div>
+            <div class="card-body stack loose">
+                <p class="small muted">Apply a suggestion to copy its wording into the working copy, or dismiss it.
+                    The next review shows how each suggestion was handled.</p>
+                <article class="stack tight" th:each="s : ${openSuggestions}">
+                    <div class="row small">
+                        <a class="mono" th:if="${s.elementKey != 'BASIC_INFO' and s.elementKey != 'SOLUTION_DESIGN'}" th:href="@{/p/{k}/e/{ek}(k=${project.key},ek=${s.elementKey})}" th:text="${s.elementKey}">FR-01</a>
+                        <span class="mono" th:if="${s.elementKey == 'BASIC_INFO' or s.elementKey == 'SOLUTION_DESIGN'}"
+                              th:text="${s.elementKey == 'BASIC_INFO'} ? 'Basic information' : 'Solution design'">Basic information</span>
+                        <span class="muted" th:text="|suggested by ${names[s.authorId]?.displayName} · ${@formats.date(s.createdAt)}|">by</span>
+                    </div>
+                    <p class="small" th:if="${s.commentMd}" th:text="${s.commentMd}">comment</p>
+                    <div class="md small card card-pad" style="background: var(--page)" th:if="${s.proposedMd}" th:utext="${suggestionHtml[s.id]}">proposed</div>
+                    <div class="row" th:if="${canEdit}">
+                        <form method="post" th:action="@{/p/{k}/suggestions/{id}/apply(k=${project.key},id=${s.id})}" th:if="${s.proposedMd}">
+                            <button class="btn sm primary" type="submit">Apply wording</button>
+                        </form>
+                        <form method="post" th:action="@{/p/{k}/suggestions/{id}/dismiss(k=${project.key},id=${s.id})}">
+                            <button class="btn sm" type="submit" th:text="${s.proposedMd} ? 'Dismiss' : 'Mark as handled'">Dismiss</button>
+                        </form>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="card" th:if="${isOwner}">
+            <div class="card-head"><h2>Submit for review</h2>
+                <span class="small muted" th:text="${project.latestApprovedVersion != null}
+                      ? |Since v${project.latestApprovedVersion}: ${changes.summary}|
+                      : 'First version'">summary</span></div>
+            <form class="card-body" method="post" th:action="@{/p/{k}/review/submit(k=${project.key})}">
+                <p class="small" th:if="${project.latestApprovedVersion != null and !changes.hasChanges}">
+                    Nothing changed since v<span th:text="${project.latestApprovedVersion}">1</span>, so there is nothing to review.</p>
+                <fieldset class="stack tight" style="border: 0; padding: 0; margin: 0">
+                    <legend class="label" style="margin-bottom: 6px">Reviewers</legend>
+                    <p class="small muted" th:if="${candidates.isEmpty()}">Invite reviewers on the
+                        <a th:href="@{/p/{k}/people(k=${project.key})}">People</a> page first.</p>
+                    <label class="row small" th:each="m : ${candidates}">
+                        <input type="checkbox" name="reviewers" th:value="${m.userId}" th:checked="${m.role.name() == 'REVIEWER'}">
+                        <span class="avatar sm" th:text="${names[m.userId]?.initials}">RR</span>
+                        <span th:text="${names[m.userId]?.displayName}">Name</span>
+                        <span class="muted xs" th:text="${m.role.label}">Reviewer</span>
+                    </label>
+                </fieldset>
+                <p class="xs muted">While the review is open the working copy is read-only. Withdraw the review to make changes.</p>
+                <div><button class="btn primary" type="submit"
+                             th:disabled="${candidates.isEmpty() or (project.latestApprovedVersion != null and !changes.hasChanges)}"
+                             th:text="|Submit v${(project.latestApprovedVersion ?: 0) + 1} for review|">Submit</button></div>
+            </form>
+        </section>
+        <p class="muted" th:unless="${isOwner}">Only owners can submit the project for review.</p>
+
+        <section class="card">
+            <div class="card-head"><h2>Past rounds</h2></div>
+            <div class="empty" th:if="${history.isEmpty()}">No review yet.</div>
+            <div class="table-wrap" th:unless="${history.isEmpty()}">
+                <table class="data">
+                    <thead><tr><th>Version</th><th>Result</th><th>Reviewers</th><th>Closed</th></tr></thead>
+                    <tbody>
+                    <tr th:each="v : ${history}">
+                        <td><a class="mono" th:href="@{/p/{k}/v/{s}(k=${project.key},s=${v.slug})}" th:text="${v.label}">v1</a></td>
+                        <td><span class="badge" th:classappend="${v.status.name() == 'APPROVED'} ? 'approved' : (${v.status.name() == 'WITHDRAWN'} ? 'draft' : 'danger')"
+                                  th:text="${v.status.label}">Approved</span></td>
+                        <td>
+                            <div class="small" th:each="a : ${roundAssignments[v.id]}">
+                                <span th:text="${names[a.reviewerId]?.displayName}">Name</span>:
+                                <span th:text="${a.decision.label}" class="muted">Accepted</span>
+                                <span th:if="${a.commentMd}" th:text="|“${a.commentMd}”|" class="muted">comment</span>
+                            </div>
+                        </td>
+                        <td class="muted" th:text="${@formats.date(v.closedAt)}">date</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

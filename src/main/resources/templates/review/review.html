@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title th:text="|Review ${candidate.label}|">Review</title>
+    <script th:src="@{/vendor/mermaid.min.js}" defer></script>
+</head>
+<body>
+<nav layout:fragment="crumbs" class="crumbs" aria-label="Breadcrumb">
+    <th:block th:replace="~{fragments/project :: crumbs(|Review ${candidate.label}|)}"></th:block>
+</nav>
+<div class="workbench" layout:fragment="content">
+    <aside th:replace="~{fragments/project :: sidenav}"></aside>
+    <main class="content">
+        <section class="project-head">
+            <div class="title">
+                <span class="xs muted" th:text="${candidate.basedOnVersion != null}
+                      ? |Comparing v${candidate.basedOnVersion} (approved) → ${candidate.label} (candidate) · ${changeSummary}|
+                      : |First version · ${candidate.label}|">Comparing</span>
+                <h1 class="h-sm" th:text="|Review: ${document.project.title} ${candidate.label}|">Review</h1>
+            </div>
+            <div class="row" th:if="${candidate.basedOnVersion != null}" role="group" aria-label="Show">
+                <a class="pill" th:href="@{/p/{k}/review(k=${project.key})}" th:attr="aria-current=${changesOnly} ? 'true' : null">Changes only</a>
+                <a class="pill" th:href="@{/p/{k}/review(k=${project.key},full=true)}" th:attr="aria-current=${!changesOnly} ? 'true' : null">Full document</a>
+            </div>
+        </section>
+        <div class="banner danger" th:if="${flashError}" th:text="${flashError}" role="alert">Error</div>
+        <div class="banner info" th:unless="${canReview}">
+            You are reading the frozen candidate. The working copy is read-only until the review ends.
+        </div>
+
+        <div class="split">
+            <section class="main stack loose" aria-label="Candidate">
+                <div class="card card-pad" th:if="${changesOnly and !changes.removedElements.isEmpty()}">
+                    <h2 class="h-sm">Removed</h2>
+                    <div class="link-list" style="margin-top: 8px">
+                        <div th:each="e : ${changes.removedElements}"><span class="mono" th:text="${e.key}">FR-01</span>
+                            <span th:text="${e.title}">Title</span></div>
+                    </div>
+                </div>
+                <p class="muted" th:if="${changesOnly and !changes.hasChanges}">No changes compared to the approved version.</p>
+                <th:block th:replace="~{fragments/document :: body}"></th:block>
+            </section>
+
+            <aside class="side">
+                <section class="card" th:if="${canReview}">
+                    <div class="card-head"><h2 class="h-sm">Your review</h2></div>
+                    <div class="card-body">
+                        <th:block th:if="${canDecide}">
+                            <p class="small muted" th:text="|You added ${mySuggestionCount} suggestion(s). Decide on the whole version:|">hint</p>
+                            <form class="stack tight" method="post" th:action="@{/p/{k}/review/decide(k=${project.key})}">
+                                <label class="label" for="decision-comment">Comment</label>
+                                <textarea class="textarea" id="decision-comment" name="comment" rows="3"
+                                          th:text="${decisionComment}" placeholder="Required when requesting changes or rejecting"></textarea>
+                                <button class="btn primary" type="submit" name="decision" value="ACCEPT">Accept version</button>
+                                <button class="btn" type="submit" name="decision" value="CHANGES">Request changes</button>
+                                <button class="btn danger" type="submit" name="decision" value="REJECT">Reject</button>
+                            </form>
+                        </th:block>
+                        <p class="small" th:unless="${canDecide}">
+                            You decided: <strong th:text="${mine.decision.label}">Accepted</strong>.
+                            Waiting for the other reviewers.
+                        </p>
+                        <p class="xs muted">When every reviewer accepts, this candidate becomes
+                            <strong th:text="|v${candidate.targetVersion}|">v1</strong> and never changes.
+                            Any later edit starts the next version and a new review.</p>
+                    </div>
+                </section>
+
+                <section class="card">
+                    <div class="card-head"><h2 class="h-sm">Reviewers</h2></div>
+                    <div class="card-body">
+                        <div class="row" th:each="a : ${assignments}">
+                            <span class="avatar sm" th:text="${names[a.reviewerId]?.initials}">RR</span>
+                            <span class="small" style="flex: 1" th:text="${names[a.reviewerId]?.displayName} + (${a.reviewerId == currentUser.userId} ? ' (you)' : '')">Name</span>
+                            <span class="badge" th:classappend="${a.decision.name() == 'ACCEPT'} ? 'approved' : (${a.decision.name() == 'PENDING'} ? 'draft' : 'danger')"
+                                  th:text="${a.decision.label}">Pending</span>
+                        </div>
+                        <p class="xs muted" th:text="|Submitted ${@formats.dateTime(candidate.submittedAt)} by ${names[candidate.submittedBy]?.displayName}|">Submitted</p>
+                        <form th:if="${isOwner}" method="post" th:action="@{/p/{k}/review/withdraw(k=${project.key})}"
+                              onsubmit="return confirm('Withdraw this review? The working copy becomes editable again.')">
+                            <button class="btn sm" type="submit">Withdraw review</button>
+                        </form>
+                    </div>
+                </section>
+
+                <section class="card" id="discussion">
+                    <div class="card-head"><h2 class="h-sm">Discussion</h2></div>
+                    <div class="card-body">
+                        <p class="small muted" th:if="${generalComments.isEmpty()}">No comments yet.</p>
+                        <div class="small" th:each="c : ${generalComments}">
+                            <strong th:text="${names[c.authorId]?.displayName}">Name</strong>
+                            <span class="muted xs" th:text="|· ${@formats.relative(c.createdAt)}|">· now</span>
+                            <p th:text="${c.bodyMd}">comment</p>
+                        </div>
+                        <form class="stack tight" th:if="${canReview or myRole != null}" method="post" th:action="@{/p/{k}/review/comment(k=${project.key})}">
+                            <label class="label xs muted" for="general-comment">Add a comment</label>
+                            <textarea class="textarea" id="general-comment" name="body" rows="3" required></textarea>
+                            <div><button class="btn sm" type="submit">Comment</button></div>
+                        </form>
+                    </div>
+                </section>
+            </aside>
+        </div>
+    </main>
+</div>
+</body>
+</html>

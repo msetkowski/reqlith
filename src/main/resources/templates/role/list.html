@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Roles</title>
+</head>
+<body>
+<nav layout:fragment="crumbs" class="crumbs" aria-label="Breadcrumb">
+    <a th:href="@{/}">Projects</a><span aria-hidden="true">/</span><span class="current">Roles</span>
+</nav>
+<main class="page narrow" layout:fragment="content">
+    <section class="title stack tight">
+        <h1>Roles</h1>
+        <p class="muted">Groups of users shared across projects. Each project describes what a role does in its own context.</p>
+    </section>
+    <div class="banner danger" th:if="${error}" th:text="${error.message}" role="alert">Error</div>
+    <section class="card">
+        <div class="empty" th:if="${roles.isEmpty()}">No roles yet.</div>
+        <div class="table-wrap" th:unless="${roles.isEmpty()}">
+            <table class="data">
+                <thead><tr><th>ID</th><th>Name</th><th>Used in projects</th><th>Modified</th></tr></thead>
+                <tbody>
+                <tr th:each="r : ${roles}">
+                    <td class="mono muted" th:text="${r.key}">RO-01</td>
+                    <td><a th:href="@{/roles/{rk}(rk=${r.key})}" style="font-weight: 500; text-decoration: none" th:text="${r.name}">Role</a></td>
+                    <td th:text="${usage[r.id] ?: 0}">0</td>
+                    <td class="muted" th:text="${@formats.date(r.updatedAt)}">date</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="card" th:if="${canCreate}">
+        <div class="card-head"><h2>New role</h2></div>
+        <form class="card-body" method="post" th:action="@{/roles}">
+            <div class="field">
+                <label for="name">Name <span class="req">*</span></label>
+                <input class="input" id="name" name="name" required maxlength="200" th:value="${newName}" placeholder="e.g. Claims handler">
+            </div>
+            <div class="field">
+                <label for="description">General description (Markdown, shared by all projects)</label>
+                <textarea class="textarea code" id="description" name="description" rows="4" th:text="${newDescription}"
+                          placeholder="Who belongs to this group and what they are responsible for"></textarea>
+                <span class="hint">Projects then select the role and describe what it does in their context.</span>
+            </div>
+            <div><button class="btn primary" type="submit">Create role</button></div>
+        </form>
+    </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title th:text="|${element.key} ${element.title}|">Element</title>
+    <script th:src="@{/vendor/mermaid.min.js}" defer></script>
+</head>
+<body>
+<nav layout:fragment="crumbs" class="crumbs" aria-label="Breadcrumb">
+    <th:block th:replace="~{fragments/project :: crumbs(${element.key})}"></th:block>
+</nav>
+<div class="workbench" layout:fragment="content">
+    <aside th:replace="~{fragments/project :: sidenav}"></aside>
+    <main class="content">
+        <div th:replace="~{fragments/project :: locked-banner}"></div>
+        <section class="project-head">
+            <div class="title">
+                <div class="row">
+                    <span class="key" th:text="|${element.key} · ${element.type.label}|">FR-12</span>
+                    <span class="badge draft">Draft</span>
+                    <span class="badge" th:if="${element.priority != null}" th:text="${element.priority.label}">Must</span>
+                </div>
+                <h1 class="h-sm" th:text="${element.title}">Title</h1>
+                <div class="row" th:unless="${element.tags.isEmpty()}">
+                    <span class="tag" th:each="t : ${element.tags}" th:text="|#${t}|">#tag</span>
+                </div>
+            </div>
+            <div class="row">
+                <button type="button" class="btn sm" th:data-copy="${elementUrl}">Copy link</button>
+                <a class="btn sm primary" th:if="${canEdit}" th:href="@{/p/{k}/e/{ek}/edit(k=${project.key},ek=${element.key})}">Edit</a>
+                <form th:if="${canEdit}" method="post" th:action="@{/p/{k}/e/{ek}/delete(k=${project.key},ek=${element.key})}"
+                      th:data-confirm="${removeConfirm}" onsubmit="return confirm(this.dataset.confirm)">
+                    <button class="btn sm danger" type="submit">Remove</button>
+                </form>
+            </div>
+        </section>
+
+        <div class="split">
+            <article class="main card card-pad md" th:utext="${bodyHtml}">
+                body
+            </article>
+            <aside class="side">
+                <section class="card">
+                    <div class="card-head"><h2 class="h-sm">Traceability</h2></div>
+                    <div class="card-body link-list">
+                        <p class="muted" th:if="${element.links.isEmpty() and incoming.isEmpty()}">No links yet.</p>
+                        <div th:each="l : ${element.links}">
+                            <span class="kind" th:text="${l.kind.label}">Derived from</span>
+                            <a class="mono" th:if="${document.element(l.toKey) != null}" th:href="@{/p/{k}/e/{ek}(k=${project.key},ek=${l.toKey})}"
+                               th:text="${l.toKey}" th:title="${document.element(l.toKey).title}">SR-03</a>
+                            <a class="mono" th:if="${document.role(l.toKey) != null}" th:href="@{/roles/{rk}(rk=${l.toKey})}" th:text="${l.toKey}">RO-01</a>
+                            <span class="mono" style="color: var(--danger)" th:if="${document.element(l.toKey) == null and document.role(l.toKey) == null}"
+                                  th:text="|${l.toKey} (missing)|">XX-1</span>
+                        </div>
+                        <div th:each="in : ${incoming}">
+                            <span class="kind" th:text="${in.first.kind.inverseLabel}">Verifies</span>
+                            <a class="mono" th:href="@{/p/{k}/e/{ek}(k=${project.key},ek=${in.second})}" th:text="${in.second}">SC-02</a>
+                        </div>
+                    </div>
+                </section>
+                <section class="card">
+                    <div class="card-head"><h2 class="h-sm">External links</h2></div>
+                    <div class="card-body link-list">
+                        <p class="muted" th:if="${externalLinks.isEmpty()}">None.</p>
+                        <div class="row" th:each="l : ${externalLinks}">
+                            <span class="badge info" th:text="${l.system.label}">JIRA</span>
+                            <a th:href="${l.url}" target="_blank" rel="noopener noreferrer" th:text="${l.label}" style="flex: 1">PAY-2291</a>
+                            <form th:if="${myRole != null and myRole.name() != 'REVIEWER'}" method="post"
+                                  th:action="@{/p/{k}/links/{id}/remove(k=${project.key},id=${l.id},back=${'/p/' + project.key + '/e/' + element.key})}">
+                                <button class="btn sm ghost" type="submit" aria-label="Remove link">×</button>
+                            </form>
+                        </div>
+                        <details th:if="${myRole != null and myRole.name() != 'REVIEWER'}">
+                            <summary class="small" style="cursor: pointer; color: var(--accent)">+ Add link</summary>
+                            <form class="stack tight" style="margin-top: 8px" method="post"
+                                  th:action="@{/p/{k}/links(k=${project.key},back=${'/p/' + project.key + '/e/' + element.key})}">
+                                <input type="hidden" name="scope" th:value="${element.key}">
+                                <label class="sr-only" for="link-system">System</label>
+                                <select class="select sm" id="link-system" name="system">
+                                    <option th:each="s : ${systems}" th:value="${s}" th:text="${s.label}">JIRA</option>
+                                </select>
+                                <label class="sr-only" for="link-url">URL</label>
+                                <input class="input sm" id="link-url" name="url" type="url" required placeholder="https://…">
+                                <label class="sr-only" for="link-label">Label</label>
+                                <input class="input sm" id="link-label" name="label" placeholder="Label">
+                                <div><button class="btn sm primary" type="submit">Add</button></div>
+                            </form>
+                        </details>
+                    </div>
+                </section>
+                <section class="card">
+                    <div class="card-head"><h2 class="h-sm">History</h2></div>
+                    <div class="card-body small">
+                        <div>Created <span th:text="${@formats.dateTime(element.createdAt)}">date</span></div>
+                        <div>Last modified <span th:text="${@formats.dateTime(element.updatedAt)}">date</span>
+                            <span th:if="${updatedBy != null}" th:text="|· ${updatedBy.displayName}|">· Name</span></div>
+                    </div>
+                </section>
+            </aside>
+        </div>
+    </main>
+</div>
+</body>
+</html>

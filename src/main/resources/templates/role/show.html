@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title th:text="${role.name}">Role</title>
+    <script th:src="@{/vendor/mermaid.min.js}" defer></script>
+</head>
+<body>
+<nav layout:fragment="crumbs" class="crumbs" aria-label="Breadcrumb">
+    <a th:href="@{/}">Projects</a><span aria-hidden="true">/</span><a th:href="@{/roles}">Roles</a>
+    <span aria-hidden="true">/</span><span class="current" th:text="${role.name}">Role</span>
+</nav>
+<main class="page narrow" layout:fragment="content">
+    <section class="title stack tight">
+        <span class="key" th:text="${role.key}">RO-01</span>
+        <h1 th:text="${role.name}">Role</h1>
+    </section>
+    <div class="split">
+        <div class="main stack">
+            <section class="card card-pad md" th:utext="${descriptionHtml}">description</section>
+            <details class="card" th:if="${canEdit}">
+                <summary class="card-head" style="cursor: pointer"><h2 class="h-sm">Edit general description</h2></summary>
+                <form class="card-body" method="post" th:action="@{/roles/{rk}(rk=${role.key})}">
+                    <div class="banner warn">This description is shared by every project using the role. Approved versions keep the text they were approved with.</div>
+                    <div class="field">
+                        <label for="name">Name</label>
+                        <input class="input" id="name" name="name" th:value="${role.name}" required maxlength="200">
+                    </div>
+                    <div class="field">
+                        <label for="description">Description (Markdown)</label>
+                        <textarea class="textarea code" id="description" name="description" rows="8" th:text="${role.descriptionMd}"></textarea>
+                    </div>
+                    <div><button class="btn primary" type="submit">Save</button></div>
+                </form>
+            </details>
+        </div>
+        <aside class="side">
+            <section class="card">
+                <div class="card-head"><h2 class="h-sm">Used in</h2></div>
+                <div class="card-body link-list">
+                    <p class="muted" th:if="${projects.isEmpty()}">No project uses this role.</p>
+                    <a th:each="p : ${projects}" th:href="@{/p/{k}/roles(k=${p.key})}" th:text="|${p.key} · ${p.title}|">Project</a>
+                </div>
+            </section>
+        </aside>
+    </div>
+</main>
+</body>
+</html>

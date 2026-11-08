@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title th:text="${project.title}">Project</title>
+</head>
+<body>
+<nav layout:fragment="crumbs" class="crumbs" aria-label="Breadcrumb">
+    <th:block th:replace="~{fragments/project :: crumbs(null)}"></th:block>
+</nav>
+<div class="workbench" layout:fragment="content">
+    <aside th:replace="~{fragments/project :: sidenav}"></aside>
+    <main class="content">
+        <section th:replace="~{fragments/project :: head}"></section>
+        <div th:replace="~{fragments/project :: locked-banner}"></div>
+
+        <section aria-label="Project metadata" class="meta-grid">
+            <div>
+                <span class="label">Owners</span>
+                <div class="row" style="gap: 6px">
+                    <span class="avatar sm" th:each="o : ${owners}" th:text="${o.initials}" th:title="${o.displayName}">OO</span>
+                    <span class="small" th:text="${#strings.listJoin(owners.![displayName], ', ')}">Owners</span>
+                </div>
+            </div>
+            <div>
+                <span class="label">Last modified</span>
+                <span th:text="${@formats.dateTime(project.updatedAt)}">date</span>
+            </div>
+            <div>
+                <span class="label">Domains</span>
+                <div class="row" style="gap: 6px">
+                    <span class="domain" th:each="d : ${project.domains}" th:text="${d}">Domain</span>
+                    <span class="muted" th:if="${project.domains.isEmpty()}">—</span>
+                </div>
+            </div>
+            <div>
+                <span class="label">Tags</span>
+                <div class="row" style="gap: 6px">
+                    <span class="tag" th:each="t : ${project.tags}" th:text="|#${t}|">#tag</span>
+                    <span class="muted" th:if="${project.tags.isEmpty()}">—</span>
+                </div>
+            </div>
+        </section>
+
+        <div class="split">
+            <section class="main card">
+                <div class="card-head">
+                    <h2>Requirements</h2>
+                    <div class="row" role="group" aria-label="Filter by type" style="gap: 6px">
+                        <a class="pill" th:href="@{/p/{k}/draft(k=${project.key})}"
+                           th:attr="aria-current=${selectedType == null} ? 'true' : null"
+                           th:text="|All ${document.elements.size()}|">All</a>
+                        <a class="pill" th:each="t : ${types}" th:href="@{/p/{k}/draft(k=${project.key},type=${t})}"
+                           th:attr="aria-current=${selectedType == t and !changedOnly} ? 'true' : null" th:title="${t.section}"
+                           th:text="${t.name()}">BR</a>
+                        <a class="pill" th:if="${changes != null}" th:href="@{/p/{k}/draft(k=${project.key},changed=true)}"
+                           th:attr="aria-current=${changedOnly} ? 'true' : null"
+                           th:text="|Changed since v${project.latestApprovedVersion}|">Changed</a>
+                    </div>
+                </div>
+                <div class="empty" th:if="${rows.isEmpty()}">
+                    <p th:text="${selectedType == null} ? 'No elements yet.' : |No ${selectedType.section.toLowerCase()} yet.|">No elements yet.</p>
+                    <p th:if="${canEdit}" style="margin-top: 8px">
+                        <a class="btn sm primary" th:href="@{/p/{k}/elements/new(k=${project.key},type=${selectedType ?: 'BR'})}"
+                           th:text="${selectedType == null} ? 'Add a business requirement' : |Add ${selectedType.label.toLowerCase()}|">Add</a>
+                    </p>
+                </div>
+                <div class="table-wrap" th:unless="${rows.isEmpty()}">
+                    <table class="data" style="min-width: 640px">
+                        <thead>
+                        <tr><th>ID</th><th>Title</th><th>Type</th><th>Priority</th><th>Traces to</th><th>State</th><th>Modified</th></tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="e : ${rows}" th:with="kind=${changes != null} ? ${changes.of(e.key).name()} : 'DRAFT'"
+                            th:classappend="${kind == 'NEW' or kind == 'CHANGED'} ? 'highlight'">
+                            <td class="mono muted" th:text="${e.key}">FR-01</td>
+                            <td><a th:href="@{/p/{k}/e/{ek}(k=${project.key},ek=${e.key})}" style="text-decoration: none; font-weight: 500" th:text="${e.title}">Title</a></td>
+                            <td th:text="${e.type.shortLabel}">Functional</td>
+                            <td th:text="${e.priority != null} ? ${e.priority.label} : '—'" class="muted">Must</td>
+                            <td class="mono xs" th:text="${e.links.isEmpty()} ? '—' : ${#strings.listJoin(e.links.![toKey], ', ')}">—</td>
+                            <td>
+                                <span class="badge" th:classappend="${kind == 'UNCHANGED'} ? 'approved' : (${kind == 'DRAFT'} ? 'draft' : 'review')"
+                                      th:text="(${locked} ? 'In review · ' : '') + (${kind == 'UNCHANGED'} ? 'Approved' : (${kind == 'NEW'} ? 'New' : (${kind == 'CHANGED'} ? 'Changed' : 'Draft')))">Draft</span>
+                            </td>
+                            <td class="muted" th:text="${@formats.date(modified[e.key])}">date</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-body" th:unless="${removedRows.isEmpty()}" style="border-top: 1px solid var(--line)">
+                    <span class="label" th:text="|Removed since v${project.latestApprovedVersion}, pending approval|">Removed</span>
+                    <div class="row small" th:each="e : ${removedRows}" style="gap: 8px">
+                        <span class="mono muted" th:text="${e.key}">FR-01</span>
+                        <s th:text="${e.title}">Title</s>
+                        <span class="badge danger">Removed</span>
+                    </div>
+                </div>
+                <div class="card-body" th:if="${canEdit and selectedType != null and !rows.isEmpty()}" style="border-top: 1px solid var(--line)">
+                    <a class="btn sm" th:href="@{/p/{k}/elements/new(k=${project.key},type=${selectedType})}"
+                       th:text="|+ Add ${selectedType.label.toLowerCase()}|">Add</a>
+                </div>
+            </section>
+
+            <aside class="side">
+                <section class="card">
+                    <div class="card-head"><h2 class="h-sm">Readiness for development</h2></div>
+                    <div class="card-body">
+                        <div class="metric"><span>Elements</span><span class="value" th:text="${document.elements.size()}">0</span></div>
+                        <div class="metric"><span>Roles</span><span class="value" th:text="${document.roles.size()}">0</span></div>
+                        <div class="metric">
+                            <span>Functional req. without scenario</span>
+                            <span class="value" th:classappend="${functionalWithoutScenario.size() > 0} ? 'bad'" th:text="${functionalWithoutScenario.size()}">0</span>
+                        </div>
+                        <div class="xs muted" th:unless="${functionalWithoutScenario.isEmpty()}"
+                             th:text="${#strings.listJoin(functionalWithoutScenario.![key], ', ')}">FR-01</div>
+                        <div class="metric">
+                            <span>Broken references</span>
+                            <span class="value" th:classappend="${brokenLinks.size() > 0} ? 'bad'" th:text="${brokenLinks.size()}">0</span>
+                        </div>
+                        <div class="xs muted" th:each="b : ${brokenLinks}" th:text="|${b.first} → ${b.second.toKey}|">FR-01 → SC-09</div>
+                        <div class="metric">
+                            <span>Open review suggestions</span>
+                            <span class="value" th:classappend="${openSuggestions.size() > 0} ? 'bad'" th:text="${openSuggestions.size()}">0</span>
+                        </div>
+                        <div class="metric" th:if="${changes != null}">
+                            <span th:text="|Since v${project.latestApprovedVersion}|">Since v1</span>
+                            <span class="xs" th:text="${changes.summary}">summary</span>
+                        </div>
+                    </div>
+                </section>
+                <section class="card">
+                    <div class="card-head"><h2 class="h-sm">Basic information</h2>
+                        <a class="btn sm" th:if="${canEdit}" th:href="@{/p/{k}/basic-info/edit(k=${project.key})}">Edit</a>
+                    </div>
+                    <div class="card-body small">
+                        <p class="muted">Problem statement, scope and success metrics.</p>
+                        <a th:href="@{/p/{k}/draft/document(k=${project.key})}">Read the whole document →</a>
+                    </div>
+                </section>
+                <section class="card">
+                    <div class="card-head"><h2 class="h-sm">Solution design</h2>
+                        <a class="btn sm" th:if="${canEdit}" th:href="@{/p/{k}/solution-design/edit(k=${project.key})}">Edit</a>
+                    </div>
+                    <div class="card-body small">
+                        <p class="muted">Architecture, components and key decisions, with Mermaid diagrams.</p>
+                        <a th:href="@{/p/{k}/draft/document(k=${project.key})} + '#solution-design'">Read the solution design →</a>
+                    </div>
+                </section>
+                <section class="card">
+                    <div class="card-head"><h2 class="h-sm">Versions</h2>
+                        <div class="row">
+                            <a class="btn sm" th:if="${!history.isEmpty()}" th:href="@{/p/{k}/diff(k=${project.key})}">Compare</a>
+                            <a class="btn sm" th:href="@{/p/{k}/review(k=${project.key})}" th:text="${locked} ? 'Open review' : 'Review'">Review</a>
+                        </div></div>
+                    <div class="card-body small">
+                        <p class="muted" th:if="${history.isEmpty()}">Nothing has been submitted for review yet.</p>
+                        <a th:each="v : ${history}" th:href="@{/p/{k}/v/{s}(k=${project.key},s=${v.slug})}"
+                           class="stack tight" style="text-decoration: none; color: inherit; gap: 2px">
+                            <span class="row" style="gap: 6px">
+                                <strong class="mono" th:text="${v.label}">v1</strong>
+                                <span class="badge" th:classappend="${v.status.name() == 'APPROVED'} ? 'approved' : (${v.status.name() == 'IN_REVIEW'} ? 'review' : (${v.status.name() == 'WITHDRAWN'} ? 'draft' : 'danger'))"
+                                      th:text="${v.status.name() == 'APPROVED'} ? 'Approved, locked' : ${v.status.label}">Approved</span>
+                            </span>
+                            <span class="xs muted" th:text="|${@formats.date(v.closedAt ?: v.submittedAt)} · submitted by ${submitters[v.submittedBy]?.displayName}|">date</span>
+                        </a>
+                    </div>
+                </section>
+                <section class="card">
+                    <div class="card-head"><h2 class="h-sm">External links</h2>
+                        <a class="btn sm" th:href="@{/p/{k}/export(k=${project.key})} + '#links'">Manage</a></div>
+                    <div class="card-body link-list">
+                        <p class="muted small" th:if="${externalLinks.isEmpty()}">No links to JIRA, ADO or other systems yet.</p>
+                        <div class="row" th:each="l : ${externalLinks}">
+                            <span class="badge info" th:text="${l.system.label}">JIRA</span>
+                            <a th:href="${l.url}" target="_blank" rel="noopener noreferrer" th:text="${l.label}" style="flex: 1">PAY-2291</a>
+                            <span class="mono xs muted" th:text="${l.scope}">Project</span>
+                        </div>
+                    </div>
+                </section>
+            </aside>
+        </div>
+    </main>
+</div>
+</body>
+</html>

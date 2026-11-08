@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Roles</title>
+    <script th:src="@{/vendor/mermaid.min.js}" defer></script>
+</head>
+<body>
+<nav layout:fragment="crumbs" class="crumbs" aria-label="Breadcrumb">
+    <th:block th:replace="~{fragments/project :: crumbs('Roles')}"></th:block>
+</nav>
+<div class="workbench" layout:fragment="content">
+    <aside th:replace="~{fragments/project :: sidenav}"></aside>
+    <main class="content" style="max-width: 980px">
+        <div class="stack tight">
+            <h1 class="h-sm">Roles</h1>
+            <p class="muted">Roles describe groups of users. They are shared across projects: select an existing role or create a new one,
+                then describe what it does in this project.</p>
+        </div>
+        <div th:replace="~{fragments/project :: locked-banner}"></div>
+        <div class="banner danger" th:if="${error}" th:text="${error.message}" role="alert">Error</div>
+
+        <p class="muted" th:if="${projectRoles.isEmpty()}">No roles in this project yet.</p>
+        <article class="card doc-element" th:each="pr : ${projectRoles}" th:id="${pr.role.key}">
+            <header>
+                <span class="key" th:text="${pr.role.key}">RO-01</span>
+                <h3><a th:href="@{/roles/{rk}(rk=${pr.role.key})}" style="color: inherit; text-decoration: none" th:text="${pr.role.name}">Role</a></h3>
+            </header>
+            <div class="md small" th:utext="${rendered[pr.role.id].first}">global description</div>
+            <div class="traces">
+                <div class="label" style="margin-bottom: 6px">In this project</div>
+                <form th:if="${canEdit}" class="stack tight" method="post" th:action="@{/p/{k}/roles/{id}(k=${project.key},id=${pr.role.id})}">
+                    <label class="sr-only" th:for="|ctx-${pr.role.id}|">What this role does in the project</label>
+                    <textarea class="textarea code" th:id="|ctx-${pr.role.id}|" name="context" rows="4" th:text="${pr.contextMd}"
+                              placeholder="What does this role do in this project?"></textarea>
+                    <div class="row">
+                        <button class="btn sm" type="submit">Save context</button>
+                        <button class="btn sm ghost danger" type="submit"
+                                th:formaction="@{/p/{k}/roles/{id}/remove(k=${project.key},id=${pr.role.id})}"
+                                onclick="return confirm('Remove this role from the project? The global role stays.')">Remove from project</button>
+                    </div>
+                </form>
+                <div th:unless="${canEdit}" class="md" th:utext="${rendered[pr.role.id].second}">context</div>
+            </div>
+        </article>
+
+        <section class="card" th:if="${canEdit}">
+            <div class="card-head"><h2>Add a role</h2></div>
+            <div class="card-body">
+                <form class="stack" method="post" th:action="@{/p/{k}/roles(k=${project.key})}" th:unless="${availableRoles.isEmpty()}">
+                    <div class="field">
+                        <label for="roleId">Select an existing role</label>
+                        <select class="select" id="roleId" name="roleId" required>
+                            <option th:each="r : ${availableRoles}" th:value="${r.id}" th:text="|${r.key} · ${r.name}|">Role</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="context-existing">What does it do in this project?</label>
+                        <textarea class="textarea code" id="context-existing" name="context" rows="3"></textarea>
+                    </div>
+                    <div><button class="btn primary" type="submit">Add role</button></div>
+                </form>
+                <hr style="border: 0; border-top: 1px solid var(--line); width: 100%" th:unless="${availableRoles.isEmpty()}">
+                <form class="stack" method="post" th:action="@{/p/{k}/roles(k=${project.key})}">
+                    <div class="field">
+                        <label for="name">Or create a new role</label>
+                        <input class="input" id="name" name="name" required maxlength="200" th:value="${newName}" placeholder="e.g. Claims handler">
+                    </div>
+                    <div class="field">
+                        <label for="description">General description (shared by all projects)</label>
+                        <textarea class="textarea code" id="description" name="description" rows="3" th:text="${newDescription}"></textarea>
+                    </div>
+                    <div class="field">
+                        <label for="context-new">What does it do in this project?</label>
+                        <textarea class="textarea code" id="context-new" name="context" rows="3" th:text="${newContext}"></textarea>
+                    </div>
+                    <div><button class="btn" type="submit">Create and add</button></div>
+                </form>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

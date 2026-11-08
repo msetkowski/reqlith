@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--/*
+  Two-pane markdown editor with server-rendered live preview.
+  name: form field name, value: markdown, preview: initial preview HTML, targets: (key, label) pairs for "+ Reference".
+*/-->
+<div class="editor-grid" th:fragment="editor(name, value, preview, targets)">
+    <div>
+        <div class="pane-head">
+            <div class="toolbar" role="toolbar" aria-label="Formatting">
+                <button type="button" data-md="heading" title="Heading">H</button>
+                <button type="button" data-md="bold" title="Bold"><strong>B</strong></button>
+                <button type="button" data-md="italic" title="Italic"><em>I</em></button>
+                <button type="button" data-md="mermaid" title="Insert Mermaid diagram">+ Mermaid diagram</button>
+                <label class="sr-only" for="md-reference">Insert reference</label>
+                <select id="md-reference" class="select sm" data-md-reference style="width: auto; max-width: 180px; height: 28px; min-height: 28px; font-size: 12px"
+                        th:if="${targets != null and !targets.isEmpty()}">
+                    <option value="">+ Reference</option>
+                    <option th:each="t : ${targets}" th:value="${t.first}" th:text="${t.second}">FR-01 · Title</option>
+                </select>
+            </div>
+            <span>Markdown</span>
+        </div>
+        <label class="sr-only" th:for="${name}">Markdown</label>
+        <textarea class="textarea code" data-md-editor th:id="${name}" th:name="${name}" th:text="${value}" spellcheck="true"
+                  th:attr="hx-post=@{/p/{k}/preview(k=${project.key})}"
+                  hx-trigger="input changed delay:400ms" hx-target="#md-preview" hx-swap="innerHTML"
+                  hx-indicator="#md-preview-indicator"></textarea>
+    </div>
+    <div>
+        <div class="pane-head"><span>Preview</span><span id="md-preview-indicator" class="htmx-indicator">Rendering…</span></div>
+        <div id="md-preview" class="preview md" aria-live="polite" th:utext="${preview}">preview</div>
+    </div>
+</div>
+</body>
+</html>

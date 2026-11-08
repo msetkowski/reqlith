@@ -1,0 +1,4 @@
+# Build context for src/main/docker/Dockerfile (context = repository root): only the Maven output it copies.
+*
+!target/docker/lib
+!target/classes

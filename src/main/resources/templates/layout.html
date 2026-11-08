@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      th:attr="data-theme=${theme}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="_csrf" th:if="${_csrf}" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:if="${_csrf}" th:content="${_csrf.headerName}">
+    <title layout:title-pattern="$CONTENT_TITLE · Reqlith">Reqlith</title>
+    <link rel="icon" th:href="@{/favicon.svg}" type="image/svg+xml">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script th:src="@{/vendor/htmx.min.js}" defer></script>
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body hx-boost="false">
+<header class="app-header">
+    <a class="brand" th:href="@{/}">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="color: var(--accent-on-dark)" stroke-width="2" aria-hidden="true">
+            <rect x="4" y="3" width="16" height="18" rx="2"></rect>
+            <path d="M8 8h8M8 12h8M8 16h5"></path>
+        </svg>
+        <span>Reqlith</span>
+    </a>
+    <nav class="crumbs" aria-label="Breadcrumb" layout:fragment="crumbs"></nav>
+    <div class="header-spacer"></div>
+    <details class="account" th:if="${currentUser != null}">
+        <summary class="avatar" th:text="${currentUser.initials}"
+                 th:attr="aria-label='Account: ' + ${currentUser.displayName}">?</summary>
+        <div class="account-menu">
+            <div class="who">
+                <div th:text="${currentUser.displayName}">Name</div>
+                <div class="xs muted" th:text="${currentUser.emailAddress}">email</div>
+            </div>
+            <a th:href="@{/account/tokens}">Access tokens for agents</a>
+            <form class="theme-switch" th:action="@{/account/theme}" method="post">
+                <input type="hidden" name="back" th:value="${currentPath}">
+                <span class="label">Theme</span>
+                <div class="row" role="group" aria-label="Theme" style="gap: 4px">
+                    <button class="pill" type="submit" name="theme" value="light" th:attr="aria-pressed=${theme == 'light'}">Light</button>
+                    <button class="pill" type="submit" name="theme" value="dark" th:attr="aria-pressed=${theme == 'dark'}">Dark</button>
+                    <button class="pill" type="submit" name="theme" value="system" th:attr="aria-pressed=${theme == null}">System</button>
+                </div>
+            </form>
+            <form th:action="@{/logout}" method="post">
+                <button type="submit">Sign out</button>
+            </form>
+        </div>
+    </details>
+</header>
+
+<!-- Pages provide their own <main class="page"> or <div class="workbench"> -->
+<main layout:fragment="content"></main>
+</body>
+</html>

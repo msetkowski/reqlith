@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--/* Review feedback and forms below one element (or 'BASIC_INFO' / 'SOLUTION_DESIGN') of the candidate. */-->
+<div th:fragment="element-review(key)" class="traces stack tight">
+    <div class="stack tight" th:each="s : ${suggestionsByKey[key]}">
+        <div class="row xs">
+            <span class="badge review">Suggestion</span>
+            <strong th:text="${names[s.authorId]?.displayName}">Name</strong>
+            <span class="muted" th:text="${@formats.relative(s.createdAt)}">now</span>
+        </div>
+        <p class="small" th:if="${s.commentMd}" th:text="${s.commentMd}">comment</p>
+        <div class="md small card card-pad" style="background: var(--page)" th:if="${s.proposedMd}" th:utext="${suggestionHtml[s.id]}">proposed</div>
+    </div>
+    <div class="small" th:each="c : ${commentsByKey[key]}">
+        <strong th:text="${names[c.authorId]?.displayName}">Name</strong>
+        <span class="muted xs" th:text="|· ${@formats.relative(c.createdAt)}|">· now</span>
+        <p th:text="${c.bodyMd}">comment</p>
+    </div>
+    <div class="row" th:if="${canReview}">
+        <details>
+            <summary class="btn sm">Suggest change</summary>
+            <form class="stack tight" style="margin-top: 8px" method="post" th:action="@{/p/{k}/review/suggest(k=${project.key})}">
+                <input type="hidden" name="elementKey" th:value="${key}">
+                <label class="label xs muted" th:for="|proposed-${key}|">Suggested wording (Markdown)</label>
+                <textarea class="textarea code" th:id="|proposed-${key}|" name="proposedMd" rows="8" th:text="${bodies[key]}"></textarea>
+                <label class="label xs muted" th:for="|why-${key}|">Why</label>
+                <input class="input" th:id="|why-${key}|" name="comment">
+                <div><button class="btn sm primary" type="submit">Add suggestion</button></div>
+            </form>
+        </details>
+        <details>
+            <summary class="btn sm">Comment</summary>
+            <form class="stack tight" style="margin-top: 8px" method="post" th:action="@{/p/{k}/review/comment(k=${project.key})}">
+                <input type="hidden" name="elementKey" th:value="${key}">
+                <label class="sr-only" th:for="|comment-${key}|">Comment</label>
+                <textarea class="textarea" th:id="|comment-${key}|" name="body" rows="3" required></textarea>
+                <div><button class="btn sm" type="submit">Add comment</button></div>
+            </form>
+        </details>
+    </div>
+</div>
+</body>
+</html>
