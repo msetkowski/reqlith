@@ -93,7 +93,11 @@ class ReviewController(
         model.addAttribute("generalComments", comments.filter { it.elementKey == null })
         model.addAttribute("names", names)
         model.addAttribute("reviewBlock", "review/blocks")
-        model.addAttribute("bodies", document.elements.associate { it.key to it.body.orEmpty() } + (Suggestion.BASIC_INFO to document.basicInfo))
+        model.addAttribute(
+            "bodies",
+            document.elements.associate { it.key to it.body.orEmpty() } +
+                (Suggestion.BASIC_INFO to document.basicInfo) + (Suggestion.SOLUTION_DESIGN to document.solutionDesign),
+        )
         return "review/review"
     }
 

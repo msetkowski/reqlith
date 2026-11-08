@@ -123,8 +123,8 @@
     </section>
 
     <form th:if="${element != null}" method="post" th:action="@{/p/{k}/e/{ek}/delete(k=${project.key},ek=${element.key})}"
-          onsubmit="return confirm('Delete this element? Its key will not be reused.')">
-        <button class="btn danger sm" type="submit" th:text="|Delete ${element.key}|">Delete</button>
+          th:data-confirm="${removeConfirm}" onsubmit="return confirm(this.dataset.confirm)">
+        <button class="btn danger sm" type="submit" th:text="|Remove ${element.key}|">Remove</button>
     </form>
 </main>
 </body>

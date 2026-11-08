@@ -18,6 +18,8 @@ class ProjectDiff(val before: ProjectDocument?, val after: ProjectDocument) {
 
     val basicInfo: List<DiffLine?> = TextDiff.withContext(TextDiff.lines(before?.basicInfo, after.basicInfo))
 
+    val solutionDesign: List<DiffLine?> = TextDiff.withContext(TextDiff.lines(before?.solutionDesign, after.solutionDesign))
+
     val projectProperties: List<String> = buildList {
         val old = before?.project ?: return@buildList
         val new = after.project

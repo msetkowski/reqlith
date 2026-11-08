@@ -28,6 +28,10 @@
             <div class="row">
                 <button type="button" class="btn sm" th:data-copy="${elementUrl}">Copy link</button>
                 <a class="btn sm primary" th:if="${canEdit}" th:href="@{/p/{k}/e/{ek}/edit(k=${project.key},ek=${element.key})}">Edit</a>
+                <form th:if="${canEdit}" method="post" th:action="@{/p/{k}/e/{ek}/delete(k=${project.key},ek=${element.key})}"
+                      th:data-confirm="${removeConfirm}" onsubmit="return confirm(this.dataset.confirm)">
+                    <button class="btn sm danger" type="submit">Remove</button>
+                </form>
             </div>
         </section>
 

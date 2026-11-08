@@ -72,7 +72,7 @@
                         </thead>
                         <tbody>
                         <tr th:each="e : ${rows}" th:with="kind=${changes != null} ? ${changes.of(e.key).name()} : 'DRAFT'"
-                            th:style="${kind == 'NEW' or kind == 'CHANGED'} ? 'background: #FFFBF2'">
+                            th:classappend="${kind == 'NEW' or kind == 'CHANGED'} ? 'highlight'">
                             <td class="mono muted" th:text="${e.key}">FR-01</td>
                             <td><a th:href="@{/p/{k}/e/{ek}(k=${project.key},ek=${e.key})}" style="text-decoration: none; font-weight: 500" th:text="${e.title}">Title</a></td>
                             <td th:text="${e.type.shortLabel}">Functional</td>
@@ -86,6 +86,14 @@
                         </tr>
                         </tbody>
                     </table>
+                </div>
+                <div class="card-body" th:unless="${removedRows.isEmpty()}" style="border-top: 1px solid var(--line)">
+                    <span class="label" th:text="|Removed since v${project.latestApprovedVersion}, pending approval|">Removed</span>
+                    <div class="row small" th:each="e : ${removedRows}" style="gap: 8px">
+                        <span class="mono muted" th:text="${e.key}">FR-01</span>
+                        <s th:text="${e.title}">Title</s>
+                        <span class="badge danger">Removed</span>
+                    </div>
                 </div>
                 <div class="card-body" th:if="${canEdit and selectedType != null and !rows.isEmpty()}" style="border-top: 1px solid var(--line)">
                     <a class="btn sm" th:href="@{/p/{k}/elements/new(k=${project.key},type=${selectedType})}"
@@ -127,6 +135,15 @@
                     <div class="card-body small">
                         <p class="muted">Problem statement, scope and success metrics.</p>
                         <a th:href="@{/p/{k}/draft/document(k=${project.key})}">Read the whole document →</a>
+                    </div>
+                </section>
+                <section class="card">
+                    <div class="card-head"><h2 class="h-sm">Solution design</h2>
+                        <a class="btn sm" th:if="${canEdit}" th:href="@{/p/{k}/solution-design/edit(k=${project.key})}">Edit</a>
+                    </div>
+                    <div class="card-body small">
+                        <p class="muted">Architecture, components and key decisions, with Mermaid diagrams.</p>
+                        <a th:href="@{/p/{k}/draft/document(k=${project.key})} + '#solution-design'">Read the solution design →</a>
                     </div>
                 </section>
                 <section class="card">

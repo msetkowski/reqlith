@@ -65,7 +65,7 @@ class ProjectPagesIT(
         val pages = listOf(
             "/", "/projects/new", "/p/$key/draft", "/p/$key/draft?type=FR", "/p/$key/draft/document",
             "/p/$key/e/${fr.key}", "/p/$key/e/${fr.key}/edit", "/p/$key/elements/new?type=SC", "/p/$key/details",
-            "/p/$key/basic-info/edit", "/p/$key/people", "/p/$key/roles", "/roles", "/workspaces",
+            "/p/$key/basic-info/edit", "/p/$key/solution-design/edit", "/p/$key/people", "/p/$key/roles", "/roles", "/workspaces",
         )
         pages.forEach { page ->
             mvc.get(page) { with(login(owner)) }.andExpect { status { isOk() } }
@@ -147,6 +147,7 @@ class ProjectPagesIT(
                 "/p/${project.key}/elements/new?type=BR",
                 "/p/${project.key}/details",
                 "/p/${project.key}/basic-info/edit",
+                "/p/${project.key}/solution-design/edit",
             ).forEach { page ->
                 mvc.get(page) { with(login(user)) }.andExpect { status { isForbidden() } }
             }
@@ -157,5 +158,26 @@ class ProjectPagesIT(
                 param("title", "Sneaky")
             }.andExpect { status { isForbidden() } }
         }
+    }
+
+    @Test
+    fun `the solution design is edited as one markdown text with mermaid and shown in the document`() {
+        val owner = users.create("Olive Owens")
+        val project = fixtures.project(owner)
+        assertEquals(ProjectService.SOLUTION_DESIGN_TEMPLATE, project.solutionDesignMd)
+
+        mvc.post("/p/${project.key}/solution-design") {
+            with(login(owner))
+            with(csrf())
+            param("markdown", "## Architecture\r\n```mermaid\r\nflowchart LR\r\n  A --> B\r\n```")
+            param("rowVersion", projects.get(project.key).rowVersion.toString())
+        }.andExpect { redirectedUrl("/p/${project.key}/draft/document#solution-design") }
+        assertEquals("## Architecture\n```mermaid\nflowchart LR\n  A --> B\n```", projects.get(project.key).solutionDesignMd)
+
+        mvc.get("/p/${project.key}/draft/document") { with(login(owner)) }.andExpect {
+            content { string(containsString("""id="solution-design"""")) }
+            content { string(containsString("""<pre class="mermaid">""")) }
+        }
+        mvc.get("/p/${project.key}/unknown/edit") { with(login(owner)) }.andExpect { status { isNotFound() } }
     }
 }

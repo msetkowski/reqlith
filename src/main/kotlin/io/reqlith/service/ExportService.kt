@@ -101,7 +101,7 @@ class ExportService(
         )
     }
 
-    private fun target(key: String) = if (key == Suggestion.BASIC_INFO) "Basic information" else key
+    private fun target(key: String) = Suggestion.targetLabel(key)
 
     private fun printHtml(input: PrdInput, prd: String): String {
         val context = Context().apply {

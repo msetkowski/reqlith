@@ -2,7 +2,7 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <body>
 <!--/*
-  A whole project document: basic information, element sections and roles.
+  A whole project document: basic information, element sections, roles and solution design.
   Model: document, html (RenderedDocument), types, incoming; optional `version` (frozen: in-page links only),
   optional `changes` (DocumentChanges) to mark new/changed elements,
   optional `visibleKeys` (only these elements and roles are shown; sections without any are hidden),
@@ -90,6 +90,23 @@
         </section>
         </th:block>
     </th:block>
+
+    <section class="doc-section" id="solution-design" th:if="${visibleKeys == null or changes.solutionDesignChanged}">
+        <div class="row" style="justify-content: space-between">
+            <h2 style="font-size: 20px">Solution design
+                <span class="badge review" th:if="${changes != null and changes.solutionDesignChanged}">Changed</span></h2>
+            <a class="btn sm" th:if="${version == null and canEdit}" th:href="@{/p/{k}/solution-design/edit(k=${project.key})}">Edit</a>
+        </div>
+        <details class="card card-pad" open th:if="${itemDiff != null and changes != null and changes.solutionDesignChanged}">
+            <summary class="small muted" style="cursor: pointer; margin-bottom: 8px">What changed</summary>
+            <div th:replace="~{fragments/diff :: lines(${itemDiff.solutionDesign})}"></div>
+        </details>
+        <p class="muted small" th:if="${document.solutionDesign.isEmpty()}">None yet.</p>
+        <div class="card card-pad md" th:unless="${document.solutionDesign.isEmpty()}" th:utext="${html.solutionDesign}">solution design</div>
+        <div class="card card-pad" th:if="${reviewBlock != null}" style="margin-top: -4px">
+            <div th:replace="~{${reviewBlock} :: element-review('SOLUTION_DESIGN')}"></div>
+        </div>
+    </section>
 </th:block>
 </body>
 </html>

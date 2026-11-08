@@ -9,4 +9,6 @@ interface ProjectMemberRepository : JpaRepository<ProjectMember, MemberId> {
     fun findByIdProjectId(projectId: UUID): List<ProjectMember>
 
     fun findByIdUserId(userId: UUID): List<ProjectMember>
+
+    fun findByIdProjectIdIn(projectIds: Collection<UUID>): List<ProjectMember>
 }

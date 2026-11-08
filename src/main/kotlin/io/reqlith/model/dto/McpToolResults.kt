@@ -79,6 +79,7 @@ data class VersionDiff(
     val to: String,
     val summary: String,
     val basicInformationDiff: String?,
+    val solutionDesignDiff: String?,
     val changes: List<ItemChange>,
 )
 

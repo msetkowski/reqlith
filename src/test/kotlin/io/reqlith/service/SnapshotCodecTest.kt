@@ -76,4 +76,15 @@ class SnapshotCodecTest {
         assertEquals("1 new, 1 changed, 1 removed", changes.summary)
         assertFalse(DocumentChanges(before, before).hasChanges)
     }
+
+    @Test
+    fun `an empty solution design is left out, so documents without one keep their hash`() {
+        val json = codec.write(document()).json
+        assertFalse(json.contains("solutionDesign"), json)
+        assertEquals("", codec.read(json).solutionDesign)
+
+        val withDesign = document().copy(solutionDesign = "```mermaid\nflowchart LR\n```")
+        assertEquals(withDesign, codec.read(codec.write(withDesign).json))
+        assertNotEquals(codec.write(document()).hash, codec.write(withDesign).hash)
+    }
 }

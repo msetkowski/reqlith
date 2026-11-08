@@ -10,6 +10,7 @@ import io.reqlith.model.entity.Element
 import io.reqlith.model.entity.ElementType
 import io.reqlith.model.entity.Project
 import io.reqlith.repository.ElementRepository
+import io.reqlith.repository.ExternalLinkRepository
 import io.reqlith.repository.KeyCounter
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -21,6 +22,7 @@ private val logger = KotlinLogging.logger {}
 @Service
 class ElementService(
     private val elements: ElementRepository,
+    private val externalLinks: ExternalLinkRepository,
     private val projectService: ProjectService,
     private val access: ProjectAccess,
     private val keyCounter: KeyCounter,
@@ -65,14 +67,28 @@ class ElementService(
         return elements.save(element).also { logger.info { "Element updated project=${project.key} element=$key links=${content.links.size}" } }
     }
 
-    /** Removes the element. Its key stays retired; links pointing at it show up as broken references. */
+    /**
+     * Removes the element from the working copy, together with every trace link pointing at it and its external links.
+     * Its key stays retired. Approved versions keep it; the removal shows up as a change to approve in the next review.
+     */
     @Transactional
     fun delete(user: CurrentUser, project: Project, key: String) {
         access.requireEditor(project, user)
         project.requireEditable()
-        elements.delete(get(project, key))
+        val element = get(project, key)
+        val now = Instant.now(clock)
+        val referencing = elements.findByProjectId(project.id).filter { other -> other.key != key && other.links.removeIf { it.toKey == key } }
+        referencing.forEach {
+            it.updatedAt = now
+            it.updatedBy = user.userId
+        }
+        elements.saveAll(referencing)
+        val external = externalLinks.deleteByProjectIdAndElementKey(project.id, key)
+        elements.delete(element)
         projectService.touch(project, user)
-        logger.info { "Element deleted project=${project.key} element=$key (key retired)" }
+        logger.info {
+            "Element deleted project=${project.key} element=$key (key retired) unlinked=${referencing.map { it.key }} externalLinks=$external"
+        }
     }
 
     private fun apply(element: Element, content: ElementContent) {

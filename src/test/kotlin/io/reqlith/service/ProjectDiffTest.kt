@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test
 import java.util.UUID
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -58,5 +59,17 @@ class ProjectDiffTest {
     fun `project property changes are listed`() {
         val after = before.copy(project = before.project.copy(title = "Refunds 2", tags = listOf("q1")))
         assertEquals(listOf("Title: Self-service refunds → Refunds 2", "Tags: — → q1"), ProjectDiff(before, after).projectProperties)
+    }
+
+    @Test
+    fun `solution design changes are detected and diffed`() {
+        val after = before.copy(solutionDesign = "## Architecture\nService")
+        val diff = ProjectDiff(before, after)
+        assertTrue(diff.changes.solutionDesignChanged)
+        assertTrue(diff.changes.hasChanges)
+        assertTrue(diff.changes.summary.contains("solution design changed"))
+        assertTrue(diff.solutionDesign.isNotEmpty())
+        assertFalse(ProjectDiff(before, before).changes.solutionDesignChanged)
+        assertFalse(ProjectDiff(null, before).changes.solutionDesignChanged, "an empty section is not new")
     }
 }

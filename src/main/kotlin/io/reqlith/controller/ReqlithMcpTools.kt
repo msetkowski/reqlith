@@ -75,7 +75,7 @@ class ReqlithMcpTools(private val read: McpReadModel, private val log: McpAccess
     @McpTool(
         name = "get_prd",
         description = "The whole specification of a project as one PRD in Markdown " +
-            "(basic information, business, stakeholder and solution requirements, roles, scenarios, traceability).",
+            "(basic information, business, stakeholder and solution requirements, roles, scenarios, solution design, traceability).",
         annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, idempotentHint = true),
     )
     fun getPrd(
@@ -254,6 +254,11 @@ class ReqlithMcpTools(private val read: McpReadModel, private val log: McpAccess
             } else {
                 null
             },
+            solutionDesignDiff = if (diff.changes.solutionDesignChanged) {
+                unified("solution-design", before?.document?.solutionDesign, after.document.solutionDesign)
+            } else {
+                null
+            },
             changes = diff.items.map { item ->
                 ItemChange(
                     item.key,
@@ -383,7 +388,7 @@ class ReqlithMcpTools(private val read: McpReadModel, private val log: McpAccess
         return UnifiedDiffUtils.generateUnifiedDiff("a/$name", "b/$name", old, DiffUtils.diff(old, new), 2).joinToString("\n")
     }
 
-    private fun target(key: String) = if (key == Suggestion.BASIC_INFO) "Basic information" else key
+    private fun target(key: String) = Suggestion.targetLabel(key)
 
     private fun url(path: String) = properties.baseUrl.trimEnd('/') + path
 }

@@ -22,13 +22,20 @@
     });
   });
 
+  // The theme picked in the account menu (data-theme on <html>), else the OS preference.
+  function darkTheme() {
+    var theme = document.documentElement.getAttribute("data-theme");
+    if (theme) return theme === "dark";
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+
   var mermaidReady = false;
   function initMermaid() {
     if (mermaidReady || !window.mermaid) return !!window.mermaid;
     window.mermaid.initialize({
       startOnLoad: false,
       securityLevel: "strict",
-      theme: "neutral",
+      theme: darkTheme() ? "dark" : "neutral",
       fontFamily: "IBM Plex Sans, system-ui, sans-serif"
     });
     mermaidReady = true;

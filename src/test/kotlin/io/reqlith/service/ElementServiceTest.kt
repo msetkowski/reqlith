@@ -14,6 +14,7 @@ import io.reqlith.model.entity.Priority
 import io.reqlith.model.entity.ProjectStatus
 import io.reqlith.model.entity.TraceLink
 import io.reqlith.repository.ElementRepository
+import io.reqlith.repository.ExternalLinkRepository
 import io.reqlith.repository.KeyCounter
 import io.reqlith.support.UnitFixtures
 import io.reqlith.support.UnitFixtures.NOW
@@ -26,7 +27,8 @@ class ElementServiceTest {
     private val projectService = mockk<ProjectService>(relaxUnitFun = true)
     private val access = mockk<ProjectAccess>(relaxUnitFun = true)
     private val keyCounter = mockk<KeyCounter>()
-    private val service = ElementService(elements, projectService, access, keyCounter, UnitFixtures.clock)
+    private val externalLinks = mockk<ExternalLinkRepository>()
+    private val service = ElementService(elements, externalLinks, projectService, access, keyCounter, UnitFixtures.clock)
 
     private val owner = UnitFixtures.user()
     private val project = UnitFixtures.project(owner)

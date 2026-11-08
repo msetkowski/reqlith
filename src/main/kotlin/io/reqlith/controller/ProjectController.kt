@@ -7,6 +7,7 @@ import io.reqlith.model.dto.DetailsForm
 import io.reqlith.model.dto.NewProjectForm
 import io.reqlith.model.dto.ProjectDocument
 import io.reqlith.model.dto.RenderedDocument
+import io.reqlith.model.dto.TextSection
 import io.reqlith.model.entity.Element
 import io.reqlith.model.entity.ElementType
 import io.reqlith.model.entity.MemberRole
@@ -94,6 +95,7 @@ class ProjectController(
             (if (type == null) document.elements else document.elementsOf(type))
                 .filter { !changed || changes == null || changes.of(it.key) != ChangeKind.UNCHANGED },
         )
+        model.addAttribute("removedRows", changes?.removedElements.orEmpty().filter { type == null || it.type == type })
         model.addAttribute("history", history)
         model.addAttribute("submitters", users.byIds(history.map { it.submittedBy }))
         model.addAttribute("openSuggestions", reviews.openSuggestions(project))
@@ -145,26 +147,40 @@ class ProjectController(
         }
     }
 
-    @GetMapping("/p/{key}/basic-info/edit")
-    fun editBasicInfo(@AuthenticationPrincipal user: CurrentUser, @PathVariable key: String, model: Model): String {
+    /** Editor for a project-level markdown section: basic information or solution design. */
+    @GetMapping("/p/{key}/{section:basic-info|solution-design}/edit")
+    fun editText(@AuthenticationPrincipal user: CurrentUser, @PathVariable key: String, @PathVariable section: String, model: Model): String {
         val project = projects.get(key)
         access.requireEditor(project, user)
+        val textSection = TextSection.ofPath(section)
+        val markdown = textOf(project, textSection)
         val document = documents.fromWorkingCopy(project)
-        support.populate(model, project, user, document, active = "basic")
-        model.addAttribute("markdown", project.basicInfoMd.orEmpty())
+        support.populate(model, project, user, document, active = if (textSection == TextSection.BASIC_INFO) "basic" else "solution-design")
+        model.addAttribute("section", textSection)
+        model.addAttribute("markdown", markdown)
         model.addAttribute("rowVersion", project.rowVersion)
-        model.addAttribute("previewHtml", support.render(project.basicInfoMd, project, document))
-        return "project/basic-info"
+        model.addAttribute("previewHtml", support.render(markdown, project, document))
+        return "project/text-section"
     }
 
-    @PostMapping("/p/{key}/basic-info")
-    fun saveBasicInfo(
+    @PostMapping("/p/{key}/{section:basic-info|solution-design}")
+    fun saveText(
         @AuthenticationPrincipal user: CurrentUser,
         @PathVariable key: String,
+        @PathVariable section: String,
         @RequestParam markdown: String,
         @RequestParam rowVersion: Int,
     ): String {
-        projects.updateBasicInfo(user, projects.get(key), markdown, rowVersion)
-        return "redirect:/p/$key/draft/document#problem-statement"
+        val textSection = TextSection.ofPath(section)
+        when (textSection) {
+            TextSection.BASIC_INFO -> projects.updateBasicInfo(user, projects.get(key), markdown, rowVersion)
+            TextSection.SOLUTION_DESIGN -> projects.updateSolutionDesign(user, projects.get(key), markdown, rowVersion)
+        }
+        return "redirect:/p/$key/draft/document#${textSection.anchor}"
+    }
+
+    private fun textOf(project: Project, section: TextSection): String = when (section) {
+        TextSection.BASIC_INFO -> project.basicInfoMd.orEmpty()
+        TextSection.SOLUTION_DESIGN -> project.solutionDesignMd.orEmpty()
     }
 }

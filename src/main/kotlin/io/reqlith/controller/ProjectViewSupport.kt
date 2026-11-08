@@ -97,6 +97,7 @@ class ProjectViewSupport(
             typed(ElementType.AS), typed(ElementType.RK),
             NavSection("Roles", document.roles.size, "$base/roles", "roles"),
             typed(ElementType.SC), typed(ElementType.DP),
+            NavSection("Solution design", null, "$base/draft/document#solution-design", "solution-design"),
         )
     }
 }

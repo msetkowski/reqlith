@@ -27,8 +27,9 @@
                     The next review shows how each suggestion was handled.</p>
                 <article class="stack tight" th:each="s : ${openSuggestions}">
                     <div class="row small">
-                        <a class="mono" th:if="${s.elementKey != 'BASIC_INFO'}" th:href="@{/p/{k}/e/{ek}(k=${project.key},ek=${s.elementKey})}" th:text="${s.elementKey}">FR-01</a>
-                        <span class="mono" th:if="${s.elementKey == 'BASIC_INFO'}">Basic information</span>
+                        <a class="mono" th:if="${s.elementKey != 'BASIC_INFO' and s.elementKey != 'SOLUTION_DESIGN'}" th:href="@{/p/{k}/e/{ek}(k=${project.key},ek=${s.elementKey})}" th:text="${s.elementKey}">FR-01</a>
+                        <span class="mono" th:if="${s.elementKey == 'BASIC_INFO' or s.elementKey == 'SOLUTION_DESIGN'}"
+                              th:text="${s.elementKey == 'BASIC_INFO'} ? 'Basic information' : 'Solution design'">Basic information</span>
                         <span class="muted" th:text="|suggested by ${names[s.authorId]?.displayName} · ${@formats.date(s.createdAt)}|">by</span>
                     </div>
                     <p class="small" th:if="${s.commentMd}" th:text="${s.commentMd}">comment</p>

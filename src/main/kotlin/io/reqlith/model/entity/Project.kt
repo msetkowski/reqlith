@@ -49,6 +49,9 @@ class Project(
     @Column(name = "current_candidate_id")
     var currentCandidateId: UUID? = null
 
+    @Column(name = "solution_design_md")
+    var solutionDesignMd: String? = null
+
     @Version
     @Column(name = "row_version", nullable = false)
     var rowVersion: Int = 0

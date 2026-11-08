@@ -154,7 +154,7 @@ class ReviewService(
         val version = requireOpenCandidate(project)
         requireAssigned(version, reviewer)
         val document = versionService.document(version)
-        if (elementKey != Suggestion.BASIC_INFO && document.element(elementKey) == null) {
+        if (elementKey != Suggestion.BASIC_INFO && elementKey != Suggestion.SOLUTION_DESIGN && document.element(elementKey) == null) {
             throw NotFoundException("$elementKey is not part of ${version.label}")
         }
         val proposed = proposedMd?.replace("\r\n", "\n")?.ifBlank { null }
@@ -191,6 +191,8 @@ class ReviewService(
             val proposed = suggestion.proposedMd ?: throw ValidationException(null, "This suggestion has no wording to apply")
             if (suggestion.elementKey == Suggestion.BASIC_INFO) {
                 projectService.updateBasicInfo(user, project, proposed, project.rowVersion)
+            } else if (suggestion.elementKey == Suggestion.SOLUTION_DESIGN) {
+                projectService.updateSolutionDesign(user, project, proposed, project.rowVersion)
             } else {
                 val element = elements.get(project, suggestion.elementKey)
                 elements.update(

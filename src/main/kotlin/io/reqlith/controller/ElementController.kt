@@ -50,6 +50,7 @@ class ElementController(
         model.addAttribute("elementUrl", support.absolute("/p/${project.key}/e/${element.key}"))
         model.addAttribute("bodyHtml", support.render(element.bodyMd, project, document))
         model.addAttribute("incoming", document.incomingLinks()[element.key].orEmpty())
+        model.addAttribute("removeConfirm", removeConfirm(project, document, element.key))
         model.addAttribute("document", document)
         model.addAttribute("updatedBy", users.byIds(listOf(element.updatedBy))[element.updatedBy])
         model.addAttribute("externalLinks", links.forElement(project, element.key))
@@ -138,7 +139,20 @@ class ElementController(
         model.addAttribute("suggestions", suggestions)
         model.addAttribute("suggestionHtml", suggestions.associate { it.id to support.render(it.proposedMd, project, document) })
         model.addAttribute("names", names)
+        element?.let { model.addAttribute("removeConfirm", removeConfirm(project, document, it.key)) }
         return "element/edit"
+    }
+
+    /** Confirmation text for removing an element: what else goes with it and that the removal needs approval. */
+    private fun removeConfirm(project: Project, document: ProjectDocument, key: String): String {
+        val referencing = document.incomingLinks()[key].orEmpty().map { it.second }.distinct()
+        return buildString {
+            append("Remove $key? Its key will not be reused.")
+            if (referencing.isNotEmpty()) append(" Links to it from ${referencing.joinToString(", ")} are removed too.")
+            if (project.latestApprovedVersion != null) {
+                append(" v${project.latestApprovedVersion} keeps it; the removal is part of the draft and needs review and approval.")
+            }
+        }
     }
 
     /** Everything an element can link to, as (key, label). */

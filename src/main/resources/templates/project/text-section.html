@@ -2,23 +2,24 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout}">
 <head>
-    <title>Basic information</title>
+    <title th:text="${section.label}">Basic information</title>
     <script th:src="@{/vendor/mermaid.min.js}" defer></script>
     <script th:src="@{/js/editor.js}" defer></script>
 </head>
 <body>
+<!--/* Editor for a project-level markdown section (basic information, solution design). Model: section (TextSection), markdown, rowVersion, previewHtml. */-->
 <nav layout:fragment="crumbs" class="crumbs" aria-label="Breadcrumb">
-    <th:block th:replace="~{fragments/project :: crumbs('Basic information')}"></th:block>
+    <th:block th:replace="~{fragments/project :: crumbs(${section.label})}"></th:block>
 </nav>
 <main class="page" style="max-width: 1440px" layout:fragment="content">
     <a class="small" th:href="@{/p/{k}/draft(k=${project.key})}">← Overview</a>
-    <form class="stack loose" data-guard method="post" th:action="@{/p/{k}/basic-info(k=${project.key})}">
+    <form class="stack loose" data-guard method="post" th:action="@{/p/{k}/{s}(k=${project.key},s=${section.path})}">
         <input type="hidden" name="rowVersion" th:value="${rowVersion}">
         <section class="project-head">
             <div class="title">
-                <span class="key" th:text="|${project.key} · Basic information|">KEY</span>
-                <h1 class="h-sm">Problem statement, scope and success metrics</h1>
-                <p class="summary">Keep the three headings; assumptions, risks and dependencies are separate elements so they can be traced.</p>
+                <span class="key" th:text="|${project.key} · ${section.label}|">KEY</span>
+                <h1 class="h-sm" th:text="${section.heading}">Problem statement, scope and success metrics</h1>
+                <p class="summary" th:text="${section.hint}">Hint</p>
             </div>
             <div class="row">
                 <a class="btn" th:href="@{/p/{k}/draft(k=${project.key})}">Discard changes</a>

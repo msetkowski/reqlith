@@ -84,6 +84,13 @@ object PrdMarkdownWriter {
         appendLine()
         elements(doc, ElementType.SC, level = 3)
 
+        if (doc.solutionDesign.isNotBlank()) {
+            appendLine("## ${++chapter}. Solution design")
+            appendLine()
+            appendLine(shiftHeadings(doc.solutionDesign, 1).trim())
+            appendLine()
+        }
+
         if (options.traceabilityMatrix) {
             appendLine("## Appendix A. Traceability matrix")
             appendLine()

@@ -1,5 +1,6 @@
 package io.reqlith.model.dto
 
+import com.fasterxml.jackson.annotation.JsonInclude
 import io.reqlith.model.entity.ElementType
 import io.reqlith.model.entity.LinkKind
 import io.reqlith.model.entity.Priority
@@ -15,6 +16,12 @@ data class ProjectDocument(
     val basicInfo: String,
     val elements: List<DocElement>,
     val roles: List<DocRole>,
+    /**
+     * Added after schema version 1 without bumping it: snapshots without the field read as empty, and an empty
+     * section is left out of the JSON, so documents without a solution design keep their hash.
+     */
+    @get:JsonInclude(JsonInclude.Include.NON_EMPTY)
+    val solutionDesign: String = "",
 ) {
     fun elementsOf(type: ElementType): List<DocElement> = elements.filter { it.type == type }
 

@@ -38,5 +38,6 @@ class ProjectDocumentService(private val elementService: ElementService, private
         roles = roleService.forProject(project).map { pr ->
             DocRole(pr.role.id, pr.role.key, pr.role.name, pr.role.descriptionMd, pr.contextMd)
         },
+        solutionDesign = project.solutionDesignMd.orEmpty(),
     )
 }

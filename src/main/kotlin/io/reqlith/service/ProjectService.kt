@@ -54,6 +54,7 @@ class ProjectService(
             updatedAt = now,
             updatedBy = user.userId,
         )
+        project.solutionDesignMd = SOLUTION_DESIGN_TEMPLATE
         project.tags = details.tags.toSortedSet()
         project.domains = details.domains.toSortedSet()
         val saved = projects.save(project)
@@ -86,13 +87,24 @@ class ProjectService(
 
     @Transactional
     fun updateBasicInfo(user: CurrentUser, project: Project, markdown: String, rowVersion: Int) {
+        updateText(user, project, rowVersion, "Basic information") { project.basicInfoMd = markdown.replace("\r\n", "\n") }
+    }
+
+    @Transactional
+    fun updateSolutionDesign(user: CurrentUser, project: Project, markdown: String, rowVersion: Int) {
+        updateText(user, project, rowVersion, "Solution design") {
+            project.solutionDesignMd = markdown.replace("\r\n", "\n").ifBlank { null }
+        }
+    }
+
+    private fun updateText(user: CurrentUser, project: Project, rowVersion: Int, section: String, change: () -> Unit) {
         access.requireEditor(project, user)
         project.requireEditable()
         checkVersion(project, rowVersion)
-        project.basicInfoMd = markdown.replace("\r\n", "\n")
+        change()
         project.touch(Instant.now(clock), user.userId)
         projects.save(project)
-        logger.info { "Basic information updated project=${project.key}" }
+        logger.info { "$section updated project=${project.key}" }
     }
 
     /** Records that something inside the project changed (elements, roles). */
@@ -135,6 +147,27 @@ class ProjectService(
             || Metric | Baseline | Target |
             ||---|---|---|
             || | | |
+            |
+        """.trimMargin()
+
+        /** SOLUTION-DESIGN starts with an architecture overview and a Mermaid diagram to replace. */
+        val SOLUTION_DESIGN_TEMPLATE = """
+            |## Architecture overview
+            |
+            |
+            |```mermaid
+            |flowchart LR
+            |  User --> App[Application]
+            |  App --> DB[(Database)]
+            |```
+            |
+            |## Components
+            |
+            |-
+            |
+            |## Key decisions
+            |
+            |-
             |
         """.trimMargin()
 

@@ -43,6 +43,7 @@
             <span class="badge review" th:text="|${diff.changes.changedCount} changed|">0 changed</span>
             <span class="badge danger" th:text="|${diff.changes.removedCount} removed|">0 removed</span>
             <span class="badge info" th:if="${diff.changes.basicInfoChanged}">basic information changed</span>
+            <span class="badge info" th:if="${diff.changes.solutionDesignChanged}">solution design changed</span>
         </div>
 
         <section class="card card-pad stack" th:unless="${diff.projectProperties.isEmpty()}">
@@ -59,7 +60,7 @@
             </div>
         </section>
 
-        <p class="muted" th:if="${diff.items.isEmpty() and !diff.changes.basicInfoChanged}">No differences.</p>
+        <p class="muted" th:if="${diff.items.isEmpty() and !diff.changes.basicInfoChanged and !diff.changes.solutionDesignChanged}">No differences.</p>
 
         <article class="card card-pad stack" th:each="item : ${diff.items}" th:id="${item.key}">
             <header class="row">
@@ -78,6 +79,15 @@
                 <div><div class="side-label">After</div><div class="md small" th:utext="${renderedNew[item.key]}">new</div></div>
             </div>
         </article>
+
+        <section class="card card-pad stack" th:if="${diff.changes.solutionDesignChanged}" id="solution-design">
+            <h2 class="h-sm">Solution design</h2>
+            <div th:if="${view != 'rendered'}" th:replace="~{fragments/diff :: lines(${diff.solutionDesign})}"></div>
+            <div class="diff-pair" th:if="${view == 'rendered'}">
+                <div><div class="side-label">Before</div><div class="md small" th:utext="${designOld}">old</div></div>
+                <div><div class="side-label">After</div><div class="md small" th:utext="${designNew}">new</div></div>
+            </div>
+        </section>
     </main>
 </div>
 </body>

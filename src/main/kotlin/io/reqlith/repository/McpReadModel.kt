@@ -142,7 +142,8 @@ class McpReadModel(database: McpReadOnlyDatabase, private val codec: SnapshotCod
 
     /** The working copy, assembled the same way as ProjectDocumentService (sorted, normalized). */
     private fun workingCopy(project: ProjectRow): ProjectDocument {
-        val basicInfo = jdbc.sql("select basic_info_md from project where id = ?").param(project.id).query(String::class.java).optional().orElse("")
+        val (basicInfo, solutionDesign) = jdbc.sql("select basic_info_md, solution_design_md from project where id = ?").param(project.id)
+            .query { rs, _ -> rs.getString("basic_info_md").orEmpty() to rs.getString("solution_design_md").orEmpty() }.single()
         val tags = pairs("select t.element_id, t.tag from element_tag t join element e on e.id = t.element_id where e.project_id = ?", project.id)
         val links = jdbc.sql(
             "select l.from_element_id, l.link_kind, l.to_key from trace_link l join element e on e.id = l.from_element_id where e.project_id = ?",
@@ -171,9 +172,10 @@ class McpReadModel(database: McpReadOnlyDatabase, private val codec: SnapshotCod
         }.list()
         return ProjectDocument(
             project = DocProject(project.key, project.title, project.summary, project.workspace, project.tags, project.domains),
-            basicInfo = basicInfo.orEmpty(),
+            basicInfo = basicInfo,
             elements = elements,
             roles = roles,
+            solutionDesign = solutionDesign,
         )
     }
 

@@ -50,6 +50,8 @@ class DiffController(
             model.addAttribute("renderedNew", diff.items.associate { it.key to support.renderInPage(it.newBody, after) })
             model.addAttribute("basicOld", support.renderInPage(before?.basicInfo, before ?: after))
             model.addAttribute("basicNew", support.renderInPage(after.basicInfo, after))
+            model.addAttribute("designOld", support.renderInPage(before?.solutionDesign, before ?: after))
+            model.addAttribute("designNew", support.renderInPage(after.solutionDesign, after))
         }
         return "diff/diff"
     }

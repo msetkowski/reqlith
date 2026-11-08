@@ -39,6 +39,7 @@ class PrdMarkdownWriterTest {
             DocElement("RK-01", ElementType.RK, "Abuse", "Limits", null, emptyList(), listOf(DocLink(LinkKind.MITIGATES, "FR-01")), 1),
         ),
         roles = listOf(DocRole(UUID.randomUUID(), "RO-01", "Customer", "Buys", "Requests refunds")),
+        solutionDesign = "## Architecture\n```mermaid\nflowchart TB\n```",
     )
 
     private fun input(label: String = "v1") = PrdInput(
@@ -57,7 +58,8 @@ class PrdMarkdownWriterTest {
         val order = listOf(
             "# Self-service refunds", "## Version and approval record", "## 1. Basic information", "### Problem statement",
             "### Risks", "#### RK-01 · Abuse", "## 2. Business requirements", "### BR-01 · Fewer contacts", "## 4. Solution requirements · Functional",
-            "## 6. Roles", "### RO-01 · Customer", "## 7. Scenarios", "## Appendix A. Traceability matrix",
+            "## 6. Roles", "### RO-01 · Customer", "## 7. Scenarios", "## 8. Solution design", "### Architecture", "flowchart TB",
+            "## Appendix A. Traceability matrix",
         )
         val positions = order.map { md.indexOf(it).also { pos -> assertTrue(pos >= 0, "missing '$it' in\n$md") } }
         assertEquals(positions.sorted(), positions)

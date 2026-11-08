@@ -15,7 +15,7 @@ interface ProjectVersionRepository : JpaRepository<ProjectVersion, UUID> {
 
     fun findByProjectIdAndTargetVersion(projectId: UUID, targetVersion: Int): List<ProjectVersion>
 
-    fun findByStatus(status: VersionStatus): List<ProjectVersion>
+    fun findByProjectIdInAndStatus(projectIds: Collection<UUID>, status: VersionStatus): List<ProjectVersion>
 
     /** The snapshot of one version, read on its own (the entity loads it lazily). */
     @Query("select v.snapshot from ProjectVersion v where v.id = :id")

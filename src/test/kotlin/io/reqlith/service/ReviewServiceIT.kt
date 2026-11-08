@@ -155,6 +155,19 @@ class ReviewServiceIT(
     }
 
     @Test
+    fun `the solution design is versioned and reviewers can suggest new wording for it`() {
+        val t = team()
+        projects.updateSolutionDesign(t.owner, fresh(t.project), "## Architecture\nMonolith", fresh(t.project).rowVersion)
+        val rc = reviews.submit(t.owner, fresh(t.project), listOf(t.r1.userId))
+        assertEquals("## Architecture\nMonolith", versions.document(rc).solutionDesign)
+
+        val suggestion = reviews.suggest(t.r1, fresh(t.project), Suggestion.SOLUTION_DESIGN, "## Architecture\nServices", null)
+        reviews.decide(t.r1, fresh(t.project), Decision.CHANGES, null)
+        reviews.resolve(t.owner, fresh(t.project), suggestion.id, apply = true)
+        assertEquals("## Architecture\nServices", fresh(t.project).solutionDesignMd)
+    }
+
+    @Test
     fun `snapshots keep the role description they were approved with`() {
         val t = team()
         val role = roles.createAndAdd(t.owner, t.project, "Customer " + UUID.randomUUID().toString().take(6), "Original", "Context")

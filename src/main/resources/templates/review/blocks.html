@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <body>
-<!--/* Review feedback and forms below one element (or 'BASIC_INFO') of the candidate. */-->
+<!--/* Review feedback and forms below one element (or 'BASIC_INFO' / 'SOLUTION_DESIGN') of the candidate. */-->
 <div th:fragment="element-review(key)" class="traces stack tight">
     <div class="stack tight" th:each="s : ${suggestionsByKey[key]}">
         <div class="row xs">

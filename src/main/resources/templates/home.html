@@ -42,7 +42,7 @@
     </section>
 
     <section aria-labelledby="all" class="card" id="projects">
-        <form class="card-head" th:action="@{/}" method="get"
+        <form class="card-head" id="project-filters" th:action="@{/}" method="get"
               hx-get="/" hx-target="#projects" hx-select="#projects" hx-swap="outerHTML" hx-push-url="true"
               hx-trigger="change, input from:input[name=q] delay:300ms">
             <h2 id="all">All projects</h2>
@@ -74,12 +74,13 @@
         <div class="empty" th:if="${total == 0}">No projects yet. Create the first one.</div>
         <div class="empty" th:if="${total > 0 and rows.isEmpty()}">No project matches these filters.</div>
         <div class="table-wrap" th:unless="${rows.isEmpty()}">
-            <table class="data" style="min-width: 820px">
+            <table class="data" style="min-width: 920px">
                 <thead>
                 <tr>
                     <th>Project</th>
                     <th>Workspace</th>
                     <th>State</th>
+                    <th>Tags</th>
                     <th>Approved</th>
                     <th>Owners</th>
                     <th>Your role</th>
@@ -87,6 +88,8 @@
                 </tr>
                 </thead>
                 <tbody>
+                <!--/* Rows plus a sentinel that loads the next page (same filters) when it scrolls into view. */-->
+                <th:block th:fragment="rows">
                 <tr th:each="row : ${rows}">
                     <td>
                         <a class="cell-link" th:href="@{/p/{k}(k=${row.project.key})}">
@@ -96,11 +99,22 @@
                     </td>
                     <td th:text="${row.project.workspace.name}">Workspace</td>
                     <td><span class="badge" th:classappend="${row.stateClass}" th:text="${row.state}">Draft</span></td>
+                    <td>
+                        <div class="row" style="gap: 4px">
+                            <span class="tag" th:each="t : ${row.project.tags}" th:text="|#${t}|">#tag</span>
+                            <span class="muted" th:if="${row.project.tags.isEmpty()}">—</span>
+                        </div>
+                    </td>
                     <td class="mono xs" th:text="${row.project.latestApprovedVersion != null} ? |v${row.project.latestApprovedVersion}| : '—'">—</td>
                     <td th:text="${row.owners}">Owners</td>
                     <td class="muted" th:text="${row.myRole != null} ? ${row.myRole.label} : '—'">Owner</td>
                     <td class="muted" th:text="${@formats.date(row.project.updatedAt)}">3 Nov</td>
                 </tr>
+                <tr th:if="${nextPage != null}" class="load-more"
+                    th:hx-get="@{/projects/rows(page=${nextPage})}" hx-include="#project-filters" hx-trigger="intersect once" hx-swap="outerHTML">
+                    <td colspan="8" class="small muted">Loading more projects…</td>
+                </tr>
+                </th:block>
                 </tbody>
             </table>
         </div>

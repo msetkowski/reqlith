@@ -18,8 +18,19 @@ specification; development agents read exactly the version that was approved, th
 
 </div>
 
+## Why Reqlith
+
+- **There are other tools for requirements management.** Established products cover formal requirements
+  engineering well, with rich traceability, compliance workflows and integrations. Reqlith does not try to replace them.
+- **Less formal, built for agentic development.** I wanted something lighter: a specification that a small team can
+  write and approve quickly, and that coding agents can read as the source of truth when they build from it.
+- **A custom tool on demand, built with AI agents.** Reqlith is also an experiment in whether a tailored tool
+  can be built with AI coding agents when it is needed, instead of adapting a team's process to an off-the-shelf
+  product.
+
 ## Contents
 
+- [Why Reqlith](#why-reqlith)
 - [Features](#features)
 - [Screenshots](#screenshots)
 - [Architecture](#architecture)
@@ -40,6 +51,8 @@ specification; development agents read exactly the version that was approved, th
   success metrics, plus business, stakeholder, functional and non-functional requirements, assumptions, risks,
   dependencies, scenarios and roles. See [BABOK alignment](#babok-alignment) for what is covered and what is not. Every element
   gets a permanent key (`BR-01`, `FR-12`, …) that is never reused.
+- **Solution design:** one Markdown section per project for architecture, components and key decisions, with
+  Mermaid diagrams. It is reviewed, versioned, compared and exported like the rest of the specification.
 - **Markdown with Mermaid:** a two-pane editor with live preview. Diagrams are drawn in the browser and in
   PDFs. Writing `` `SR-03` `` links to that element.
 - **Traceability:** typed links (derived from, verified by, depends on, mitigates) in both directions, plus
