@@ -8,6 +8,7 @@ Reqlith structures requirements along selected [BABOK®](#babok-alignment) conce
 and freezes every approved state as an immutable, numbered version. Product managers, analysts, engineers and QA work on one
 specification; development agents read exactly the version that was approved, through a read-only MCP server.
 
+[![CI](https://github.com/msetkowski/reqlith/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/msetkowski/reqlith/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 ![Java 25](https://img.shields.io/badge/Java-25-orange.svg)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.3-7F52FF.svg)
