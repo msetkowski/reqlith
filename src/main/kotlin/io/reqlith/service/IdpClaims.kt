@@ -15,5 +15,18 @@ object IdpClaims {
         ?: listOfNotNull(claims["given_name"] as? String, claims["family_name"] as? String).joinToString(" ").ifBlank { null }
         ?: claims["preferred_username"] as? String
 
+    /**
+     * Role names from [claim]: a list or a space-separated string. A dotted name reaches a nested claim, e.g.
+     * `realm_access.roles` in Keycloak access tokens.
+     */
+    fun roles(claims: Map<String, Any?>, claim: String): Set<String> {
+        val value = claim.split('.').fold<String, Any?>(claims) { node, part -> (node as? Map<*, *>)?.get(part) }
+        return when (value) {
+            is Collection<*> -> value.mapNotNull { it?.toString() }
+            is String -> value.split(' ', ',')
+            else -> emptyList()
+        }.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+    }
+
     private val EMAIL = Regex("[^@\\s]+@[^@\\s]+\\.[^@\\s]+")
 }

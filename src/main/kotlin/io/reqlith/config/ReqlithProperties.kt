@@ -41,6 +41,10 @@ data class ReqlithProperties(
         val directory: DirectoryType = DirectoryType.NONE,
         /** Required `aud` of IDP access tokens sent to /mcp (Entra: the API's application ID URI); blank = not checked. */
         val mcpAudience: String? = null,
+        /** Claim with the user's IDP roles (Keycloak realm roles mapped to `roles`; Entra app roles). Dotted names reach nested claims. */
+        val rolesClaim: String = "roles",
+        /** IDP roles that make a user an architect, who maintains the non-functional requirements baseline. */
+        val architectRoles: List<String> = listOf("ARCHITECT"),
     )
 
     enum class IdpType {

@@ -129,7 +129,7 @@ class ExportPagesIT(
             content { contentType("application/pdf") }
         }.andReturn().response.contentAsByteArray
         assertEquals("%PDF", String(first.copyOfRange(0, 4)))
-        val cached = jdbc.sql("select count(*) from export_cache where options_key like '%|v1|APPROVED'").query(Int::class.java).single()
+        val cached = jdbc.sql("select count(*) from export_cache where options_key like '%|v1|APPROVED|%'").query(Int::class.java).single()
         assertTrue(cached >= 1)
         val second = mvc.get("/p/$key/v/1/prd.pdf") { with(login(owner)) }.andReturn().response.contentAsByteArray
         assertTrue(first.contentEquals(second))

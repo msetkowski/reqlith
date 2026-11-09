@@ -49,6 +49,9 @@ data class CommentRow(val versionId: UUID, val elementKey: String?, val author: 
 
 data class LinkRow(val system: String, val url: String, val label: String, val versionNo: Int?, val elementKey: String?)
 
+/** A baseline non-functional requirement; it applies to every project. */
+data class BaselineRow(val key: String, val category: String, val title: String, val bodyMarkdown: String?, val updatedAt: Instant)
+
 data class RoleRow(val key: String, val name: String, val description: String?, val projects: List<String>)
 
 /** A document and where it came from. */

@@ -8,6 +8,7 @@ import io.reqlith.model.entity.ElementType
 import io.reqlith.model.entity.MemberRole
 import io.reqlith.model.entity.Project
 import io.reqlith.model.entity.ProjectStatus
+import io.reqlith.service.BaselineService
 import io.reqlith.service.MarkdownRenderer
 import io.reqlith.service.MembershipService
 import io.reqlith.service.ProjectAccess
@@ -30,6 +31,7 @@ class ProjectViewSupport(
     private val versions: VersionService,
     private val reviews: ReviewService,
     private val codec: SnapshotCodec,
+    private val baseline: BaselineService,
 ) {
     fun populate(model: Model, project: Project, user: CurrentUser, document: ProjectDocument, active: String) {
         val role = access.roleOf(project, user)
@@ -44,7 +46,9 @@ class ProjectViewSupport(
         model.addAttribute("locked", project.status == ProjectStatus.IN_REVIEW)
         model.addAttribute("owners", owners)
         model.addAttribute("active", active)
-        model.addAttribute("sections", sections(project, document))
+        val baselineItems = baseline.all()
+        model.addAttribute("baseline", baselineItems)
+        model.addAttribute("sections", sections(project, document, baselineItems.size))
         val state = state(project, document)
         model.addAttribute("stateLabel", state.first)
         model.addAttribute("stateClass", state.second)
@@ -84,7 +88,10 @@ class ProjectViewSupport(
             ?: document.role(key)?.let { Reference("/roles/$key", "$key · ${it.name}") }
     }
 
-    private fun sections(project: Project, document: ProjectDocument): List<NavSection> {
+    /** Baseline descriptions rendered for the document views (key to HTML). */
+    fun renderBaseline(): Map<String, String> = baseline.all().associate { it.key to markdown.render(it.bodyMd) }
+
+    private fun sections(project: Project, document: ProjectDocument, baselineCount: Int): List<NavSection> {
         val base = "/p/${project.key}"
         val basic = listOf(
             NavSection("Problem statement", null, "$base/draft/document#problem-statement", "problem"),
@@ -94,6 +101,7 @@ class ProjectViewSupport(
         fun typed(type: ElementType) = NavSection(type.section, document.elementsOf(type).size, "$base/draft?type=${type.name}", type.name)
         return basic + listOf(
             typed(ElementType.BR), typed(ElementType.SR), typed(ElementType.FR), typed(ElementType.NFR),
+            NavSection("Baseline NFRs", baselineCount, "$base/draft/document#baseline", "baseline"),
             typed(ElementType.AS), typed(ElementType.RK),
             NavSection("Roles", document.roles.size, "$base/roles", "roles"),
             typed(ElementType.SC), typed(ElementType.DP),

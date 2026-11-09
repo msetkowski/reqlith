@@ -36,9 +36,13 @@ class ExportServiceTest {
     private val pdf = mockk<PdfRenderer> { every { render(any(), any()) } returns byteArrayOf(1, 2, 3) }
     private val cache = mockk<ExportCache>(relaxUnitFun = true)
     private val properties = ReqlithProperties(idp = ReqlithProperties.Idp("http://idp"))
+    private val baseline = mockk<BaselineService> {
+        every { all() } returns emptyList()
+        every { fingerprint() } returns "bl"
+    }
     private val service = ExportService(
         versions, reviews, documents, users, MarkdownRenderer(), templates, pdf, cache,
-        Formats(UnitFixtures.clock, properties),
+        Formats(UnitFixtures.clock, properties), baseline,
     )
 
     private val project = UnitFixtures.project()
@@ -69,7 +73,7 @@ class ExportServiceTest {
     @Test
     fun `pdfs of closed versions come from the cache when present`() {
         val v1 = version(VersionStatus.APPROVED)
-        every { cache.get(v1.contentHash, "pdf", "t1a1c0|v1|APPROVED") } returns byteArrayOf(9)
+        every { cache.get(v1.contentHash, "pdf", "t1a1c0|v1|APPROVED|bl") } returns byteArrayOf(9)
         assertContentEquals(byteArrayOf(9), service.pdf(project, v1, ExportOptions()).bytes)
         verify(exactly = 0) { pdf.render(any(), any()) }
     }
@@ -80,7 +84,7 @@ class ExportServiceTest {
         every { versions.document(any()) } returns document
         every { cache.get(any(), any(), any()) } returns null
         service.pdf(project, v1, ExportOptions())
-        verify { cache.put(v1.contentHash, "pdf", "t1a1c0|v1|APPROVED", byteArrayOf(1, 2, 3)) }
+        verify { cache.put(v1.contentHash, "pdf", "t1a1c0|v1|APPROVED|bl", byteArrayOf(1, 2, 3)) }
 
         service.pdf(project, version(VersionStatus.IN_REVIEW), ExportOptions())
         service.pdf(project, null, ExportOptions())

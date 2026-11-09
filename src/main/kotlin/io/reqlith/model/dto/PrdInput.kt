@@ -13,6 +13,9 @@ data class ApprovalRow(val version: String, val status: String, val submitted: S
 /** One review comment or suggestion for the optional appendix. */
 data class ReviewNote(val version: String, val target: String, val author: String, val text: String)
 
+/** A baseline non-functional requirement as printed in the PRD. */
+data class BaselineItem(val key: String, val category: String, val title: String, val body: String?)
+
 data class PrdInput(
     val document: ProjectDocument,
     /** "v2", "v3-rc1" or "DRAFT". */
@@ -22,4 +25,6 @@ data class PrdInput(
     val contentHash: String?,
     val approvals: List<ApprovalRow>,
     val notes: List<ReviewNote>,
+    /** The current global baseline; it is not versioned with the project. */
+    val baseline: List<BaselineItem> = emptyList(),
 )

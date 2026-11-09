@@ -62,6 +62,10 @@ specification; development agents read exactly the version that was approved, th
   allowed to use the app from the identity provider's directory (Keycloak or Microsoft Entra ID).
 - **Roles across projects:** select an existing role or create one, then describe what it does in this
   project.
+- **Non-functional requirements baseline:** global NFRs (`BL-01`, …) by category such as performance, availability,
+  security or usability. Every project shows them as read-only items next to its own NFRs, and the PRD export
+  includes them. They are not part of project versions, so changing the baseline never changes a project's state.
+  Only users with the application role `ARCHITECT` maintain it (see [Identity provider](#identity-provider)).
 - **Whole-project review:** reviewers accept, request changes or reject a frozen candidate, and can suggest
   wording on any element. Authors apply or dismiss suggestions afterwards.
 - **Immutable versions:** approval turns the candidate into `v1`, `v2`, … A database trigger keeps approved
@@ -81,9 +85,13 @@ specification; development agents read exactly the version that was approved, th
 |---|---|
 | ![Review](docs/images/review.png) | ![Compare](docs/images/compare.png) |
 
-| Requirement with diagram, traceability and external links |
+| Requirement with diagram, traceability and external links | Projects and what needs your attention |
+|---|---|
+| ![Requirement](docs/images/element.png) | ![Projects](docs/images/home.png) |
+
+| Non-functional requirements baseline, inherited by every project |
 |---|
-| ![Requirement](docs/images/element.png) |
+| ![Baseline](docs/images/baseline.png) |
 
 ## Architecture
 
@@ -133,6 +141,7 @@ Open <http://localhost:8080> and sign in as `owner1` / `password`.
 | `owner2`, `contrib1` | second owner, contributor |
 | `reviewer1`, `reviewer2` | reviewers |
 | `viewer1` | read-only user |
+| `architect1` | architect: maintains the NFR baseline |
 
 All passwords are `password`. Local services:
 
@@ -225,13 +234,14 @@ agents that assess requirements, suggest improvements or build a backlog with th
 | Tool | Returns |
 |---|---|
 | `list_projects` | projects, owners, state, tags, domains |
-| `get_prd` | the whole specification as one Markdown PRD |
-| `search_requirements` | elements by type, tag or text |
-| `get_requirement` | one element with traceability and external links |
+| `get_prd` | the whole specification as one Markdown PRD, including the NFR baseline |
+| `search_requirements` | elements by type, tag or text, plus matching baseline NFRs (project `baseline`) |
+| `get_requirement` | one element with traceability and external links; `BL-` keys work with any project |
 | `get_traceability` | BR → SR → FR/NFR → scenario graph, with its gaps |
 | `list_versions`, `diff_versions` | version history and unified diffs |
 | `get_review_status` | reviewers, decisions, open suggestions |
 | `get_external_links`, `list_roles` | JIRA / ADO references, shared roles |
+| `list_baseline_requirements` | the NFR baseline, optionally by category or text |
 
 - **Approved by default:** tools return the latest approved version unless `version` is `"2"`, `"3-rc1"` or
   `"draft"`, so agents never build on unreviewed work by accident.
@@ -406,6 +416,8 @@ still be overridden with the variable.
 | `REQLITH_IDP_AUTHORIZATION_URI`, `_TOKEN_URI`, `_JWKS_URI`, `_USER_INFO_URI`, `_END_SESSION_URI` | `GENERIC` only (first three) | derived from the type | endpoint overrides |
 | `REQLITH_IDP_MCP_AUDIENCE` | no | not checked | required `aud` of IDP access tokens at `/mcp` (Entra: the API's application ID URI) |
 | `REQLITH_IDP_DIRECTORY` | no | `KEYCLOAK` (`NONE` otherwise) | invitation suggestions: `NONE`, `KEYCLOAK`, `ENTRA` or `ENTRA_ASSIGNED` |
+| `REQLITH_IDP_ROLES_CLAIM` | no | `roles` | token claim with the user's IDP roles; dotted names reach nested claims (`realm_access.roles`) |
+| `REQLITH_IDP_ARCHITECT_ROLES` | no | `ARCHITECT` | IDP roles (comma-separated, case-insensitive) that grant the application role `ARCHITECT` |
 | `MANAGEMENT_PORT` | no | `8081` | actuator port |
 | `LOGGING_LEVEL_IO_REQLITH` | no | `DEBUG` (`INFO` otherwise) | application log level |
 
@@ -427,6 +439,10 @@ from the issuer. Every endpoint can be overridden with `REQLITH_IDP_*_URI`.
 User e-mail addresses (used to match invitations) come from the `email` claim. When that claim is missing, as it
 often is with Entra, they come from `preferred_username` or `upn` if those are addresses.
 
+**Application roles** come from the claim `REQLITH_IDP_ROLES_CLAIM` (default `roles`) at sign-in. A user holding
+one of `REQLITH_IDP_ARCHITECT_ROLES` becomes an `ARCHITECT` and may maintain the NFR baseline. Project roles
+(owner, contributor, reviewer) are managed in Reqlith itself. A changed role takes effect at the next sign-in.
+
 **Invitation suggestions** always include users who have signed in before. With a directory, everyone allowed to use
 the app can be suggested, which also shows those names and addresses to every signed-in user.
 
@@ -440,6 +456,10 @@ the app can be suggested, which also shows those names and addresses to every si
   admin API (26.4+) requires it, and Reqlith requests it only for directory calls. Suggestions list the realm's
   enabled users.
 - **MCP over OAuth:** a public client for MCP clients (the local realm has `reqlith-mcp`).
+- **Architects:** create the realm role `ARCHITECT` and assign it. Add a *User Realm Role* mapper to the client
+  with token claim name `roles`, multivalued, added to the ID token (the local realm does this, and `architect1`
+  has the role). To use Keycloak's built-in `realm_access.roles` instead, switch on *Add to ID token* for the
+  *realm roles* mapper of the `roles` client scope and set `REQLITH_IDP_ROLES_CLAIM=realm_access.roles`.
 
 </details>
 
@@ -461,6 +481,9 @@ the app can be suggested, which also shows those names and addresses to every si
    `api://reqlith`) and a scope. In the manifest, set `requestedAccessTokenVersion` (or `accessTokenAcceptedVersion`)
    to `2` so access tokens carry the v2 issuer. Set `REQLITH_IDP_MCP_AUDIENCE` to the audience of those tokens
    (usually the application ID URI or client id). Personal access tokens work regardless.
+6. **Architects (optional):** under *App roles*, create a role with value `ARCHITECT` for users/groups and assign
+   it in the enterprise application. Entra puts assigned app roles in the ID token's `roles` claim. If your role
+   has another value, set `REQLITH_IDP_ARCHITECT_ROLES` to it.
 
 ```bash
 REQLITH_IDP_TYPE=ENTRA

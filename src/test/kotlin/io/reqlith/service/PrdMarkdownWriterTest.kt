@@ -1,6 +1,7 @@
 package io.reqlith.service
 
 import io.reqlith.model.dto.ApprovalRow
+import io.reqlith.model.dto.BaselineItem
 import io.reqlith.model.dto.DocElement
 import io.reqlith.model.dto.DocLink
 import io.reqlith.model.dto.DocProject
@@ -64,6 +65,26 @@ class PrdMarkdownWriterTest {
         val positions = order.map { md.indexOf(it).also { pos -> assertTrue(pos >= 0, "missing '$it' in\n$md") } }
         assertEquals(positions.sorted(), positions)
         assertFalse(md.contains("Appendix B"), "review comments are opt-in")
+    }
+
+    @Test
+    fun `the baseline is printed after the project's non-functional requirements`() {
+        val md = PrdMarkdownWriter.write(
+            input().copy(baseline = listOf(BaselineItem("BL-01", "Performance", "Fast pages", "## Target\nUnder 2 s"))),
+            ExportOptions(),
+        )
+        val order =
+            listOf(
+                "## 5. Solution requirements · Non-functional",
+                "### Baseline",
+                "#### BL-01 · Fast pages",
+                "**Category:** Performance",
+                "##### Target",
+                "## 6. Roles",
+            )
+        val positions = order.map { md.indexOf(it).also { pos -> assertTrue(pos >= 0, "missing '$it' in\n$md") } }
+        assertEquals(positions.sorted(), positions)
+        assertFalse(PrdMarkdownWriter.write(input(), ExportOptions()).contains("### Baseline"), "no section without a baseline")
     }
 
     @Test

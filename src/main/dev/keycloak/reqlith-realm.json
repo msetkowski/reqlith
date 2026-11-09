@@ -5,6 +5,14 @@
   "sslRequired": "none",
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "ARCHITECT",
+        "description": "Maintains the Reqlith non-functional requirements baseline"
+      }
+    ]
+  },
   "clients": [
     {
       "clientId": "reqlith-app",
@@ -36,6 +44,23 @@
       ],
       "optionalClientScopes": [
         "kc-admin-api"
+      ],
+      "protocolMappers": [
+        {
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
       ]
     },
     {
@@ -178,6 +203,26 @@
       ],
       "realmRoles": [
         "default-roles-reqlith"
+      ]
+    },
+    {
+      "id": "8e3b6f0a-2c4d-4b7e-9a51-6d2f0c9e7b13",
+      "username": "architect1",
+      "email": "architect1@reqlith.local",
+      "firstName": "Ada",
+      "lastName": "Archer",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "default-roles-reqlith",
+        "ARCHITECT"
       ]
     },
     {

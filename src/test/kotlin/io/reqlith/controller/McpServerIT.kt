@@ -6,6 +6,7 @@ import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTranspor
 import io.modelcontextprotocol.spec.McpSchema
 import io.reqlith.config.McpReadOnlyDatabase
 import io.reqlith.model.dto.ElementContent
+import io.reqlith.model.entity.BaselineCategory
 import io.reqlith.model.entity.Decision
 import io.reqlith.model.entity.ElementType
 import io.reqlith.model.entity.LinkKind
@@ -13,6 +14,7 @@ import io.reqlith.model.entity.MemberRole
 import io.reqlith.model.entity.TraceLink
 import io.reqlith.repository.McpAccessLog
 import io.reqlith.service.AccessTokenService
+import io.reqlith.service.BaselineService
 import io.reqlith.service.ElementService
 import io.reqlith.service.ProjectService
 import io.reqlith.service.ReviewService
@@ -33,6 +35,7 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
+import java.util.UUID
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -54,6 +57,7 @@ class McpServerIT(
     @Autowired private val accessLog: McpAccessLog,
     @Autowired private val readOnly: McpReadOnlyDatabase,
     @Autowired private val jdbc: JdbcClient,
+    @Autowired private val baseline: BaselineService,
 ) {
     private val clients = mutableListOf<McpSyncClient>()
 
@@ -113,7 +117,7 @@ class McpServerIT(
         assertEquals(
             setOf(
                 "list_projects", "get_prd", "search_requirements", "get_requirement", "get_traceability", "list_versions",
-                "diff_versions", "get_review_status", "get_external_links", "list_roles",
+                "diff_versions", "get_review_status", "get_external_links", "list_roles", "list_baseline_requirements",
             ),
             mcp.listTools().tools().map { it.name() }.toSet(),
         )
@@ -145,6 +149,37 @@ class McpServerIT(
 
         val log = accessLog.recent(projectKey = key)
         assertTrue(log.any { it.tool == "get_prd" && it.clientName == "backlog-agent" && it.tokenName == "Backlog agent" }, log.toString())
+    }
+
+    @Test
+    fun `agents get the NFR baseline with every project`() {
+        val (key, token) = approvedProject()
+        val architect = users.create("Ada Archer", architect = true)
+        val marker = UUID.randomUUID().toString().take(8)
+        val security = baseline.create(architect, BaselineCategory.SECURITY, "Encrypt data at rest $marker", "AES-256 for all stores")
+        val performance = baseline.create(architect, BaselineCategory.PERFORMANCE, "Fast pages $marker", "Under 2 s")
+        val mcp = client(token)
+
+        val all = mcp.call("list_baseline_requirements", "query" to marker).text()
+        assertContains(all, security.key)
+        assertContains(all, performance.key)
+        assertTrue(all.indexOf(performance.key) < all.indexOf(security.key), "performance is listed before security: $all")
+        val onlySecurity = mcp.call("list_baseline_requirements", "category" to "security", "query" to marker).text()
+        assertContains(onlySecurity, "\"category\":\"Security\"")
+        assertFalse(onlySecurity.contains(performance.key))
+        assertTrue(mcp.call("list_baseline_requirements", "category" to "speed").isError)
+
+        assertContains(mcp.call("get_prd", "project" to key).text(), "#### ${security.key} · Encrypt data at rest $marker")
+
+        val hits = mcp.call("search_requirements", "project" to key, "text" to marker).text()
+        assertContains(hits, "\"project\":\"baseline\"")
+        assertContains(hits, security.key)
+        assertFalse(mcp.call("search_requirements", "project" to key, "type" to "FR", "text" to marker).text().contains(security.key))
+
+        val detail = mcp.call("get_requirement", "project" to key, "key" to security.key.lowercase()).text()
+        assertContains(detail, "AES-256 for all stores")
+        assertContains(detail, "/baseline/${security.key}")
+        assertTrue(mcp.call("get_requirement", "project" to key, "key" to "BL-9999").isError)
     }
 
     @Test

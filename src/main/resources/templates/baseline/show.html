@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title th:text="${requirement.title}">Baseline requirement</title>
+    <script th:src="@{/vendor/mermaid.min.js}" defer></script>
+</head>
+<body>
+<nav layout:fragment="crumbs" class="crumbs" aria-label="Breadcrumb">
+    <a th:href="@{/}">Projects</a><span aria-hidden="true">/</span><a th:href="@{/baseline}">Baseline</a>
+    <span aria-hidden="true">/</span><span class="current" th:text="${requirement.key}">BL-01</span>
+</nav>
+<main class="page narrow" layout:fragment="content">
+    <section class="title stack tight">
+        <div class="row">
+            <span class="key" th:text="${requirement.key}">BL-01</span>
+            <span class="badge" th:text="${requirement.category.label}">Security</span>
+            <span class="badge info">Applies to every project</span>
+        </div>
+        <h1 th:text="${requirement.title}">Title</h1>
+        <p class="muted small" th:text="|Modified ${@formats.dateTime(requirement.updatedAt)}|">Modified</p>
+    </section>
+    <div class="banner danger" th:if="${error}" th:text="${error.message}" role="alert">Error</div>
+    <section class="card card-pad md" th:utext="${bodyHtml}">description</section>
+    <details class="card" th:if="${canEdit}" th:attr="open=${error != null} ? 'open' : null">
+        <summary class="card-head" style="cursor: pointer"><h2 class="h-sm">Edit</h2></summary>
+        <form class="card-body" method="post" th:action="@{/baseline/{bk}(bk=${requirement.key})}">
+            <div class="banner warn">Every project shows the current baseline. Changes apply to all of them at once.</div>
+            <div class="field">
+                <label for="category">Category</label>
+                <select class="select" id="category" name="category" required>
+                    <option th:each="c : ${categories}" th:value="${c}" th:text="${c.label}" th:selected="${c == requirement.category}">Security</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="title">Title</label>
+                <input class="input" id="title" name="title" th:value="${requirement.title}" required maxlength="200">
+            </div>
+            <div class="field">
+                <label for="body">Description (Markdown)</label>
+                <textarea class="textarea code" id="body" name="body" rows="8" th:text="${requirement.bodyMd}"></textarea>
+            </div>
+            <div><button class="btn primary" type="submit">Save</button></div>
+        </form>
+    </details>
+    <form th:if="${canEdit}" method="post" th:action="@{/baseline/{bk}/delete(bk=${requirement.key})}"
+          data-confirm="Remove this requirement from the baseline of every project? Its key stays retired."
+          onsubmit="return confirm(this.dataset.confirm)">
+        <button class="btn danger sm" type="submit" th:text="|Remove ${requirement.key}|">Remove</button>
+    </form>
+</main>
+</body>
+</html>

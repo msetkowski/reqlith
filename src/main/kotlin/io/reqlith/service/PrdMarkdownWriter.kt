@@ -61,6 +61,22 @@ object PrdMarkdownWriter {
             appendLine()
             elements(doc, type, level = 3)
         }
+        if (input.baseline.isNotEmpty()) {
+            appendLine("### Baseline")
+            appendLine()
+            appendLine("_Global non-functional requirements that apply to every project (current baseline, not versioned with the project)._")
+            appendLine()
+            input.baseline.forEach { b ->
+                appendLine("#### ${b.key} · ${b.title}")
+                appendLine()
+                appendLine("**Category:** ${b.category}")
+                appendLine()
+                b.body?.let {
+                    appendLine(shiftHeadings(it, 3).trim())
+                    appendLine()
+                }
+            }
+        }
 
         appendLine("## ${++chapter}. Roles")
         appendLine()

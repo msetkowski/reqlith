@@ -58,6 +58,10 @@ reqlith:
     mcp-audience: ${REQLITH_IDP_MCP_AUDIENCE:}
     # Invitation suggestions: NONE (users who signed in before), KEYCLOAK, ENTRA or ENTRA_ASSIGNED.
     directory: ${REQLITH_IDP_DIRECTORY:NONE}
+    # Claim with the user's IDP roles (dotted names reach nested claims, e.g. realm_access.roles), and the
+    # roles in it that grant the application role ARCHITECT (maintains the NFR baseline), comma-separated.
+    roles-claim: ${REQLITH_IDP_ROLES_CLAIM:roles}
+    architect-roles: ${REQLITH_IDP_ARCHITECT_ROLES:ARCHITECT}
 
 spring.ai.mcp.server:
   name: reqlith
@@ -67,7 +71,8 @@ spring.ai.mcp.server:
   instructions: >-
     Read-only access to Reqlith requirement specifications (BABOK: business, stakeholder and solution
     requirements, scenarios, roles, risks). Tools default to the latest approved version of a project;
-    pass version="draft" only when you explicitly need unreviewed work in progress.
+    pass version="draft" only when you explicitly need unreviewed work in progress. The non-functional
+    requirements baseline (keys BL-...) applies to every project in addition to its own requirements.
   streamable-http:
     mcp-endpoint: /mcp
 
