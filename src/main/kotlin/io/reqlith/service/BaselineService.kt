@@ -29,6 +29,8 @@ class BaselineService(private val baseline: BaselineRequirementRepository, priva
 
     fun get(key: String): BaselineRequirement = baseline.findByKey(key) ?: throw NotFoundException("Baseline requirement $key not found")
 
+    fun keys(): Set<String> = baseline.findAll().map { it.key }.toSet()
+
     fun canEdit(user: CurrentUser): Boolean = user.isArchitect
 
     /** Changes whenever any baseline requirement is added, changed or removed (part of export cache keys). */

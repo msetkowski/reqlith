@@ -215,8 +215,8 @@ class ReqlithMcpTools(private val read: McpReadModel, private val log: McpAccess
 
     @McpTool(
         name = "get_traceability",
-        description = "Traceability graph of a project (BR → SR → FR/NFR → scenarios, risks, dependencies, roles) " +
-            "with gaps: functional requirements without a scenario and broken links.",
+        description = "Traceability graph of a project (BR → SR → FR/NFR → scenarios, risks, dependencies, roles, " +
+            "and baseline NFRs it links to) with gaps: functional requirements without a scenario and broken links.",
         annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, idempotentHint = true),
     )
     fun getTraceability(
@@ -228,13 +228,16 @@ class ReqlithMcpTools(private val read: McpReadModel, private val log: McpAccess
         audit(context, "get_traceability", p.key, mapOf("version" to version))
         val doc = read.document(p, version).let { it.document to it.label }
         val (document, label) = doc
+        val targets = document.elements.flatMap { e -> e.links.map { it.toKey } }.toSet()
+        val baseline = read.baseline()
         Traceability(
             project = p.key,
             version = label,
-            nodes = document.elements.map { TraceNode(it.key, it.type.label, it.title) } + document.roles.map { TraceNode(it.key, "Role", it.name) },
+            nodes = document.elements.map { TraceNode(it.key, it.type.label, it.title) } + document.roles.map { TraceNode(it.key, "Role", it.name) } +
+                baseline.filter { it.key in targets }.map { TraceNode(it.key, baselineType(it), it.title) },
             edges = document.elements.flatMap { e -> e.links.map { TraceEdge(e.key, it.kind.label, it.toKey) } },
             functionalWithoutScenario = document.functionalWithoutScenario().map { it.key },
-            brokenLinks = document.brokenLinks().map { TraceEdge(it.first, it.second.kind.label, it.second.toKey) },
+            brokenLinks = document.brokenLinks(baseline.map { it.key }.toSet()).map { TraceEdge(it.first, it.second.kind.label, it.second.toKey) },
         )
     }
 

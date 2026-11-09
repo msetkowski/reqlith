@@ -176,6 +176,20 @@ class McpServerIT(
         assertContains(hits, security.key)
         assertFalse(mcp.call("search_requirements", "project" to key, "type" to "FR", "text" to marker).text().contains(security.key))
 
+        val editor = users.create("Carla Conti")
+        val project = projects.get(key)
+        fixtures.addMember(project, editor, MemberRole.CONTRIBUTOR)
+        val nfr = elements.create(
+            editor,
+            project,
+            ElementType.NFR,
+            ElementContent("Encrypt refund photos", null, null, emptySet(), setOf(TraceLink(LinkKind.DERIVED_FROM, security.key))),
+        )
+        val trace = mcp.call("get_traceability", "project" to key, "version" to "draft").text()
+        assertContains(trace, "{\"from\":\"${nfr.key}\",\"kind\":\"Derived from\",\"to\":\"${security.key}\"}")
+        assertContains(trace, "{\"key\":\"${security.key}\",")
+        assertContains(trace, "\"brokenLinks\":[]")
+
         val detail = mcp.call("get_requirement", "project" to key, "key" to security.key.lowercase()).text()
         assertContains(detail, "AES-256 for all stores")
         assertContains(detail, "/baseline/${security.key}")

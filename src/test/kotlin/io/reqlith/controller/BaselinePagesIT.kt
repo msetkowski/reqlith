@@ -1,8 +1,13 @@
 package io.reqlith.controller
 
+import io.reqlith.model.dto.ElementContent
 import io.reqlith.model.dto.ReqlithOidcUser
 import io.reqlith.model.entity.BaselineCategory
+import io.reqlith.model.entity.ElementType
+import io.reqlith.model.entity.LinkKind
+import io.reqlith.model.entity.TraceLink
 import io.reqlith.service.BaselineService
+import io.reqlith.service.ElementService
 import io.reqlith.support.Fixtures
 import io.reqlith.support.IntegrationTest
 import io.reqlith.support.TestUsers
@@ -26,8 +31,46 @@ class BaselinePagesIT(
     @Autowired private val users: TestUsers,
     @Autowired private val fixtures: Fixtures,
     @Autowired private val baseline: BaselineService,
+    @Autowired private val elements: ElementService,
 ) {
     private fun login(user: ReqlithOidcUser) = oidcLogin().oidcUser(user)
+
+    @Test
+    fun `trace links and references to baseline requirements are not broken while the requirement exists`() {
+        val architect = users.create("Ada Archer", architect = true)
+        val owner = users.create("Olive Owens")
+        val project = fixtures.project(owner)
+        val requirement = baseline.create(architect, BaselineCategory.SECURITY, "Encrypt data at rest " + UUID.randomUUID().toString().take(6), null)
+        val nfr = elements.create(
+            owner,
+            project,
+            ElementType.NFR,
+            ElementContent(
+                "Encrypt refund photos",
+                "Applies `${requirement.key}` to uploaded photos.",
+                null,
+                emptySet(),
+                setOf(TraceLink(LinkKind.DERIVED_FROM, requirement.key)),
+            ),
+        )
+
+        mvc.get("/p/${project.key}/draft") { with(login(owner)) }.andExpect {
+            content { string(not(containsString("${nfr.key} → ${requirement.key}"))) }
+        }
+        mvc.get("/p/${project.key}/e/${nfr.key}") { with(login(owner)) }.andExpect {
+            content { string(containsString("""title="Baseline requirement">${requirement.key}</a>""")) }
+            content { string(containsString("""class="ref" rel="noopener noreferrer"><code>${requirement.key}</code>""")) }
+            content { string(not(containsString("${requirement.key} (missing)"))) }
+        }
+
+        baseline.delete(architect, requirement)
+        mvc.get("/p/${project.key}/draft") { with(login(owner)) }.andExpect {
+            content { string(containsString("${nfr.key} → ${requirement.key}")) }
+        }
+        mvc.get("/p/${project.key}/e/${nfr.key}") { with(login(owner)) }.andExpect {
+            content { string(containsString("${requirement.key} (missing)")) }
+        }
+    }
 
     @Test
     fun `architects add and edit baseline requirements from the baseline pages`() {

@@ -101,7 +101,7 @@ class ProjectController(
         model.addAttribute("openSuggestions", reviews.openSuggestions(project))
         model.addAttribute("externalLinks", links.all(project))
         model.addAttribute("modified", elements.all(project).associate { it.key to it.updatedAt })
-        model.addAttribute("brokenLinks", document.brokenLinks())
+        model.addAttribute("brokenLinks", document.brokenLinks(support.baselineKeys()))
         model.addAttribute("functionalWithoutScenario", document.functionalWithoutScenario())
         return "project/overview"
     }

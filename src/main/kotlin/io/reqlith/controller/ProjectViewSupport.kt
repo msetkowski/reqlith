@@ -48,6 +48,8 @@ class ProjectViewSupport(
         model.addAttribute("active", active)
         val baselineItems = baseline.all()
         model.addAttribute("baseline", baselineItems)
+        // A HashSet: SpEL cannot call methods on Kotlin's internal EmptySet, which toSet() returns for no items.
+        model.addAttribute("baselineKeys", baselineItems.map { it.key }.toHashSet())
         model.addAttribute("sections", sections(project, document, baselineItems.size))
         val state = state(project, document)
         model.addAttribute("stateLabel", state.first)
@@ -77,16 +79,28 @@ class ProjectViewSupport(
     /** Renders markdown with element and role keys linked into the project's read view. */
     fun render(markdownText: String?, project: Project, document: ProjectDocument): String = markdown.render(markdownText, resolver(project, document))
 
-    /** Renders markdown of a frozen version: references point to anchors on the same page. */
-    fun renderInPage(markdownText: String?, document: ProjectDocument): String = markdown.render(markdownText) { key ->
-        document.element(key)?.let { Reference("#$key", "$key · ${it.title}") }
-            ?: document.role(key)?.let { Reference("#$key", "$key · ${it.name}") }
+    /** Renders markdown of a frozen version: references point to anchors on the same page (the baseline is shown there too). */
+    fun renderInPage(markdownText: String?, document: ProjectDocument): String {
+        val baselineTitles = baselineTitles()
+        return markdown.render(markdownText) { key ->
+            document.element(key)?.let { Reference("#$key", "$key · ${it.title}") }
+                ?: document.role(key)?.let { Reference("#$key", "$key · ${it.name}") }
+                ?: baselineTitles[key]?.let { Reference("#$key", "$key · $it") }
+        }
     }
 
-    fun resolver(project: Project, document: ProjectDocument) = ReferenceResolver { key ->
-        document.element(key)?.let { Reference("/p/${project.key}/e/$key", "$key · ${it.title}") }
-            ?: document.role(key)?.let { Reference("/roles/$key", "$key · ${it.name}") }
+    fun resolver(project: Project, document: ProjectDocument): ReferenceResolver {
+        val baselineTitles = baselineTitles()
+        return ReferenceResolver { key ->
+            document.element(key)?.let { Reference("/p/${project.key}/e/$key", "$key · ${it.title}") }
+                ?: document.role(key)?.let { Reference("/roles/$key", "$key · ${it.name}") }
+                ?: baselineTitles[key]?.let { Reference("/baseline/$key", "$key · $it") }
+        }
     }
+
+    fun baselineKeys(): Set<String> = baseline.keys()
+
+    private fun baselineTitles(): Map<String, String> = baseline.all().associate { it.key to it.title }
 
     /** Baseline descriptions rendered for the document views (key to HTML). */
     fun renderBaseline(): Map<String, String> = baseline.all().associate { it.key to markdown.render(it.bodyMd) }

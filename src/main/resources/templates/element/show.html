@@ -49,7 +49,10 @@
                             <a class="mono" th:if="${document.element(l.toKey) != null}" th:href="@{/p/{k}/e/{ek}(k=${project.key},ek=${l.toKey})}"
                                th:text="${l.toKey}" th:title="${document.element(l.toKey).title}">SR-03</a>
                             <a class="mono" th:if="${document.role(l.toKey) != null}" th:href="@{/roles/{rk}(rk=${l.toKey})}" th:text="${l.toKey}">RO-01</a>
-                            <span class="mono" style="color: var(--danger)" th:if="${document.element(l.toKey) == null and document.role(l.toKey) == null}"
+                            <a class="mono" th:if="${baselineKeys.contains(l.toKey)}" th:href="@{/baseline/{bk}(bk=${l.toKey})}"
+                               th:text="${l.toKey}" title="Baseline requirement">BL-01</a>
+                            <span class="mono" style="color: var(--danger)"
+                                  th:if="${document.element(l.toKey) == null and document.role(l.toKey) == null and !baselineKeys.contains(l.toKey)}"
                                   th:text="|${l.toKey} (missing)|">XX-1</span>
                         </div>
                         <div th:each="in : ${incoming}">
