@@ -1,4 +1,4 @@
-// Global behaviour shared by every page: CSRF for HTMX requests and Mermaid rendering.
+// Global behaviour shared by every page: CSRF for HTMX requests, Mermaid rendering and the sticky project header.
 (function () {
   "use strict";
 
@@ -51,7 +51,21 @@
   }
   window.reqlith = { renderMermaid: renderMermaid };
 
+  // On project pages the header is sticky (except on narrow screens); --header-h tells the side navigation
+  // and anchor targets how much room it takes (it grows when the breadcrumbs wrap).
+  function trackHeaderHeight() {
+    var header = document.querySelector(".app-header");
+    if (!header || !document.querySelector(".workbench")) return;
+    var update = function () {
+      var sticky = getComputedStyle(header).position === "sticky";
+      document.documentElement.style.setProperty("--header-h", (sticky ? header.offsetHeight : 0) + "px");
+    };
+    update();
+    if (window.ResizeObserver) new ResizeObserver(update).observe(header);
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
+    trackHeaderHeight();
     renderMermaid(document).finally(function () { window.mermaidDone = true; });
   });
   document.addEventListener("htmx:afterSettle", function (event) {
