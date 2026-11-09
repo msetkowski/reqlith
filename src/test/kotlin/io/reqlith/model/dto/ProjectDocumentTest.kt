@@ -44,6 +44,13 @@ class ProjectDocumentTest {
     }
 
     @Test
+    fun `links to baseline requirements are not broken while they exist`() {
+        val doc = document(element("NFR-01", LinkKind.DERIVED_FROM to "BL-03"))
+        assertEquals(emptyList(), doc.brokenLinks(setOf("BL-01", "BL-03")))
+        assertEquals(listOf("NFR-01" to "BL-03"), doc.brokenLinks(setOf("BL-01")).map { it.first to it.second.toKey })
+    }
+
+    @Test
     fun `incoming links are grouped by target`() {
         val doc = document(element("FR-01", LinkKind.DERIVED_FROM to "SR-01"), element("SR-01"))
         assertEquals(listOf("FR-01"), doc.incomingLinks()["SR-01"]!!.map { it.second })

@@ -33,9 +33,9 @@ data class ProjectDocument(
     fun incomingLinks(): Map<String, List<Pair<DocLink, String>>> = elements.flatMap { from -> from.links.map { it.toKey to (it to from.key) } }
         .groupBy({ it.first }, { it.second })
 
-    /** Links whose target key does not exist in this document. */
-    fun brokenLinks(): List<Pair<String, DocLink>> {
-        val known = elements.map { it.key }.toSet() + roles.map { it.key }
+    /** Links whose target key does not exist in this document, nor among [baselineKeys] (the global NFR baseline). */
+    fun brokenLinks(baselineKeys: Set<String> = emptySet()): List<Pair<String, DocLink>> {
+        val known = elements.map { it.key }.toSet() + roles.map { it.key } + baselineKeys
         return elements.flatMap { e -> e.links.filter { it.toKey !in known }.map { e.key to it } }
     }
 

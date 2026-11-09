@@ -107,7 +107,7 @@ class ElementService(
         if (content.title.isBlank()) throw ValidationException("title", "Title is required")
         if (content.title.length > 300) throw ValidationException("title", "Keep the title under 300 characters")
         content.links.forEach {
-            if (!MarkdownRenderer.KEY.matches(it.toKey)) throw ValidationException("links", "${it.toKey} is not an element or role key")
+            if (!MarkdownRenderer.KEY.matches(it.toKey)) throw ValidationException("links", "${it.toKey} is not an element, role or baseline key")
             if (it.toKey == key) throw ValidationException("links", "An element cannot link to itself")
         }
     }
