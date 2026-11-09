@@ -85,9 +85,13 @@ specification; development agents read exactly the version that was approved, th
 |---|---|
 | ![Review](docs/images/review.png) | ![Compare](docs/images/compare.png) |
 
-| Requirement with diagram, traceability and external links |
+| Requirement with diagram, traceability and external links | Projects and what needs your attention |
+|---|---|
+| ![Requirement](docs/images/element.png) | ![Projects](docs/images/home.png) |
+
+| Non-functional requirements baseline, inherited by every project |
 |---|
-| ![Requirement](docs/images/element.png) |
+| ![Baseline](docs/images/baseline.png) |
 
 ## Architecture
 
