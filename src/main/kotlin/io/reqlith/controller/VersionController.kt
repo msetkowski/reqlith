@@ -53,6 +53,7 @@ class VersionController(
         model.addAttribute("isLatest", version.versionNo != null && version.versionNo == project.latestApprovedVersion)
         model.addAttribute("document", document)
         model.addAttribute("html", RenderedDocument.of(document) { support.renderInPage(it, document) })
+        model.addAttribute("baselineHtml", support.renderBaseline())
         model.addAttribute("types", ElementType.entries)
         model.addAttribute("incoming", document.incomingLinks())
         return "project/document"

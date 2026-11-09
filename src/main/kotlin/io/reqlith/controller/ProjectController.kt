@@ -115,6 +115,7 @@ class ProjectController(
         model.addAttribute("document", document)
         model.addAttribute("changes", changesSinceApproval(project, document))
         model.addAttribute("html", RenderedDocument.of(document) { support.render(it, project, document) })
+        model.addAttribute("baselineHtml", support.renderBaseline())
         model.addAttribute("types", ElementType.entries)
         model.addAttribute("incoming", document.incomingLinks())
         return "project/document"

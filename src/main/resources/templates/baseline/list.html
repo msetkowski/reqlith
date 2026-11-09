@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Baseline</title>
+</head>
+<body>
+<nav layout:fragment="crumbs" class="crumbs" aria-label="Breadcrumb">
+    <a th:href="@{/}">Projects</a><span aria-hidden="true">/</span><span class="current">Baseline</span>
+</nav>
+<main class="page narrow" layout:fragment="content">
+    <section class="title stack tight">
+        <h1>Non-functional requirements baseline</h1>
+        <p class="muted">Global non-functional requirements that apply to every project. Projects show them as read-only items;
+            changing the baseline does not change a project's state or its approved versions. Architects maintain the baseline.</p>
+    </section>
+    <div class="banner danger" th:if="${error}" th:text="${error.message}" role="alert">Error</div>
+    <section class="card">
+        <div class="empty" th:if="${baseline.isEmpty()}">No baseline requirements yet.</div>
+        <div class="table-wrap" th:unless="${baseline.isEmpty()}">
+            <table class="data">
+                <thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Modified</th></tr></thead>
+                <tbody>
+                <th:block th:each="group : ${baseline}">
+                    <tr th:each="b : ${group.value}">
+                        <td class="mono muted" th:text="${b.key}">BL-01</td>
+                        <td><a th:href="@{/baseline/{bk}(bk=${b.key})}" style="font-weight: 500; text-decoration: none" th:text="${b.title}">Title</a></td>
+                        <td><span class="badge" th:text="${b.category.label}">Security</span></td>
+                        <td class="muted" th:text="${@formats.date(b.updatedAt)}">date</td>
+                    </tr>
+                </th:block>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="card" th:if="${canEdit}">
+        <div class="card-head"><h2>New baseline requirement</h2></div>
+        <form class="card-body" method="post" th:action="@{/baseline}">
+            <div class="field">
+                <label for="category">Category <span class="req">*</span></label>
+                <select class="select" id="category" name="category" required>
+                    <option th:each="c : ${categories}" th:value="${c}" th:text="${c.label}" th:selected="${c == newCategory}">Security</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="title">Title <span class="req">*</span></label>
+                <input class="input" id="title" name="title" required maxlength="200" th:value="${newTitle}" placeholder="e.g. Pages respond within 2 seconds">
+            </div>
+            <div class="field">
+                <label for="body">Description (Markdown)</label>
+                <textarea class="textarea code" id="body" name="body" rows="5" th:text="${newBody}"
+                          placeholder="The requirement, how it is measured and any exceptions"></textarea>
+            </div>
+            <div><button class="btn primary" type="submit">Add to baseline</button></div>
+        </form>
+    </section>
+</main>
+</body>
+</html>

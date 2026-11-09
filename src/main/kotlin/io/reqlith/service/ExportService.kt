@@ -3,6 +3,7 @@ package io.reqlith.service
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.reqlith.controller.Formats
 import io.reqlith.model.dto.ApprovalRow
+import io.reqlith.model.dto.BaselineItem
 import io.reqlith.model.dto.ExportFile
 import io.reqlith.model.dto.ExportOptions
 import io.reqlith.model.dto.PrdInput
@@ -34,6 +35,7 @@ class ExportService(
     private val pdf: PdfRenderer,
     private val cache: ExportCache,
     private val formats: Formats,
+    private val baseline: BaselineService,
 ) {
     /** [version] null exports the working copy. */
     fun markdown(project: Project, version: ProjectVersion?, options: ExportOptions): ExportFile {
@@ -45,8 +47,10 @@ class ExportService(
     fun pdf(project: Project, version: ProjectVersion?, options: ExportOptions): ExportFile {
         val name = "${fileName(project, version)}.pdf"
         // A candidate and its approved version share a content hash, so label and status are part of the key.
-        // Open candidates are not cached: their status and review record are still changing.
-        val cacheKey = version?.takeIf { it.status != VersionStatus.IN_REVIEW }?.let { "${options.key}|${it.label}|${it.status}" }
+        // Open candidates are not cached: their status and review record are still changing. The PRD includes the
+        // current NFR baseline, which is not versioned, so its fingerprint is part of the key too.
+        val cacheKey = version?.takeIf { it.status != VersionStatus.IN_REVIEW }
+            ?.let { "${options.key}|${it.label}|${it.status}|${baseline.fingerprint()}" }
         cacheKey?.let { key ->
             cache.get(version.contentHash, "pdf", key)?.let {
                 logger.info { "PRD exported project=${project.key} version=${version.label} format=pdf" }
@@ -98,6 +102,7 @@ class ExportService(
                     listOfNotNull(s.commentMd, s.proposedMd?.let { "Suggested wording: $it" }).joinToString(" — ") + " [${s.status.name.lowercase()}]",
                 )
             } + comments.map { (v, c) -> ReviewNote(v.label, c.elementKey?.let(::target) ?: "General", name(c.authorId), c.bodyMd) },
+            baseline = baseline.all().map { BaselineItem(it.key, it.category.label, it.title, it.bodyMd) },
         )
     }
 

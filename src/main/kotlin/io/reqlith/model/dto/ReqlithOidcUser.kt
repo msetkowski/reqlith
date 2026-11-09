@@ -18,6 +18,8 @@ class ReqlithOidcUser(
 
     override val emailAddress: String? get() = email
 
+    override val isArchitect: Boolean get() = authorities.any { it.authority == CurrentUser.ARCHITECT_AUTHORITY }
+
     companion object {
         private const val serialVersionUID = 1L
     }

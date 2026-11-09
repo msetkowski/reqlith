@@ -90,7 +90,7 @@ up() {
   fi
 
   echo "MSSQL     localhost:1433 (db reqlith, user reqlith_app)"
-  echo "Keycloak  http://localhost:8180 (admin/admin, realm reqlith, users owner1..viewer1 / password)"
+  echo "Keycloak  http://localhost:8180 (admin/admin, realm reqlith, users owner1..viewer1, architect1 / password)"
   echo "Renderer  http://localhost:3000 (Gotenberg, PDF export)"
   $with_app && echo "App       http://localhost:8080 (actuator on http://localhost:8081/actuator)"
   return 0
