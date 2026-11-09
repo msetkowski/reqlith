@@ -71,7 +71,8 @@ spring.ai.mcp.server:
   instructions: >-
     Read-only access to Reqlith requirement specifications (BABOK: business, stakeholder and solution
     requirements, scenarios, roles, risks). Tools default to the latest approved version of a project;
-    pass version="draft" only when you explicitly need unreviewed work in progress.
+    pass version="draft" only when you explicitly need unreviewed work in progress. The non-functional
+    requirements baseline (keys BL-...) applies to every project in addition to its own requirements.
   streamable-http:
     mcp-endpoint: /mcp
 

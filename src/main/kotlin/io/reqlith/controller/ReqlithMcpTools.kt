@@ -7,6 +7,8 @@ import io.reqlith.config.ReqlithProperties
 import io.reqlith.exception.NotFoundException
 import io.reqlith.exception.ValidationException
 import io.reqlith.model.dto.ApprovalRow
+import io.reqlith.model.dto.BaselineItem
+import io.reqlith.model.dto.BaselineRow
 import io.reqlith.model.dto.ChangeKind
 import io.reqlith.model.dto.DocElement
 import io.reqlith.model.dto.ExportOptions
@@ -30,6 +32,7 @@ import io.reqlith.model.dto.Traceability
 import io.reqlith.model.dto.VersionDiff
 import io.reqlith.model.dto.VersionRow
 import io.reqlith.model.dto.VersionSummary
+import io.reqlith.model.entity.BaselineCategory
 import io.reqlith.model.entity.ElementType
 import io.reqlith.model.entity.Suggestion
 import io.reqlith.repository.McpAccessLog
@@ -75,7 +78,8 @@ class ReqlithMcpTools(private val read: McpReadModel, private val log: McpAccess
     @McpTool(
         name = "get_prd",
         description = "The whole specification of a project as one PRD in Markdown " +
-            "(basic information, business, stakeholder and solution requirements, roles, scenarios, solution design, traceability).",
+            "(basic information, business, stakeholder and solution requirements including the NFR baseline, roles, scenarios, " +
+            "solution design, traceability).",
         annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, idempotentHint = true),
     )
     fun getPrd(
@@ -114,6 +118,7 @@ class ReqlithMcpTools(private val read: McpReadModel, private val log: McpAccess
                 )
             },
             notes = notes,
+            baseline = read.baseline().map { BaselineItem(it.key, it.category, it.title, it.bodyMarkdown) },
         )
         PrdMarkdownWriter.write(input, ExportOptions(traceabilityMatrix = true, approvalRecord = true, reviewComments = includeReviewComments == true))
     }
@@ -121,7 +126,8 @@ class ReqlithMcpTools(private val read: McpReadModel, private val log: McpAccess
     @McpTool(
         name = "search_requirements",
         description = "Find requirements, scenarios, assumptions, risks and dependencies by type, tag or text. " +
-            "Searches the latest approved version of each project unless a version is given.",
+            "Searches the latest approved version of each project unless a version is given. Without a type or with type NFR, " +
+            "matching baseline non-functional requirements (keys BL-…, project \"baseline\") are included: they apply to every project.",
         annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, idempotentHint = true),
     )
     fun searchRequirements(
@@ -150,18 +156,30 @@ class ReqlithMcpTools(private val read: McpReadModel, private val log: McpAccess
         } else {
             read.projects().filter { it.latestApprovedVersion != null }.map { read.document(it, null) }
         }
-        sources.flatMap { doc ->
+        val projectHits = sources.flatMap { doc ->
             doc.document.elements.filter { e ->
                 (wantedType == null || e.type == wantedType) &&
                     (wantedTag.isNullOrEmpty() || e.tags.any { it.lowercase() == wantedTag }) &&
                     (needle.isEmpty() || listOf(e.key, e.title, e.body.orEmpty()).any { it.lowercase().contains(needle) })
             }.map { e -> hit(doc.document.project.key, doc.label, e, needle) }
-        }.take(200)
+        }
+        // Baseline requirements have no tags, so a tag search never matches them.
+        val baselineHits = if ((wantedType == null || wantedType == ElementType.NFR) && wantedTag.isNullOrEmpty()) {
+            read.baseline().filter { b ->
+                needle.isEmpty() ||
+                    listOf(b.key, b.title, b.category, b.bodyMarkdown.orEmpty()).any { it.lowercase().contains(needle) }
+            }
+                .map { b -> RequirementHit(BASELINE, CURRENT_BASELINE, b.key, baselineType(b), b.title, null, emptyList(), excerpt(b.bodyMarkdown, needle)) }
+        } else {
+            emptyList()
+        }
+        (projectHits + baselineHits).take(200)
     }
 
     @McpTool(
         name = "get_requirement",
-        description = "One element with its Markdown body, priority, tags, traceability in both directions and external links (JIRA, ADO).",
+        description = "One element with its Markdown body, priority, tags, traceability in both directions and external links (JIRA, ADO). " +
+            "Baseline keys (BL-…) work with any project key: the baseline applies to every project.",
         annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, idempotentHint = true),
     )
     fun getRequirement(
@@ -172,8 +190,17 @@ class ReqlithMcpTools(private val read: McpReadModel, private val log: McpAccess
     ): RequirementDetail = tool("get_requirement") {
         val p = read.project(project)
         audit(context, "get_requirement", p.key, mapOf("key" to key, "version" to version))
+        val wanted = key.trim().uppercase()
+        if (wanted.startsWith("BL-")) {
+            val b = read.baseline().firstOrNull { it.key == wanted } ?: throw ValidationException("key", "$key is not in the baseline")
+            return@tool RequirementDetail(
+                project = p.key, version = CURRENT_BASELINE, key = b.key, type = baselineType(b), title = b.title,
+                priority = null, tags = emptyList(), bodyMarkdown = b.bodyMarkdown, linksTo = emptyList(), linkedFrom = emptyList(),
+                externalLinks = emptyList(), url = url("/baseline/${b.key}"),
+            )
+        }
         val resolved = read.document(p, version)
-        val element = resolved.document.element(key.trim().uppercase())
+        val element = resolved.document.element(wanted)
             ?: throw ValidationException("key", "$key is not part of ${p.key} ${resolved.label}")
         val incoming = resolved.document.incomingLinks()[element.key].orEmpty()
         RequirementDetail(
@@ -326,6 +353,33 @@ class ReqlithMcpTools(private val read: McpReadModel, private val log: McpAccess
         read.roles().filter { needle.isEmpty() || it.name.lowercase().contains(needle) || it.description.orEmpty().lowercase().contains(needle) }
     }
 
+    @McpTool(
+        name = "list_baseline_requirements",
+        description = "The non-functional requirements baseline: global requirements (keys BL-…) by category, e.g. performance, " +
+            "availability, security, usability. Every project inherits them; they are maintained by architects and not versioned with projects.",
+        annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, idempotentHint = true),
+    )
+    fun listBaselineRequirements(
+        @McpToolParam(
+            description = "Optional category: PERFORMANCE, AVAILABILITY, RELIABILITY, SCALABILITY, SECURITY, USABILITY, " +
+                "ACCESSIBILITY, MAINTAINABILITY, COMPLIANCE or OTHER",
+            required = false,
+        ) category: String?,
+        @McpToolParam(description = "Optional text to match in key, title or description", required = false) query: String?,
+        context: McpSyncRequestContext,
+    ): List<BaselineRow> = tool("list_baseline_requirements") {
+        audit(context, "list_baseline_requirements", null, mapOf("category" to category, "query" to query))
+        val wantedCategory = category?.trim()?.uppercase()?.takeIf { it.isNotEmpty() }?.let {
+            runCatching { BaselineCategory.valueOf(it) }
+                .getOrElse { throw ValidationException("category", "Unknown category $category. Use one of ${BaselineCategory.entries.joinToString()}") }
+        }
+        val needle = query?.trim()?.lowercase().orEmpty()
+        read.baseline().filter { b ->
+            (wantedCategory == null || b.category == wantedCategory.label) &&
+                (needle.isEmpty() || listOf(b.key, b.title, b.bodyMarkdown.orEmpty()).any { it.lowercase().contains(needle) })
+        }
+    }
+
     // ------------------------------------------------------------------ helpers
 
     /**
@@ -375,12 +429,16 @@ class ReqlithMcpTools(private val read: McpReadModel, private val log: McpAccess
         }
     }
 
-    private fun hit(project: String, version: String, e: DocElement, needle: String): RequirementHit {
-        val body = e.body.orEmpty().replace(Regex("\\s+"), " ").trim()
+    private fun hit(project: String, version: String, e: DocElement, needle: String): RequirementHit =
+        RequirementHit(project, version, e.key, e.type.label, e.title, e.priority?.label, e.tags, excerpt(e.body, needle))
+
+    private fun excerpt(markdown: String?, needle: String): String {
+        val body = markdown.orEmpty().replace(Regex("\\s+"), " ").trim()
         val at = if (needle.isEmpty()) 0 else body.lowercase().indexOf(needle).coerceAtLeast(0)
-        val excerpt = body.substring((at - 60).coerceAtLeast(0), (at + 180).coerceAtMost(body.length))
-        return RequirementHit(project, version, e.key, e.type.label, e.title, e.priority?.label, e.tags, excerpt)
+        return body.substring((at - 60).coerceAtLeast(0), (at + 180).coerceAtMost(body.length))
     }
+
+    private fun baselineType(b: BaselineRow) = "Baseline non-functional requirement · ${b.category}"
 
     private fun unified(name: String, before: String?, after: String?): String {
         val old = before.orEmpty().lines()
@@ -391,4 +449,10 @@ class ReqlithMcpTools(private val read: McpReadModel, private val log: McpAccess
     private fun target(key: String) = Suggestion.targetLabel(key)
 
     private fun url(path: String) = properties.baseUrl.trimEnd('/') + path
+
+    companion object {
+        /** Project and version reported for baseline requirements, which belong to no single project or version. */
+        private const val BASELINE = "baseline"
+        private const val CURRENT_BASELINE = "current baseline"
+    }
 }

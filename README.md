@@ -230,13 +230,14 @@ agents that assess requirements, suggest improvements or build a backlog with th
 | Tool | Returns |
 |---|---|
 | `list_projects` | projects, owners, state, tags, domains |
-| `get_prd` | the whole specification as one Markdown PRD |
-| `search_requirements` | elements by type, tag or text |
-| `get_requirement` | one element with traceability and external links |
+| `get_prd` | the whole specification as one Markdown PRD, including the NFR baseline |
+| `search_requirements` | elements by type, tag or text, plus matching baseline NFRs (project `baseline`) |
+| `get_requirement` | one element with traceability and external links; `BL-` keys work with any project |
 | `get_traceability` | BR → SR → FR/NFR → scenario graph, with its gaps |
 | `list_versions`, `diff_versions` | version history and unified diffs |
 | `get_review_status` | reviewers, decisions, open suggestions |
 | `get_external_links`, `list_roles` | JIRA / ADO references, shared roles |
+| `list_baseline_requirements` | the NFR baseline, optionally by category or text |
 
 - **Approved by default:** tools return the latest approved version unless `version` is `"2"`, `"3-rc1"` or
   `"draft"`, so agents never build on unreviewed work by accident.

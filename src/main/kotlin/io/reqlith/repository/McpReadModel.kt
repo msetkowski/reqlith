@@ -3,6 +3,7 @@ package io.reqlith.repository
 import io.reqlith.config.McpReadOnlyDatabase
 import io.reqlith.exception.NotFoundException
 import io.reqlith.exception.ValidationException
+import io.reqlith.model.dto.BaselineRow
 import io.reqlith.model.dto.CommentRow
 import io.reqlith.model.dto.DecisionRow
 import io.reqlith.model.dto.DocElement
@@ -16,6 +17,7 @@ import io.reqlith.model.dto.ResolvedDocument
 import io.reqlith.model.dto.RoleRow
 import io.reqlith.model.dto.SuggestionRow
 import io.reqlith.model.dto.VersionRow
+import io.reqlith.model.entity.BaselineCategory
 import io.reqlith.model.entity.ElementType
 import io.reqlith.model.entity.LinkKind
 import io.reqlith.model.entity.Priority
@@ -139,6 +141,17 @@ class McpReadModel(database: McpReadOnlyDatabase, private val codec: SnapshotCod
             .query { rs, _ -> RoleRow(rs.getString("role_key"), rs.getString("name"), rs.getString("description_md"), usage[rs.uuid("id")].orEmpty().sorted()) }
             .list()
     }
+
+    /** The current NFR baseline, by category, then in the order the requirements were added (as in the UI). */
+    fun baseline(): List<BaselineRow> = jdbc.sql("select baseline_key, category, title, body_md, updated_at from baseline_requirement order by created_at")
+        .query { rs, _ ->
+            val category = BaselineCategory.valueOf(rs.getString("category"))
+            category to
+                BaselineRow(rs.getString("baseline_key"), category.label, rs.getString("title"), rs.getString("body_md"), rs.instant("updated_at")!!)
+        }
+        .list()
+        .sortedBy { it.first.ordinal } // stable: keeps the creation order within a category
+        .map { it.second }
 
     /** The working copy, assembled the same way as ProjectDocumentService (sorted, normalized). */
     private fun workingCopy(project: ProjectRow): ProjectDocument {
